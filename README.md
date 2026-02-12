@@ -172,4 +172,8 @@ All games are independently implemented and do not reuse proprietary assets.
 - UI animations
 - Theme customization
 
+## 🤝 Contributing
+
+Feel free to submit issues, enhancements, or new game ideas!
+
 
