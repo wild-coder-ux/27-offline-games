@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Word Search">
+<title>Word Search</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+  height:100vh;height:100dvh;
+  padding:4px 6px;
+  user-select:none;-webkit-user-select:none;
+}
+h1{font-size:1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.cat{font-size:.65rem;color:#4fc3f7;font-weight:700;text-transform:uppercase}
+.prog{font-size:.8rem;color:#aaa;font-weight:700;font-family:monospace}
+
+.grid-wrap{
+  width:100%;max-width:380px;
+  border:3px solid #e94560;border-radius:6px;
+  overflow:hidden;background:#0f0f23;
+  touch-action:none;
+  position:relative;
+}
+.grid{display:grid;position:relative}
+.gc{
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(.65rem,2.8vw,.95rem);
+  font-weight:700;
+  color:#ccc;
+  aspect-ratio:1;
+  position:relative;z-index:1;
+  cursor:pointer;
+}
+.gc.hl{background:rgba(233,69,96,.3);border-radius:4px}
+.gc.found{color:#538d4e;font-weight:800}
+.gc.sel{background:rgba(79,195,247,.25);border-radius:4px}
+
+.words{
+  display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:center;
+  width:100%;max-width:400px;
+  font-size:clamp(.6rem,2.5vw,.8rem);font-weight:700;
+}
+.wrd{color:#888;text-transform:uppercase;letter-spacing:.05em}
+.wrd.done{color:#538d4e;text-decoration:line-through}
+
+.actions button{font-family:inherit;font-size:.7rem;font-weight:700;padding:6px 14px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>WORD SEARCH</h1>
+<div class="topbar">
+  <span class="cat" id="catL">Animals</span>
+  <span class="prog" id="prog">0/6</span>
+</div>
+<div class="grid-wrap"><div class="grid" id="grid"></div></div>
+<div class="words" id="words"></div>
+<div class="actions"><button id="newBtn">↻ New Puzzle</button></div>
+<div class="ov" id="ov">
+  <h2>🎉 All Found!</h2>
+  <p id="ovM"></p>
+  <button id="ovB">Next Puzzle</button>
+</div>
+<script>
+(function(){
+/* ========================================
+   WORD SEARCH - EXPANDED THEMES
+   ========================================
+
+   INSTRUCTIONS:
+   1. Open word-search.html
+   2. Find lines 79-85 (the CATS object)
+   3. Replace the entire CATS object with this code below
+   4. Save and test
+
+   BEFORE (line 79-85):
+   var CATS={
+     Animals:['tiger','eagle',...],
+     Space:['comet','earth',...],
+     ...
+   };
+
+   AFTER: Replace with everything between the === markers below ===
+*/
+
+var CATS={
+  Animals:[
+    'tiger','eagle','whale','snake','horse','zebra','shark','panda','mouse','crane',
+    'elephant','giraffe','leopard','cheetah','gorilla','penguin','dolphin','octopus',
+    'kangaroo','buffalo','rhino','hippo','koala','lemur','otter','beaver','rabbit',
+    'squirrel','raccoon','badger','weasel','mole','vole','shrew','bat','fox','wolf',
+    'bear','lion','cougar','lynx','bobcat','ocelot','jaguar','panther','cheetah'
+  ],
+
+  Space:[
+    'comet','earth','lunar','orbit','pluto','solar','venus','stars','rover','nebula',
+    'mars','jupiter','saturn','uranus','neptune','mercury','asteroid','meteor',
+    'galaxy','cosmos','rocket','shuttle','astronaut','satellite','telescope','crater',
+    'eclipse','supernova','blackhole','quasar','pulsar','neutron','dwarf','giant',
+    'planet','moon','sun','rings','atmosphere','gravity','vacuum','void','infinite'
+  ],
+
+  Food:[
+    'bread','pizza','pasta','cream','steak','salad','mango','berry','honey','lemon',
+    'apple','banana','orange','grape','peach','plum','cherry','melon','kiwi','pear',
+    'carrot','potato','tomato','onion','garlic','pepper','celery','lettuce','spinach',
+    'broccoli','cheese','butter','milk','yogurt','eggs','bacon','chicken','turkey',
+    'salmon','tuna','shrimp','lobster','crab','rice','beans','corn','wheat','oats'
+  ],
+
+  Music:[
+    'piano','drums','viola','chord','tempo','notes','vocal','blues','opera','dance',
+    'guitar','violin','cello','harp','flute','trumpet','saxophone','clarinet','oboe',
+    'trombone','tuba','banjo','ukulele','mandolin','accordion','harmonica','organ',
+    'melody','harmony','rhythm','beat','scale','symphony','concert','ensemble',
+    'jazz','rock','folk','country','reggae','metal','classical','ballad','waltz'
+  ],
+
+  Tech:[
+    'pixel','cloud','cyber','debug','cache','linux','array','stack','nodes','coder',
+    'code','data','binary','server','network','router','modem','wifi','bluetooth',
+    'software','hardware','keyboard','monitor','mouse','printer','scanner','webcam',
+    'laptop','desktop','tablet','phone','app','website','browser','search','email',
+    'password','username','login','database','algorithm','function','variable','loop'
+  ],
+
+  Ocean:[
+    'whale','dolphin','shark','octopus','jellyfish','starfish','seahorse','coral',
+    'reef','wave','tide','current','beach','shell','pearl','seaweed','plankton',
+    'lobster','crab','shrimp','squid','seal','otter','penguin','pelican','anchor',
+    'treasure','shipwreck','submarine','sailor','captain','island','lighthouse',
+    'marina','harbor','port','buoy','dock','pier','yacht','boat','ship','vessel'
+  ],
+
+  Nature:[
+    'tree','flower','grass','leaf','branch','trunk','root','seed','bloom','petal',
+    'mountain','valley','river','lake','stream','waterfall','canyon','cliff','cave',
+    'forest','jungle','desert','tundra','prairie','meadow','swamp','marsh','delta',
+    'cloud','rain','snow','wind','thunder','lightning','rainbow','sunrise','sunset',
+    'storm','breeze','mist','fog','frost','dew','hail','sleet','drizzle','shower'
+  ],
+
+  Sports:[
+    'soccer','tennis','hockey','golf','rugby','cricket','baseball','basketball',
+    'football','volleyball','badminton','squash','boxing','wrestling','judo','karate',
+    'swimming','diving','surfing','sailing','rowing','kayaking','cycling','running',
+    'marathon','sprint','relay','hurdles','javelin','discus','shotput','hammer',
+    'skiing','skating','snowboard','bobsled','luge','curling','archery','fencing'
+  ],
+
+  School:[
+    'teacher','student','class','lesson','homework','test','exam','grade','pencil',
+    'pen','paper','notebook','textbook','desk','chair','board','chalk','eraser',
+    'ruler','scissors','glue','backpack','locker','cafeteria','library','gym',
+    'playground','recess','bell','schedule','math','science','history','english',
+    'art','music','reading','writing','spelling','geography','biology','chemistry'
+  ],
+
+  Colors:[
+    'red','blue','green','yellow','orange','purple','pink','brown','black','white',
+    'gray','silver','gold','bronze','violet','indigo','turquoise','cyan','magenta',
+    'maroon','navy','teal','olive','lime','coral','crimson','scarlet','ruby',
+    'emerald','sapphire','amber','ivory','pearl','cream','beige','tan','khaki',
+    'lavender','lilac','burgundy','charcoal','mint','peach','plum','rose','mustard'
+  ],
+
+  Weather:[
+    'sunny','cloudy','rainy','stormy','windy','foggy','snowy','hail','thunder',
+    'lightning','rainbow','warm','cold','hot','cool','humid','dry','wet','forecast',
+    'climate','season','spring','summer','autumn','winter','breeze','gust','tornado',
+    'hurricane','typhoon','cyclone','monsoon','drought','flood','frost','blizzard',
+    'temperature','pressure','front','system','pattern','condition','outlook'
+  ],
+
+  Garden:[
+    'flower','rose','tulip','daisy','lily','orchid','violet','plant','tree','bush',
+    'grass','lawn','soil','seed','root','stem','leaf','petal','bloom','bud','garden',
+    'vegetable','fruit','herb','water','hose','sprinkler','shovel','rake','hoe',
+    'trowel','gloves','fertilizer','compost','mulch','fence','gate','path','bench',
+    'greenhouse','planter','pot','vase','basket','trellis','arbor','fountain','pond'
+  ],
+
+  City:[
+    'building','tower','office','store','shop','mall','street','road','avenue',
+    'sidewalk','traffic','car','bus','taxi','subway','train','station','bridge',
+    'tunnel','park','fountain','statue','museum','theater','restaurant','cafe',
+    'hotel','hospital','school','library','police','fire','mayor','citizen','downtown',
+    'district','neighborhood','block','corner','intersection','plaza','square'
+  ],
+
+  Winter:[
+    'snow','snowflake','icicle','frost','frozen','blizzard','avalanche','glacier',
+    'igloo','snowman','sledding','skiing','skating','hockey','mittens','gloves',
+    'scarf','boots','coat','fireplace','cocoa','warm','cold','freeze','chill','polar',
+    'arctic','tundra','penguin','seal','reindeer','caribou','husky','winter',
+    'december','january','february','solstice','holiday','festive','cozy','blanket'
+  ],
+
+  Adventure:[
+    'explore','discover','journey','quest','expedition','treasure','map','compass',
+    'guide','trail','path','mountain','valley','river','forest','desert','jungle',
+    'cave','cliff','bridge','rope','climb','hike','camp','tent','backpack','survival',
+    'wilderness','nature','wildlife','danger','challenge','courage','brave','hero',
+    'legend','mystery','secret','ancient','ruin','artifact','discovery','wonder'
+  ]
+};
+
+/* === END OF EXPANDED THEMES === */
+
+/*
+   STATS:
+   - 15 themes (up from 5)
+   - ~45 words per theme (up from 10)
+   - ~675 total words (up from 50)
+   - 13.5x more content!
+*/
+
+  var SIZE=10,catNames=Object.keys(CATS),catIdx=0;
+  var gridData,wordList,foundSet,selCells,over;
+  var gridEl=document.getElementById('grid'),wordsEl=document.getElementById('words');
+  var progEl=document.getElementById('prog'),catL=document.getElementById('catL');
+  var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+
+  var DIRS=[[0,1],[1,0],[1,1],[0,-1],[-1,0],[-1,-1],[1,-1],[-1,1]];
+
+  function newGame(){
+    catIdx=(catIdx+1)%catNames.length;
+    var cat=catNames[catIdx];catL.textContent=cat;
+    var allWords=CATS[cat].slice();
+    shuffle(allWords);
+    wordList=allWords.slice(0,6);
+    foundSet=new Set();selCells=[];over=false;
+    gridData=generateGrid(SIZE,wordList);
+    ov.className='ov';
+    renderGrid();renderWords();updProg();
+  }
+
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}}
+
+  function generateGrid(size,words){
+    var g=[];for(var r=0;r<size;r++){g[r]=[];for(var c=0;c<size;c++)g[r][c]='';}
+    var placed={};
+    for(var w=0;w<words.length;w++){
+      var word=words[w].toUpperCase();
+      var ok=false;
+      for(var attempt=0;attempt<200;attempt++){
+        var d=DIRS[Math.floor(Math.random()*DIRS.length)];
+        var sr=Math.floor(Math.random()*size),sc=Math.floor(Math.random()*size);
+        var er=sr+d[0]*(word.length-1),ec=sc+d[1]*(word.length-1);
+        if(er<0||er>=size||ec<0||ec>=size)continue;
+        var fits=true;
+        for(var i=0;i<word.length;i++){
+          var cr=sr+d[0]*i,cc=sc+d[1]*i;
+          if(g[cr][cc]!==''&&g[cr][cc]!==word[i]){fits=false;break;}
+        }
+        if(!fits)continue;
+        for(var i=0;i<word.length;i++){
+          var cr=sr+d[0]*i,cc=sc+d[1]*i;
+          g[cr][cc]=word[i];
+        }
+        placed[words[w]]={sr:sr,sc:sc,dr:d[0],dc:d[1],len:word.length};
+        ok=true;break;
+      }
+    }
+    // Fill empty
+    for(var r=0;r<size;r++)for(var c=0;c<size;c++){
+      if(g[r][c]==='')g[r][c]=String.fromCharCode(65+Math.floor(Math.random()*26));
+    }
+    gridData=g;gridData._placed=placed;
+    return g;
+  }
+
+  function renderGrid(){
+    gridEl.innerHTML='';
+    gridEl.style.gridTemplateColumns='repeat('+SIZE+',1fr)';
+    for(var r=0;r<SIZE;r++){
+      for(var c=0;c<SIZE;c++){
+        var d=document.createElement('div');d.className='gc';
+        d.textContent=gridData[r][c];
+        d.setAttribute('data-r',r);d.setAttribute('data-c',c);
+        gridEl.appendChild(d);
+      }
+    }
+  }
+
+  function renderWords(){
+    wordsEl.innerHTML='';
+    for(var i=0;i<wordList.length;i++){
+      var s=document.createElement('span');s.className='wrd';s.id='w_'+wordList[i];
+      s.textContent=wordList[i];
+      if(foundSet.has(wordList[i]))s.classList.add('done');
+      wordsEl.appendChild(s);
+    }
+  }
+
+  function updProg(){progEl.textContent=foundSet.size+'/'+wordList.length;}
+
+  function gc(r,c){return gridEl.children[r*SIZE+c];}
+
+  function clearSel(){
+    for(var i=0;i<selCells.length;i++){
+      gc(selCells[i][0],selCells[i][1]).classList.remove('sel');
+    }
+    selCells=[];
+  }
+
+  function getCellFromEvent(e){
+    var touch=e.touches?e.touches[0]:e;
+    var el=document.elementFromPoint(touch.clientX,touch.clientY);
+    if(!el)return null;
+    var t=el.closest('.gc');if(!t)return null;
+    return[parseInt(t.getAttribute('data-r')),parseInt(t.getAttribute('data-c'))];
+  }
+
+  function getLineOfCells(r1,c1,r2,c2){
+    var dr=r2-r1,dc=c2-c1;
+    // Must be horizontal, vertical, or diagonal
+    if(dr!==0&&dc!==0&&Math.abs(dr)!==Math.abs(dc))return null;
+    var steps=Math.max(Math.abs(dr),Math.abs(dc));
+    if(steps===0)return[[r1,c1]];
+    var sr=dr===0?0:(dr>0?1:-1),sc=dc===0?0:(dc>0?1:-1);
+    var cells=[];
+    for(var i=0;i<=steps;i++){cells.push([r1+sr*i,c1+sc*i]);}
+    return cells;
+  }
+
+  var dragging=false,startR=-1,startC=-1;
+
+  gridEl.addEventListener('pointerdown',function(e){
+    if(over)return;
+    var p=getCellFromEvent(e);if(!p)return;
+    e.preventDefault();
+    dragging=true;startR=p[0];startC=p[1];
+    clearSel();selCells=[p];gc(p[0],p[1]).classList.add('sel');
+  });
+
+  gridEl.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    var p=getCellFromEvent(e);if(!p)return;
+    var line=getLineOfCells(startR,startC,p[0],p[1]);
+    if(!line)return;
+    clearSel();
+    selCells=line;
+    for(var i=0;i<line.length;i++)gc(line[i][0],line[i][1]).classList.add('sel');
+  });
+
+  document.addEventListener('pointerup',function(){
+    if(!dragging)return;
+    dragging=false;
+    // Check if selection matches a word
+    var letters='';
+    for(var i=0;i<selCells.length;i++)letters+=gridData[selCells[i][0]][selCells[i][1]];
+    var word=letters.toLowerCase();
+    var rev=letters.split('').reverse().join('').toLowerCase();
+    var match=null;
+    for(var i=0;i<wordList.length;i++){
+      if(!foundSet.has(wordList[i])&&(word===wordList[i]||rev===wordList[i])){match=wordList[i];break;}
+    }
+    if(match){
+      foundSet.add(match);
+      for(var i=0;i<selCells.length;i++)gc(selCells[i][0],selCells[i][1]).classList.add('found');
+      var we=document.getElementById('w_'+match);if(we)we.classList.add('done');
+      updProg();
+      if(foundSet.size===wordList.length){
+        over=true;
+        ovM.textContent='All '+wordList.length+' words found!';
+        setTimeout(function(){ov.className='ov show';},400);
+      }
+    }
+    clearSel();
+  });
+
+  document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+  document.getElementById('ovB').addEventListener('click',function(){newGame();});
+  newGame();
+})();
+</script>
+</body>
+</html>

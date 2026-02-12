@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mastermind">
+<title>Mastermind</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+  height:100vh;height:100dvh;
+  padding:6px 8px;
+  user-select:none;-webkit-user-select:none;
+}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.65rem;color:#888;text-align:center}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px}
+.stats span{font-family:monospace;font-size:.85rem;color:#aaa;font-weight:700}
+.dbtn{display:flex;gap:5px}
+.dbtn button{font-family:inherit;font-size:.6rem;font-weight:700;padding:4px 8px;border:none;border-radius:20px;background:#16213e;color:#888;cursor:pointer}
+.dbtn button.on{background:#e94560;color:#fff}
+
+.board-scroll{width:100%;max-width:360px;overflow-y:auto;max-height:50vh;-webkit-overflow-scrolling:touch}
+.row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #2a2a4a}
+.row.active{background:rgba(233,69,96,.08);border-radius:6px}
+.row.past{opacity:.7}
+.pegs{display:flex;gap:5px}
+.peg{
+  width:clamp(28px,8vw,40px);height:clamp(28px,8vw,40px);
+  border-radius:50%;border:2px solid #2a2a4a;
+  cursor:pointer;transition:transform .1s;
+}
+.peg:active{transform:scale(.9)}
+.feedback{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-left:8px}
+.fb{width:12px;height:12px;border-radius:50%;background:#2a2a4a}
+.fb.exact{background:#538d4e}
+.fb.partial{background:#b59f3b}
+
+.palette{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;width:100%;max-width:360px}
+.pal{
+  width:clamp(32px,9vw,44px);height:clamp(32px,9vw,44px);
+  border-radius:50%;cursor:pointer;border:3px solid transparent;
+  transition:transform .1s,border-color .2s;
+}
+.pal:active{transform:scale(.9)}
+.pal.sel{border-color:#fff}
+
+.actions{display:flex;gap:8px}
+.actions button{font-family:inherit;font-size:.7rem;font-weight:700;padding:8px 16px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+.actions button.primary{background:#e94560;color:#fff}
+
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem;text-align:center}
+.ov .code{display:flex;gap:8px;margin:8px 0}
+.ov .code .cpeg{width:36px;height:36px;border-radius:50%}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>MASTERMIND</h1>
+<p class="sub">Crack the color code! 🟢 = right color & spot, 🟡 = right color wrong spot</p>
+
+<div class="topbar">
+  <div class="dbtn" id="db">
+    <button data-d="6" class="on">6 Colors</button>
+    <button data-d="8">8 Colors</button>
+  </div>
+  <div class="stats"><span id="guessCount">Guess 1/10</span></div>
+</div>
+
+<div class="board-scroll" id="boardScroll">
+  <div id="board"></div>
+</div>
+
+<div class="palette" id="palette"></div>
+
+<div class="actions">
+  <button id="clearBtn">✕ Clear</button>
+  <button id="submitBtn" class="primary">✓ Submit</button>
+  <button id="newBtn">↻ New</button>
+</div>
+
+<div class="ov" id="ov">
+  <h2 id="ovT"></h2>
+  <p id="ovM"></p>
+  <div class="code" id="ovCode"></div>
+  <button id="ovB">Play Again</button>
+</div>
+
+<script>
+(function(){
+  var COLORS_6=['#e94560','#4fc3f7','#66bb6a','#ffca28','#ab47bc','#ff7043'];
+  var COLORS_8=['#e94560','#4fc3f7','#66bb6a','#ffca28','#ab47bc','#ff7043','#26c6da','#ec407a'];
+  var CODE_LEN=4,MAX_GUESSES=10;
+  var numColors=6,colors,secret,guesses,currentGuess,currentRow,over,selColor;
+  var boardEl=document.getElementById('board'),palEl=document.getElementById('palette');
+  var gcEl=document.getElementById('guessCount');
+  var ov=document.getElementById('ov'),ovT=document.getElementById('ovT');
+  var ovM=document.getElementById('ovM'),ovCode=document.getElementById('ovCode');
+  var boardScroll=document.getElementById('boardScroll');
+
+  function newGame(nc){
+    if(nc)numColors=nc;
+    colors=numColors===8?COLORS_8:COLORS_6;
+    secret=[];
+    for(var i=0;i<CODE_LEN;i++)secret.push(Math.floor(Math.random()*colors.length));
+    guesses=[];currentGuess=[-1,-1,-1,-1];currentRow=0;over=false;selColor=0;
+    ov.className='ov';updD();buildPalette();renderBoard();
+    gcEl.textContent='Guess 1/'+MAX_GUESSES;
+  }
+
+  function updD(){var bs=document.getElementById('db').children;for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-d'))===numColors?'on':'';}
+
+  function buildPalette(){
+    palEl.innerHTML='';
+    for(var i=0;i<colors.length;i++){
+      var d=document.createElement('div');d.className='pal'+(i===selColor?' sel':'');
+      d.style.background=colors[i];d.setAttribute('data-ci',i);
+      palEl.appendChild(d);
+    }
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML='';
+    // Past guesses
+    for(var g=0;g<guesses.length;g++){
+      var row=document.createElement('div');row.className='row past';
+      var pegs=document.createElement('div');pegs.className='pegs';
+      for(var p=0;p<CODE_LEN;p++){
+        var peg=document.createElement('div');peg.className='peg';
+        peg.style.background=colors[guesses[g].guess[p]];peg.style.borderColor=colors[guesses[g].guess[p]];
+        pegs.appendChild(peg);
+      }
+      row.appendChild(pegs);
+      var fb=document.createElement('div');fb.className='feedback';
+      var res=guesses[g].result;
+      for(var f=0;f<CODE_LEN;f++){
+        var fd=document.createElement('div');fd.className='fb';
+        if(f<res.exact)fd.classList.add('exact');
+        else if(f<res.exact+res.partial)fd.classList.add('partial');
+        fb.appendChild(fd);
+      }
+      row.appendChild(fb);
+      boardEl.appendChild(row);
+    }
+    // Current row
+    if(!over){
+      var row=document.createElement('div');row.className='row active';
+      var pegs=document.createElement('div');pegs.className='pegs';
+      for(var p=0;p<CODE_LEN;p++){
+        var peg=document.createElement('div');peg.className='peg';
+        peg.setAttribute('data-p',p);
+        if(currentGuess[p]>=0){peg.style.background=colors[currentGuess[p]];peg.style.borderColor=colors[currentGuess[p]];}
+        pegs.appendChild(peg);
+      }
+      row.appendChild(pegs);
+      var fb=document.createElement('div');fb.className='feedback';
+      for(var f=0;f<CODE_LEN;f++){var fd=document.createElement('div');fd.className='fb';fb.appendChild(fd);}
+      row.appendChild(fb);
+      boardEl.appendChild(row);
+    }
+    boardScroll.scrollTop=boardScroll.scrollHeight;
+  }
+
+  function evaluate(guess,secret){
+    var exact=0,partial=0;
+    var sLeft=[],gLeft=[];
+    for(var i=0;i<CODE_LEN;i++){
+      if(guess[i]===secret[i])exact++;
+      else{sLeft.push(secret[i]);gLeft.push(guess[i]);}
+    }
+    for(var i=0;i<gLeft.length;i++){
+      var idx=sLeft.indexOf(gLeft[i]);
+      if(idx>=0){partial++;sLeft.splice(idx,1);}
+    }
+    return{exact:exact,partial:partial};
+  }
+
+  function submit(){
+    if(over)return;
+    for(var i=0;i<CODE_LEN;i++)if(currentGuess[i]<0)return;
+    var result=evaluate(currentGuess,secret);
+    guesses.push({guess:currentGuess.slice(),result:result});
+    currentRow++;
+    gcEl.textContent='Guess '+(currentRow+1)+'/'+MAX_GUESSES;
+    if(result.exact===CODE_LEN){
+      over=true;
+      ovT.textContent='🎉 You cracked it!';
+      ovM.textContent='Solved in '+guesses.length+' guess'+(guesses.length>1?'es':'')+'!';
+      showCode();
+      renderBoard();
+      setTimeout(function(){ov.className='ov show';},500);
+      return;
+    }
+    if(currentRow>=MAX_GUESSES){
+      over=true;
+      ovT.textContent='😔 Not this time';
+      ovM.textContent='The code was:';
+      showCode();
+      renderBoard();
+      setTimeout(function(){ov.className='ov show';},500);
+      return;
+    }
+    currentGuess=[-1,-1,-1,-1];
+    renderBoard();
+  }
+
+  function showCode(){
+    ovCode.innerHTML='';
+    for(var i=0;i<CODE_LEN;i++){
+      var d=document.createElement('div');d.className='cpeg';
+      d.style.background=colors[secret[i]];ovCode.appendChild(d);
+    }
+  }
+
+  // Tap peg to set color
+  boardEl.addEventListener('click',function(e){
+    var t=e.target.closest('.peg');if(!t||over)return;
+    var p=t.getAttribute('data-p');if(p===null)return;
+    currentGuess[parseInt(p)]=selColor;
+    renderBoard();
+  });
+
+  // Tap palette
+  palEl.addEventListener('click',function(e){
+    var t=e.target.closest('.pal');if(!t)return;
+    selColor=parseInt(t.getAttribute('data-ci'));
+    var all=palEl.children;for(var i=0;i<all.length;i++)all[i].classList.toggle('sel',i===selColor);
+  });
+
+  document.getElementById('clearBtn').addEventListener('click',function(){
+    if(over)return;currentGuess=[-1,-1,-1,-1];renderBoard();
+  });
+  document.getElementById('submitBtn').addEventListener('click',submit);
+  document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+  document.getElementById('ovB').addEventListener('click',function(){newGame();});
+
+  var dbs=document.getElementById('db').children;
+  for(var i=0;i<dbs.length;i++){dbs[i].addEventListener('click',(function(b){return function(){newGame(parseInt(b.getAttribute('data-d')));};})(dbs[i]));}
+
+  newGame();
+})();
+</script>
+</body>
+</html>

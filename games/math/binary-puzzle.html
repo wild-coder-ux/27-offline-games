@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Binary Puzzle</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:6px 8px;user-select:none}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.6rem;color:#888;text-align:center;max-width:360px;line-height:1.4}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:380px}
+.dbtn{display:flex;gap:5px}
+.dbtn button{font-family:inherit;font-size:.6rem;font-weight:700;padding:4px 8px;border:none;border-radius:20px;background:#16213e;color:#888;cursor:pointer}
+.dbtn button.on{background:#e94560;color:#fff}
+.timer{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
+.board{display:grid;gap:4px;width:100%;max-width:340px}
+.cell{
+  aspect-ratio:1;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1rem,4.5vw,1.6rem);font-weight:800;
+  cursor:pointer;transition:background .15s,transform .1s;border:2px solid transparent;
+}
+.cell:active{transform:scale(.92)}
+.cell.empty{background:#16213e;color:transparent}
+.cell.v0{background:#0f3460;color:#4fc3f7;border-color:#0f3460}
+.cell.v1{background:#e94560;color:#fff;border-color:#e94560}
+.cell.given{opacity:.6;cursor:default}
+.cell.err{border-color:#ff5252!important;animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.actions{display:flex;gap:6px}
+.actions button{font-family:inherit;font-size:.65rem;font-weight:700;padding:6px 12px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.6rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>BINARY PUZZLE</h1>
+<p class="sub">Fill with 0s & 1s. Rules: equal 0s & 1s per row/col, no 3+ same in a row, unique rows & cols.</p>
+<div class="topbar">
+  <div class="dbtn" id="db"><button data-d="4">4×4</button><button data-d="6" class="on">6×6</button><button data-d="8">8×8</button></div>
+  <span class="timer" id="tmr">00:00</span>
+</div>
+<div class="board" id="brd"></div>
+<div class="actions"><button id="checkBtn">✓ Check</button><button id="newBtn">↻ New</button></div>
+<div class="ov" id="ov"><h2>🎉 Solved!</h2><p id="ovM"></p><button id="ovB">New Puzzle</button></div>
+<script>
+(function(){
+var N=6,solution,given,userGrid,over,tsec,tint;
+var brdEl=document.getElementById('brd'),tmrEl=document.getElementById('tmr');
+var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+
+function isValid(g,n){
+  for(var r=0;r<n;r++){
+    var c0=0,c1=0;
+    for(var c=0;c<n;c++){if(g[r][c]===0)c0++;if(g[r][c]===1)c1++;
+      if(c>=2&&g[r][c]>=0&&g[r][c]===g[r][c-1]&&g[r][c]===g[r][c-2])return false;
+    }
+    if(c0>n/2||c1>n/2)return false;
+  }
+  for(var c=0;c<n;c++){
+    var c0=0,c1=0;
+    for(var r=0;r<n;r++){if(g[r][c]===0)c0++;if(g[r][c]===1)c1++;
+      if(r>=2&&g[r][c]>=0&&g[r][c]===g[r-1][c]&&g[r][c]===g[r-2][c])return false;
+    }
+    if(c0>n/2||c1>n/2)return false;
+  }
+  return true;
+}
+
+function solve(g,n,pos){
+  if(pos>=n*n)return isValid(g,n);
+  var r=Math.floor(pos/n),c=pos%n;
+  if(g[r][c]>=0)return solve(g,n,pos+1);
+  var vals=[0,1];if(Math.random()<0.5)vals=[1,0];
+  for(var v=0;v<2;v++){
+    g[r][c]=vals[v];
+    if(isValid(g,n)&&solve(g,n,pos+1))return true;
+  }
+  g[r][c]=-1;return false;
+}
+
+function genPuzzle(n){
+  var g=[];for(var r=0;r<n;r++){g[r]=[];for(var c=0;c<n;c++)g[r][c]=-1;}
+  solve(g,n,0);
+  var sol=[];for(var r=0;r<n;r++){sol[r]=[];for(var c=0;c<n;c++)sol[r][c]=g[r][c];}
+  // Remove cells
+  var cells=[];for(var r=0;r<n;r++)for(var c=0;c<n;c++)cells.push([r,c]);
+  shuffle(cells);
+  var gv=[];for(var r=0;r<n;r++){gv[r]=[];for(var c=0;c<n;c++)gv[r][c]=true;}
+  var removeCount=Math.floor(n*n*0.55);
+  for(var i=0;i<Math.min(removeCount,cells.length);i++){
+    gv[cells[i][0]][cells[i][1]]=false;
+  }
+  return{solution:sol,given:gv};
+}
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}}
+
+function newGame(n){
+  if(n)N=n;
+  var p=genPuzzle(N);
+  solution=p.solution;given=p.given;
+  userGrid=[];for(var r=0;r<N;r++){userGrid[r]=[];for(var c=0;c<N;c++){
+    userGrid[r][c]=given[r][c]?solution[r][c]:-1;
+  }}
+  over=false;
+  if(tint)clearInterval(tint);tsec=0;updT();
+  tint=setInterval(function(){tsec++;updT();},1000);
+  ov.className='ov';updD();render();
+}
+
+function updD(){var bs=document.getElementById('db').children;for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-d'))===N?'on':'';}
+function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+
+function render(){
+  brdEl.innerHTML='';
+  brdEl.style.gridTemplateColumns='repeat('+N+',1fr)';
+  for(var r=0;r<N;r++){
+    for(var c=0;c<N;c++){
+      var d=document.createElement('div');
+      d.setAttribute('data-r',r);d.setAttribute('data-c',c);
+      if(given[r][c]){
+        d.className='cell v'+userGrid[r][c]+' given';
+        d.textContent=userGrid[r][c];
+      }else if(userGrid[r][c]>=0){
+        d.className='cell v'+userGrid[r][c];
+        d.textContent=userGrid[r][c];
+      }else{
+        d.className='cell empty';d.textContent='·';
+      }
+      brdEl.appendChild(d);
+    }
+  }
+}
+
+function tap(r,c){
+  if(over||given[r][c])return;
+  if(userGrid[r][c]<0)userGrid[r][c]=0;
+  else if(userGrid[r][c]===0)userGrid[r][c]=1;
+  else userGrid[r][c]=-1;
+  render();checkAuto();
+}
+
+function checkAuto(){
+  for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(userGrid[r][c]<0)return;
+  // All filled, check
+  checkSolution();
+}
+
+function checkSolution(){
+  var correct=true;
+  for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+    if(userGrid[r][c]!==solution[r][c])correct=false;
+  }
+  if(correct){
+    over=true;clearInterval(tint);
+    var m=Math.floor(tsec/60),s=tsec%60;
+    ovM.textContent='Solved in '+m+'m '+(s<10?'0':'')+s+'s';
+    setTimeout(function(){ov.className='ov show';},300);
+  }else{
+    // Highlight errors
+    var cells=brdEl.children;
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+      if(userGrid[r][c]>=0&&userGrid[r][c]!==solution[r][c]){
+        cells[r*N+c].classList.add('err');
+      }
+    }
+  }
+}
+
+brdEl.addEventListener('click',function(e){var t=e.target.closest('.cell');if(!t)return;tap(parseInt(t.getAttribute('data-r')),parseInt(t.getAttribute('data-c')));});
+document.getElementById('checkBtn').addEventListener('click',checkSolution);
+document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+document.getElementById('ovB').addEventListener('click',function(){newGame();});
+var dbs=document.getElementById('db').children;for(var i=0;i<dbs.length;i++){dbs[i].addEventListener('click',(function(b){return function(){newGame(parseInt(b.getAttribute('data-d')));};})(dbs[i]));}
+newGame();
+})();
+</script>
+</body>
+</html>

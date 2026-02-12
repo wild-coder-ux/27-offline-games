@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Word Guess">
+<title>Word Guess</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+  height:100vh;height:100dvh;
+  padding:4px 8px;
+  user-select:none;-webkit-user-select:none;
+}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:420px}
+.lenbtn{display:flex;gap:4px}
+.lenbtn button{
+  font-family:inherit;font-size:.7rem;font-weight:700;
+  padding:4px 10px;border:none;border-radius:20px;
+  background:#16213e;color:#888;cursor:pointer;
+}
+.lenbtn button.on{background:#e94560;color:#fff}
+.newbtn{
+  font-family:inherit;font-size:.65rem;font-weight:700;
+  padding:4px 12px;border:none;border-radius:20px;
+  background:#16213e;color:#888;cursor:pointer;
+}
+
+.toast{
+  position:fixed;top:60px;left:50%;transform:translateX(-50%);
+  background:#333;color:#fff;padding:8px 20px;border-radius:8px;
+  font-size:.85rem;font-weight:700;z-index:20;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.toast.show{opacity:1}
+
+.grid-wrap{width:100%;max-width:380px;display:flex;justify-content:center}
+.grid{display:grid;gap:5px}
+.tile{
+  width:100%;aspect-ratio:1;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #2a2a4a;
+  font-size:clamp(1.1rem,5vw,1.6rem);
+  font-weight:800;text-transform:uppercase;
+  transition:transform .1s;
+  border-radius:4px;
+}
+.tile.pop{transform:scale(1.1);border-color:#555}
+.tile.flip{animation:flip .5s ease forwards}
+.tile.correct{background:#538d4e;border-color:#538d4e;color:#fff}
+.tile.present{background:#b59f3b;border-color:#b59f3b;color:#fff}
+.tile.absent{background:#3a3a4c;border-color:#3a3a4c;color:#888}
+
+@keyframes flip{
+  0%{transform:rotateX(0)}
+  50%{transform:rotateX(90deg)}
+  100%{transform:rotateX(0)}
+}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%,60%{transform:translateX(-4px)}
+  40%,80%{transform:translateX(4px)}
+}
+.row-shake{animation:shake .3s ease}
+
+@keyframes bounce{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-12px)}
+}
+
+.kb{width:100%;max-width:420px;display:flex;flex-direction:column;gap:5px;align-items:center}
+.kb-row{display:flex;gap:4px;width:100%;justify-content:center}
+.key{
+  font-family:inherit;font-size:clamp(.7rem,3vw,.95rem);font-weight:700;
+  padding:10px 0;flex:1;max-width:36px;
+  border:none;border-radius:6px;
+  background:#16213e;color:#e0e0e0;
+  cursor:pointer;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;
+}
+.key.wide{max-width:52px;font-size:clamp(.55rem,2.5vw,.75rem)}
+.key:active{opacity:.7}
+.key.correct{background:#538d4e;color:#fff}
+.key.present{background:#b59f3b;color:#fff}
+.key.absent{background:#2a2a3a;color:#555}
+
+.ov{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(26,26,46,.93);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s;
+}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem;text-align:center}
+.ov .word{font-size:1.3rem;color:#4fc3f7;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.ov button{
+  font-family:inherit;padding:12px 28px;border:none;border-radius:30px;
+  background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>WORD GUESS</h1>
+
+<div class="topbar">
+  <div class="lenbtn" id="lb">
+    <button data-l="4">4</button>
+    <button data-l="5" class="on">5</button>
+    <button data-l="6">6</button>
+    <button data-l="7">7</button>
+  </div>
+  <button class="newbtn" id="newBtn">↻ New</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="grid-wrap"><div class="grid" id="grid"></div></div>
+
+<div class="kb" id="kb"></div>
+
+<div class="ov" id="ov">
+  <h2 id="ovT">🎉 Well Done!</h2>
+  <p id="ovM"></p>
+  <p class="word" id="ovW"></p>
+  <button id="ovB">Play Again</button>
+</div>
+
+<script>
+(function(){
+
+/* === EXPANDED WORD LISTS === */
+
+// 4-letter words (550+ words)
+var W4 = [
+        "ABLE", "ACID", "AGED", "ALSO", "AREA", "ARMY", "AWAY", "BABY", "BACK", "BALL",
+        "BAND", "BANK", "BASE", "BATH", "BEAR", "BEAT", "BEEN", "BEER", "BELL", "BELT",
+        "BEST", "BILL", "BIRD", "BLOW", "BLUE", "BOAT", "BODY", "BOMB", "BOND", "BONE",
+        "BOOK", "BOOM", "BORN", "BOSS", "BOTH", "BOWL", "BULK", "BURN", "BUSH", "BUSY",
+        "CALL", "CALM", "CAME", "CAMP", "CARD", "CARE", "CASE", "CASH", "CAST", "CELL",
+        "CHAT", "CHIP", "CITY", "CLUB", "COAL", "COAT", "CODE", "COLD", "COME", "COOK",
+        "COOL", "COPE", "COPY", "CORE", "COST", "CREW", "CROP", "DARK", "DATA", "DATE",
+        "DAWN", "DAYS", "DEAD", "DEAL", "DEAN", "DEAR", "DEBT", "DEEP", "DENY", "DESK",
+        "DIAL", "DICK", "DIET", "DISC", "DISK", "DOCK", "DOES", "DONE", "DOOR", "DOSE",
+        "DOWN", "DRAW", "DREW", "DROP", "DRUG", "DRUM", "DUAL", "DUCK", "DUKE", "DULL",
+        "DUST", "DUTY", "EACH", "EARN", "EASE", "EAST", "EASY", "EDGE", "ELSE", "EVEN",
+        "EVER", "EVIL", "EXIT", "FACE", "FACT", "FAIL", "FAIR", "FALL", "FAME", "FARM",
+        "FAST", "FATE", "FEAR", "FEED", "FEEL", "FEET", "FELL", "FELT", "FILE", "FILL",
+        "FILM", "FIND", "FINE", "FIRE", "FIRM", "FISH", "FIVE", "FLAT", "FLEW", "FLOW",
+        "FOLK", "FOOD", "FOOT", "FORD", "FORM", "FORT", "FOUR", "FREE", "FROM", "FUEL",
+        "FULL", "FUND", "GAIN", "GAME", "GATE", "GAVE", "GEAR", "GENE", "GIFT", "GIRL",
+        "GIVE", "GLAD", "GLEN", "GOES", "GOLD", "GOLF", "GONE", "GOOD", "GRAY", "GREW",
+        "GREY", "GROW", "GULF", "HAIR", "HALF", "HALL", "HAND", "HANG", "HARD", "HARM",
+        "HATE", "HAVE", "HEAD", "HEAR", "HEAT", "HELD", "HELL", "HELP", "HERE", "HERO",
+        "HIGH", "HILL", "HIRE", "HOLD", "HOLE", "HOLY", "HOME", "HOPE", "HOST", "HOUR",
+        "HUGE", "HUNG", "HUNT", "HURT", "IDEA", "INCH", "INTO", "IRON", "ITEM", "JACK",
+        "JANE", "JEAN", "JOHN", "JOIN", "JUMP", "JURY", "JUST", "KEEN", "KEEP", "KENT",
+        "KEPT", "KICK", "KILL", "KIND", "KING", "KNEE", "KNEW", "KNOW", "LACK", "LADY",
+        "LAID", "LAKE", "LAND", "LANE", "LAST", "LATE", "LEAD", "LEFT", "LESS", "LIFE",
+        "LIFT", "LIKE", "LINE", "LINK", "LIST", "LIVE", "LOAD", "LOAN", "LOCK", "LONE",
+        "LONG", "LOOK", "LORD", "LOSE", "LOSS", "LOST", "LOVE", "LUCK", "MADE", "MAIL",
+        "MAIN", "MAKE", "MALE", "MANY", "MARK", "MARS", "MASS", "MATT", "MEAL", "MEAN",
+        "MEAT", "MEET", "MERE", "MILE", "MILK", "MILL", "MIND", "MINE", "MISS", "MODE",
+        "MOOD", "MOON", "MORE", "MOST", "MOVE", "MUCH", "MUST", "NAME", "NAVY", "NEAR",
+        "NECK", "NEED", "NEWS", "NEXT", "NICE", "NICK", "NINE", "NONE", "NOON", "NORM",
+        "NOSE", "NOTE", "ONCE", "ONES", "ONLY", "ONTO", "OPEN", "ORAL", "OVER", "PACE",
+        "PACK", "PAGE", "PAID", "PAIN", "PAIR", "PALE", "PALM", "PARK", "PART", "PASS",
+        "PAST", "PATH", "PAUL", "PEAK", "PEER", "PICK", "PILE", "PINE", "PINK", "PIPE",
+        "PLAN", "PLAY", "PLOT", "PLUG", "PLUS", "POEM", "POET", "POLE", "POLL", "POND",
+        "POOL", "POOR", "POPE", "PORT", "POST", "POUR", "PUSH", "RACE", "RAIL", "RAIN",
+        "RANK", "RARE", "RATE", "READ", "REAL", "REAR", "RELY", "RENT", "REST", "RICE",
+        "RICH", "RIDE", "RING", "RISE", "RISK", "ROAD", "ROCK", "ROLE", "ROLL", "ROME",
+        "ROOF", "ROOM", "ROOT", "ROSE", "RULE", "RUSH", "RUTH", "SAFE", "SAGE", "SAID",
+        "SAKE", "SALE", "SALT", "SAME", "SAND", "SAVE", "SEAT", "SEED", "SEEK", "SEEM",
+        "SEEN", "SELF", "SELL", "SEND", "SENT", "SEPT", "SHIP", "SHOP", "SHOT", "SHOW",
+        "SHUT", "SICK", "SIDE", "SIGN", "SILK", "SING", "SINK", "SITE", "SIZE", "SKIN",
+        "SLIP", "SLOW", "SNOW", "SOFT", "SOIL", "SOLD", "SOLE", "SOME", "SONG", "SOON",
+        "SORT", "SOUL", "SPOT", "STAR", "STAY", "STEM", "STEP", "STOP", "SUCH", "SUIT",
+        "SURE", "TAKE", "TALE", "TALK", "TALL", "TANK", "TAPE", "TASK", "TEAM", "TEAR",
+        "TECH", "TELL", "TEND", "TERM", "TEST", "TEXT", "THAN", "THAT", "THEM", "THEN",
+        "THEY", "THIN", "THIS", "THUS", "TIDE", "TILL", "TIME", "TINY", "TOLD", "TOLL",
+        "TONE", "TONY", "TOOK", "TOOL", "TOPS", "TORN", "TOUR", "TOWN", "TREE", "TRIP",
+        "TRUE", "TUNE", "TURN", "TWIN", "TYPE", "UNIT", "UPON", "USED", "USER", "VARY",
+        "VAST", "Very", "VICE", "VIEW", "VINE", "VOTE", "WADE", "WAGE", "WAIT", "WAKE",
+        "WALK", "WALL", "WANT", "WARD", "WARM", "WARN", "WASH", "WAVE", "WAYS", "WEAK",
+        "WEAR", "WEEK", "WELL", "WENT", "WERE", "WEST", "WHAT", "WHEN", "WHOM", "WIDE",
+        "WIFE", "WILD", "WILL", "WIND", "WINE", "WING", "WIRE", "WISE", "WISH", "WITH",
+        "WOOD", "WORD", "WORE", "WORK", "WORM", "WORN", "YARD", "YEAH", "YEAR", "YOUR",
+        "ZERO", "ZONE"
+];
+
+// 5-letter words (700+ words)
+var W5 = [
+        "ABOUT", "ABOVE", "ABUSE", "ACTOR", "ACUTE", "ADMIT", "ADOPT", "ADULT", "AFTER",
+        "AGAIN", "AGENT", "AGREE", "AHEAD", "ALARM", "ALBUM", "ALERT", "ALIGN", "ALIKE",
+        "ALIVE", "ALLOW", "ALONE", "ALONG", "ALTER", "ANGEL", "ANGER", "ANGLE", "ANGRY",
+        "APART", "APPLE", "APPLY", "ARENA", "ARGUE", "ARISE", "ARRAY", "ASIDE", "ASSET",
+        "AUDIO", "AVOID", "AWARD", "AWARE", "BADLY", "BAKER", "BASES", "BASIC", "BASIS",
+        "BEACH", "BEGAN", "BEGIN", "BEING", "BELOW", "BENCH", "BILLY", "BIRTH", "BLACK",
+        "BLADE", "BLAME", "BLANK", "BLIND", "BLOCK", "BLOOD", "BLOOM", "BOARD", "BOOST",
+        "BOOTH", "BOUND", "BRAIN", "BRAND", "BRASS", "BRAVE", "BREAD", "BREAK", "BREED",
+        "BRIEF", "BRING", "BROAD", "BROKE", "BROWN", "BUILD", "BUILT", "BUYER", "CABLE",
+        "CALIF", "CARRY", "CATCH", "CAUSE", "CHAIN", "CHAIR", "CHART", "CHASE", "CHEAP",
+        "CHECK", "CHEST", "CHIEF", "CHILD", "CHINA", "CHOSE", "CIVIL", "CLAIM", "CLASS",
+        "CLEAN", "CLEAR", "CLICK", "CLOCK", "CLOSE", "COACH", "COAST", "COULD", "COUNT",
+        "COURT", "COVER", "CRACK", "CRAFT", "CRASH", "CRAZY", "CREAM", "CRIME", "CROSS",
+        "CROWD", "CROWN", "CRUDE", "CURVE", "CYCLE", "DAILY", "DANCE", "DATED", "DEALT",
+        "DEATH", "DEBUT", "DELAY", "DELTA", "DENSE", "DEPTH", "DOING", "DOUBT", "DOZEN",
+        "DRAFT", "DRAMA", "DRANK", "DRAWN", "DREAM", "DRESS", "DRILL", "DRINK", "DRIVE",
+        "DROVE", "DYING", "EAGER", "EARLY", "EARTH", "EIGHT", "ELECT", "EMPTY", "ENEMY",
+        "ENJOY", "ENTER", "ENTRY", "EQUAL", "ERROR", "EVENT", "EVERY", "EXACT", "EXIST",
+        "EXTRA", "FAITH", "FALSE", "FANCY", "FAULT", "FIBER", "FIELD", "FIFTH", "FIFTY",
+        "FIGHT", "FINAL", "FIRST", "FIXED", "FLASH", "FLEET", "FLESH", "FLOOR", "FLUID",
+        "FOCUS", "FORCE", "FORTH", "FORTY", "FORUM", "FOUND", "FRAME", "FRANK", "FRAUD",
+        "FRESH", "FRONT", "FRUIT", "FULLY", "FUNNY", "GIANT", "GIVEN", "GLASS", "GLOBE",
+        "GOING", "GRACE", "GRADE", "GRAND", "GRANT", "GRASS", "GRAVE", "GREAT", "GREEN",
+        "GROSS", "GROUP", "GROWN", "GUARD", "GUESS", "GUEST", "GUIDE", "GUILT", "HAPPY",
+        "HARRY", "HEART", "HEAVY", "HENCE", "HENRY", "HORSE", "HOTEL", "HOUSE", "HUMAN",
+        "IDEAL", "IMAGE", "INDEX", "INNER", "INPUT", "ISSUE", "JAPAN", "JIMMY", "JOINT",
+        "JONES", "JUDGE", "KNOWN", "LABEL", "LARGE", "LASER", "LATER", "LAUGH", "LAYER",
+        "LEARN", "LEASE", "LEAST", "LEAVE", "LEGAL", "LEMON", "LEVEL", "LEWIS", "LIGHT",
+        "LIMIT", "LINKS", "LIVES", "LOCAL", "LOGIC", "LOOSE", "LOWER", "LUCKY", "LUNCH",
+        "LYING", "MAGIC", "MAJOR", "MAKER", "MARCH", "MARIA", "MATCH", "MAYBE", "MAYOR",
+        "MEANT", "MEDIA", "METAL", "MIGHT", "MINOR", "MINUS", "MIXED", "MODEL", "MONEY",
+        "MONTH", "MORAL", "MOTOR", "MOUNT", "MOUSE", "MOUTH", "MOVIE", "MUSIC", "NEEDS",
+        "NEVER", "NEWLY", "NIGHT", "NOISE", "NORTH", "NOTED", "NOVEL", "NURSE", "OCCUR",
+        "OCEAN", "OFFER", "OFTEN", "ORDER", "OTHER", "OUGHT", "PAINT", "PANEL", "PAPER",
+        "PARTY", "PEACE", "PETER", "PHASE", "PHONE", "PHOTO", "PIECE", "PILOT", "PITCH",
+        "PLACE", "PLAIN", "PLANE", "PLANT", "PLATE", "POINT", "POUND", "POWER", "PRESS",
+        "PRICE", "PRIDE", "PRIME", "PRINT", "PRIOR", "PRIZE", "PROOF", "PROUD", "PROVE",
+        "QUEEN", "QUICK", "QUIET", "QUITE", "RADIO", "RAISE", "RANGE", "RAPID", "RATIO",
+        "REACH", "READY", "REFER", "RIGHT", "RIVAL", "RIVER", "ROBIN", "ROCKY", "ROGER",
+        "ROMAN", "ROUGH", "ROUND", "ROUTE", "ROYAL", "RURAL", "SCALE", "SCENE", "SCOPE",
+        "SCORE", "SENSE", "SERVE", "SEVEN", "SHALL", "SHAPE", "SHARE", "SHARP", "SHEET",
+        "SHELF", "SHELL", "SHIFT", "SHINE", "SHIRT", "SHOCK", "SHOOT", "SHORT", "SHOWN",
+        "SIGHT", "SINCE", "SIXTH", "SIXTY", "SIZED", "SKILL", "SLEEP", "SLIDE", "SMALL",
+        "SMART", "SMILE", "SMITH", "SMOKE", "SOLID", "SOLVE", "SORRY", "SOUND", "SOUTH",
+        "SPACE", "SPARE", "SPEAK", "SPEED", "SPEND", "SPENT", "SPLIT", "SPOKE", "SPORT",
+        "STAFF", "STAGE", "STAKE", "STAND", "START", "STATE", "STEAM", "STEEL", "STICK",
+        "STILL", "STOCK", "STONE", "STOOD", "STORE", "STORM", "STORY", "STRIP", "STUCK",
+        "STUDY", "STUFF", "STYLE", "SUGAR", "SUITE", "SUPER", "SWEET", "TABLE", "TAKEN",
+        "TASTE", "TAXES", "TEACH", "TERRY", "TEXAS", "THANK", "THEFT", "THEIR", "THEME",
+        "THERE", "THESE", "THICK", "THING", "THINK", "THIRD", "THOSE", "THREE", "THREW",
+        "THROW", "TIGHT", "TIMES", "TITLE", "TODAY", "TOPIC", "TOTAL", "TOUCH", "TOUGH",
+        "TOWER", "TRACK", "TRADE", "TRAIN", "TREAT", "TREND", "TRIAL", "TRIBE", "TRICK",
+        "TRIED", "TRIES", "TROOP", "TRUCK", "TRULY", "TRUST", "TRUTH", "TWICE", "UNDER",
+        "UNDUE", "UNION", "UNITY", "UNTIL", "UPPER", "UPSET", "URBAN", "USAGE", "USUAL",
+        "VALID", "VALUE", "VIDEO", "VIRUS", "VISIT", "VITAL", "VOCAL", "VOICE", "WASTE",
+        "WATCH", "WATER", "WHEEL", "WHERE", "WHICH", "WHILE", "WHITE", "WHOLE", "WHOSE",
+        "WOMAN", "WOMEN", "WORLD", "WORRY", "WORSE", "WORST", "WORTH", "WOULD", "WOUND",
+        "WRITE", "WRONG", "WROTE", "YOUNG", "YOUTH"
+];
+
+// 6-letter words (650+ words)
+var W6 = [
+        "ACCEPT", "ACCESS", "ACROSS", "ACTION", "ACTIVE", "ACTUAL", "ADVICE", "ADVISE",
+        "AFFECT", "AFFORD", "AFRAID", "AGENCY", "AGENDA", "ALMOST", "ALWAYS", "AMOUNT",
+        "ANIMAL", "ANNUAL", "ANSWER", "ANYONE", "ANYWAY", "APPEAL", "APPEAR", "AROUND",
+        "ARRIVE", "ARTIST", "ASPECT", "ASSESS", "ASSIGN", "ASSIST", "ASSUME", "ATTACH",
+        "ATTACK", "ATTEMPT", "ATTEND", "AUGUST", "AUTHOR", "AVENUE", "BACKED", "BARELY",
+        "BATTLE", "BEAUTY", "BECAME", "BECOME", "BEFORE", "BEHALF", "BEHIND", "BELIEF",
+        "BELONG", "BENEFIT", "BETTER", "BEYOND", "BISHOP", "BORDER", "BOTTLE", "BOTTOM",
+        "BOUGHT", "BRANCH", "BREACH", "BREATH", "BRIDGE", "BRIGHT", "BROKEN", "BRONZE",
+        "BUDGET", "BURDEN", "BUREAU", "BUTTON", "CAMERA", "CANCER", "CANNOT", "CARBON",
+        "CAREER", "CASTLE", "CASUAL", "CAUGHT", "CENTER", "CENTRE", "CENTURY", "CHANCE",
+        "CHANGE", "CHARGE", "CHOICE", "CHOOSE", "CHOSEN", "CHURCH", "CIRCLE", "CLIENT",
+        "CLOSED", "CLOSER", "COFFEE", "COLUMN", "COMBAT", "COMING", "COMMON", "COMPLY",
+        "COPPER", "CORNER", "COSTLY", "COUNTY", "COUPLE", "COURSE", "COURTS", "COUSIN",
+        "COVERS", "CREATE", "CREDIT", "CRISIS", "CRITIC", "CROWN", "CULTURE", "DAMAGE",
+        "DANGER", "DEALER", "DEBATE", "DECADE", "DECIDE", "DEFEAT", "DEFEND", "DEFINE",
+        "DEGREE", "DEMAND", "DENTAL", "DEPEND", "DEPUTY", "DESERT", "DESIGN", "DESIRE",
+        "DETAIL", "DETECT", "DEVICE", "DIFFER", "DINNER", "DIRECT", "DIVIDE", "DOCTOR",
+        "DOLLAR", "DOMAIN", "DOUBLE", "DRIVEN", "DRIVER", "DURING", "EASILY", "EATING",
+        "EDITOR", "EFFECT", "EFFORT", "EIGHTH", "EITHER", "ELEVEN", "EMERGE", "EMPIRE",
+        "EMPLOY", "ENABLE", "ENDING", "ENERGY", "ENGAGE", "ENGINE", "ENOUGH", "ENSURE",
+        "ENTIRE", "ENTITY", "EQUITY", "ESCAPE", "ESTATE", "ETHNIC", "EUROPE", "EVENTS",
+        "EXCEED", "EXCEPT", "EXCESS", "EXPAND", "EXPECT", "EXPERT", "EXPORT", "EXTEND",
+        "EXTENT", "FABRIC", "FACING", "FACTOR", "FAILED", "FAIRLY", "FALLEN", "FAMILY",
+        "FAMOUS", "FARMER", "FATHER", "FELLOW", "FEMALE", "FIGURE", "FILING", "FINGER",
+        "FINISH", "FISCAL", "FLIGHT", "FLYING", "FOLLOW", "FORCED", "FOREIGN", "FOREST",
+        "FORGET", "FORMAL", "FORMAT", "FORMED", "FORMER", "FOSTER", "FOUGHT", "FOURTH",
+        "FRANCE", "FRENCH", "FRIEND", "FUTURE", "GARDEN", "GATHER", "GENDER", "GENERAL",
+        "GENIUS", "GENTLE", "GERMAN", "GLOBAL", "GOLDEN", "GORDON", "GOVERN", "GRADES",
+        "GRANTS", "GROUND", "GROUPS", "GROWTH", "GUIDED", "HANDED", "HANDLE", "HAPPEN",
+        "HARDLY", "HATRED", "HEADED", "HEALTH", "HEARTS", "HEAVEN", "HEIGHT", "HELPFUL",
+        "HIDDEN", "HIGHLY", "HOLDER", "HONEST", "IMPACT", "IMPORT", "IMPOSE", "IMPROVE",
+        "INCOME", "INDEED", "INFANT", "INFORM", "INJURY", "INSIDE", "INTEND", "INTENT",
+        "INVEST", "ISLAND", "ITSELF", "JERSEY", "JOSEPH", "JUNIOR", "KILLED", "LABOUR",
+        "LATEST", "LATTER", "LAUNCH", "LAWYER", "LEADER", "LEAGUE", "LEAVES", "LEGACY",
+        "LENGTH", "LESSON", "LETTER", "LIGHTS", "LIKELY", "LINKED", "LIQUID", "LISTEN",
+        "LITTLE", "LIVING", "LOCKED", "LONDON", "LOVELY", "LOVING", "LUXURY", "MAINLY",
+        "MAKING", "MANAGE", "MANNER", "MANUAL", "MARGIN", "MARINE", "MARKED", "MARKET",
+        "MARRIED", "MASTER", "MATTER", "MATURE", "MEDIUM", "MEMBER", "MEMORY", "MENTAL",
+        "MERELY", "MERGER", "METHOD", "MIDDLE", "MILLER", "MINING", "MINUTE", "MIRROR",
+        "MOBILE", "MODERN", "MODEST", "MODULE", "MOMENT", "MORRIS", "MOSTLY", "MOTHER",
+        "MOTION", "MOVING", "MURDER", "MUSEUM", "MUTUAL", "MYSELF", "NARROW", "NATION",
+        "NATIVE", "NATURE", "NEARBY", "NEARLY", "NEEDLE", "NELSON", "NEPHEW", "NEURAL",
+        "NEVER", "NICELY", "NIGHTS", "NOBODY", "NORMAL", "NOTICE", "NOTION", "NUCLEAR",
+        "NUMBER", "OBJECT", "OBTAIN", "OBVIOUS", "OCCUPY", "OCCURS", "OFFICE", "OFFSET",
+        "ONLINE", "OPENED", "OPPOSE", "OPTION", "ORANGE", "ORIGIN", "OUTPUT", "OUTSIDE",
+        "OVERALL", "OXFORD", "PACKED", "PALACE", "PARENT", "PARTLY", "PASSED", "PATENT",
+        "PERIOD", "PERMIT", "PERSON", "PHRASE", "PICKED", "PLANET", "PLAYED", "PLAYER",
+        "PLEASE", "PLENTY", "POCKET", "POETRY", "POLICE", "POLICY", "POLITICS", "POORLY",
+        "POPULAR", "POTATO", "POTTER", "POUNDS", "POWELL", "POWER", "PRAISE", "PRAYER",
+        "PREFER", "PRETTY", "PRIEST", "PRINCE", "PRISON", "PRIVATE", "PROFIT", "PROPER",
+        "PROTECT", "PROVEN", "PUBLIC", "PURELY", "PURPLE", "PURSUE", "RAISED", "RANDOM",
+        "RARELY", "RATHER", "RATING", "READER", "REALLY", "REASON", "RECALL", "RECENT",
+        "RECORD", "REDUCE", "REFORM", "REGARD", "REGIME", "REGION", "RELATE", "RELIEF",
+        "REMAIN", "REMARK", "REMOTE", "REMOVE", "REPAIR", "REPEAT", "REPLACE", "REPLY",
+        "REPORT", "RESCUE", "RESORT", "RESULT", "RETAIN", "RETIRE", "RETURN", "REVEAL",
+        "REVIEW", "REWARD", "RIDING", "RISING", "RITUAL", "ROBERT", "ROBUST", "ROCKET",
+        "RULING", "RUNNER", "RUSHED", "RUSSIA", "SACRED", "SAFETY", "SALARY", "SAMPLE",
+        "SAVING", "SAYING", "SCHEME", "SCHOOL", "SCREEN", "SCRIPT", "SEARCH", "SEASON",
+        "SECOND", "SECRET", "SECTOR", "SECURE", "SEEING", "SEEKING", "SELECT", "SELLER",
+        "SENIOR", "SERIES", "SERIOUS", "SERVED", "SERVER", "SETTLE", "SEVERE", "SEXUAL",
+        "SHADOW", "SHAPED", "SHARED", "SHIELD", "SHOULD", "SHOWED", "SHOWER", "SILENT",
+        "SILVER", "SIMPLE", "SIMPLY", "SINGER", "SINGLE", "SISTER", "SLIGHT", "SMOOTH",
+        "SOCCER", "SOCIAL", "SOLELY", "SOUGHT", "SOURCE", "SOVIET", "SPEECH", "SPIRIT",
+        "SPOKE", "SPREAD", "SPRING", "SQUARE", "STABLE", "STATED", "STATUS", "STEADY",
+        "STOLEN", "STRAIN", "STRAND", "STRANGE", "STREAM", "STREET", "STRESS", "STRICT",
+        "STRIKE", "STRING", "STROKE", "STRONG", "STRUCK", "STUDIO", "SUBMIT", "SUDDEN",
+        "SUFFER", "SUMMER", "SUMMIT", "SUPPLY", "SURELY", "SURVEY", "SWITCH", "SYMBOL",
+        "SYSTEM", "TAKING", "TALENT", "TARGET", "TAUGHT", "TEMPLE", "TENANT", "TENDER",
+        "TENNIS", "THEORY", "THERAPY", "THIRTY", "THOUGH", "THREAT", "THRONE", "THROWN",
+        "TICKET", "TIMELY", "TISSUE", "TOWARD", "TRACED", "TRACKS", "TRADER", "TREATY",
+        "TROOPS", "TROPHY", "TRYING", "TUNNEL", "TURNED", "TWELVE", "TWENTY", "UNABLE",
+        "UNIQUE", "UNITED", "UNLESS", "UNLIKE", "UPDATE", "USEFUL", "VALLEY", "VALUED",
+        "VARIED", "VASTLY", "VECTOR", "VENDOR", "VERSUS", "VESSEL", "VICTIM", "VICTOR",
+        "VIEWER", "VILLAGE", "VIOLENT", "VIRGIN", "VISION", "VISUAL", "VOLUME", "WALKER",
+        "WANDER", "WEALTH", "WEAPON", "WEEKLY", "WEIGHT", "WHOLLY", "WICKED", "WIDELY",
+        "WINNER", "WINTER", "WISDOM", "WITHIN", "WONDER", "WOODEN", "WORKER", "WORKING",
+        "WORTHY", "WRITER", "YELLOW", "YOUNGER"
+];
+
+// 7-letter words (200+ words)
+var W7 = [
+        "ABILITY", "ABSENCE", "ACADEMY", "ACCOUNT", "ACCUSED", "ACHIEVE", "ACQUIRE", "ADDRESS",
+        "ADVANCE", "ADVERSE", "ADVISED", "ADVISER", "AGAINST", "AIRPORT", "ALCOHOL", "ALLEGED",
+        "ALREADY", "ALUMNUS", "AMAZING", "AMONGST", "ANCIENT", "ANOTHER", "ANXIETY", "ANXIOUS",
+        "ANYBODY", "ANYMORE", "ANYWAYS", "APPLIED", "APPOINT", "APPROVE", "ARRANGE",
+        "ARRIVAL", "ARTICLE", "ARTIST", "ASSAULT", "ASSUMED", "ASSURED", "ATHLETE", "ATTEMPT",
+        "ATTRACT", "AUCTION", "AVERAGE", "BACKING", "BALANCE", "BANKING", "BARRIER", "BATTERY",
+        "BEARING", "BEATING", "BECAUSE", "BEDROOM", "BELIEVE", "BENEATH", "BENEFIT", "BESIDES",
+        "BETWEEN", "BILLION", "BINDING", "BIZARRE", "BLANKET", "BLESSED", "BOOKING", "BROTHER",
+        "BROUGHT", "BURNING", "CABINET", "CALIBER", "CALLING", "CAPABLE", "CAPITAL", "CAPTAIN",
+        "CAPTION", "CAPTURE", "CAREFUL", "CARRIER", "CASTLE", "CATALOG", "CEILING", "CENTRAL",
+        "CENTURY", "CERTAIN", "CHAMBER", "CHANNEL", "CHAPTER", "CHARITY", "CHARTER", "CHECKED",
+        "CHICKEN", "CIRCUIT", "CITIZEN", "CLASSIC", "CLIMATE", "CLOSING", "CLOTHES", "COATING",
+        "COLLECT", "COLLEGE", "COMBINE", "COMFORT", "COMMAND", "COMMENT", "COMMERCE", "COMPANY",
+        "COMPARE", "COMPETE", "COMPILE", "COMPLEX", "COMPOSE", "CONCEPT", "CONCERN", "CONCERT",
+        "CONDUCT", "CONFIRM", "CONFLICT", "CONNECT", "CONSENT", "CONSIST", "CONTACT", "CONTAIN",
+        "CONTENT", "CONTEST", "CONTEXT", "CONTROL", "CONVERT", "COOKING", "CORRECT", "COUNCIL",
+        "COUNSEL", "COUNTER", "COUNTRY", "COURAGE", "COURIER", "COVERED", "CREATED", "CREATOR",
+        "CRICKET", "CRUCIAL", "CRYSTAL", "CULTURE", "CURIOUS", "CURRENT", "CUSTODY", "CUTTING",
+        "DEALING", "DECLINE", "DEFAULT", "DEFENCE", "DEFICIT", "DELIVER", "DENSITY", "DEPOSIT",
+        "DESKTOP", "DESPAIR", "DESPITE", "DESTROY", "DEVELOP", "DEVOTED", "DIAMOND", "DIGITAL",
+        "DIGNITY", "DIPLOMA", "DIRECT", "DISCUSS", "DISEASE", "DISPLAY", "DISPUTE", "DISTANT",
+        "DIVERSE", "DIVIDED", "DRAWING", "DRIVING", "DROUGHT", "EASTERN", "ECONOMY", "EDITION",
+        "ELDERLY", "ELECTED", "ELEGANT", "ELEMENT", "EMBASSY", "EMOTION", "EMPEROR", "ENABLED",
+        "ENGAGED", "ENHANCE", "ENORMOUS", "ENQUIRY", "EPISODE", "EQUALLY", "EVENING", "EVIDENT",
+        "EXACTLY", "EXAMINE", "EXAMPLE", "EXCITED", "EXCLUDE", "EXECUTE", "EXHIBIT", "EXPENSE"
+];
+
+// Map word length to arrays
+var WORDS = {4: W4, 5: W5, 6: W6, 7: W7};
+
+var wlen=5,maxGuess=6,target,guesses,current,over,row;
+var gridEl=document.getElementById('grid'),kbEl=document.getElementById('kb');
+var toast=document.getElementById('toast'),ov=document.getElementById('ov');
+var ovT=document.getElementById('ovT'),ovM=document.getElementById('ovM'),ovW=document.getElementById('ovW');
+var keyState={};
+
+function showToast(msg){
+  toast.textContent=msg;toast.classList.add('show');
+  setTimeout(function(){toast.classList.remove('show');},1200);
+}
+
+function newGame(len){
+  if(len)wlen=len;
+  var list=WORDS[wlen];
+  target=list[Math.floor(Math.random()*list.length)].toLowerCase();
+  guesses=[];current='';over=false;row=0;
+  keyState={};
+  ov.className='ov';
+  updLen();buildGrid();buildKB();
+}
+
+function updLen(){
+  var bs=document.getElementById('lb').children;
+  for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-l'))===wlen?'on':'';
+}
+
+function buildGrid(){
+  gridEl.innerHTML='';
+  gridEl.style.gridTemplateColumns='repeat('+wlen+',1fr)';
+  gridEl.style.width=Math.min(wlen*56,380)+'px';
+  for(var r=0;r<maxGuess;r++){
+    for(var c=0;c<wlen;c++){
+      var d=document.createElement('div');
+      d.className='tile';d.id='t'+r+'_'+c;
+      gridEl.appendChild(d);
+    }
+  }
+}
+
+function buildKB(){
+  kbEl.innerHTML='';
+  var rows=['qwertyuiop','asdfghjkl','zxcvbnm'];
+  for(var ri=0;ri<rows.length;ri++){
+    var div=document.createElement('div');div.className='kb-row';
+    if(ri===2){
+      var eb=document.createElement('button');eb.className='key wide';eb.textContent='Enter';
+      eb.addEventListener('click',submitGuess);div.appendChild(eb);
+    }
+    for(var ci=0;ci<rows[ri].length;ci++){
+      var b=document.createElement('button');b.className='key';
+      b.textContent=rows[ri][ci];b.setAttribute('data-k',rows[ri][ci]);
+      b.addEventListener('click',(function(ch){return function(){addLetter(ch);};})(rows[ri][ci]));
+      div.appendChild(b);
+    }
+    if(ri===2){
+      var db=document.createElement('button');db.className='key wide';db.textContent='⌫';
+      db.addEventListener('click',delLetter);div.appendChild(db);
+    }
+    kbEl.appendChild(div);
+  }
+}
+
+function addLetter(ch){
+  if(over||current.length>=wlen)return;
+  current+=ch;
+  var tile=document.getElementById('t'+row+'_'+(current.length-1));
+  tile.textContent=ch;tile.classList.add('pop');
+  setTimeout(function(){tile.classList.remove('pop');},100);
+}
+
+function delLetter(){
+  if(over||current.length===0)return;
+  current=current.slice(0,-1);
+  document.getElementById('t'+row+'_'+current.length).textContent='';
+}
+
+function submitGuess(){
+  if(over)return;
+  if(current.length!==wlen){
+    showToast('Not enough letters');
+    shakeRow();return;
+  }
+  var list=WORDS[wlen];
+  var valid=false;
+  for(var i=0;i<list.length;i++){if(list[i].toLowerCase()===current){valid=true;break;}}
+  if(!valid){showToast('Not in word list');shakeRow();return;}
+
+  guesses.push(current);
+  revealRow(row,current,target);
+  row++;
+
+  if(current===target){
+    over=true;
+    setTimeout(function(){
+      bounceRow(row-1);
+      ovT.textContent='🎉 Well Done!';
+      ovM.textContent='Solved in '+row+' guess'+(row>1?'es':'')+'!';
+      ovW.textContent=target;
+      setTimeout(function(){ov.className='ov show';},1800);
+    },wlen*300+200);
+  } else if(row>=maxGuess){
+    over=true;
+    setTimeout(function(){
+      ovT.textContent='😔 Not this time';
+      ovM.textContent='The word was:';
+      ovW.textContent=target;
+      setTimeout(function(){ov.className='ov show';},800);
+    },wlen*300+200);
+  }
+  current='';
+}
+
+function revealRow(r,guess,ans){
+  var result=[];
+  var ansArr=ans.split('');
+  var guessArr=guess.split('');
+  // First pass: correct
+  for(var i=0;i<wlen;i++){
+    if(guessArr[i]===ansArr[i]){result[i]='correct';ansArr[i]='_';guessArr[i]='*';}
+    else result[i]='';
+  }
+  // Second pass: present
+  for(var i=0;i<wlen;i++){
+    if(result[i])continue;
+    var idx=ansArr.indexOf(guessArr[i]);
+    if(idx>=0){result[i]='present';ansArr[idx]='_';}
+    else result[i]='absent';
+  }
+  // Animate
+  for(var i=0;i<wlen;i++){
+    (function(ci,cls,ch){
+      setTimeout(function(){
+        var tile=document.getElementById('t'+r+'_'+ci);
+        tile.classList.add('flip');
+        setTimeout(function(){tile.classList.add(cls);},250);
+        // Update keyboard
+        var prev=keyState[ch]||'';
+        if(cls==='correct')keyState[ch]='correct';
+        else if(cls==='present'&&prev!=='correct')keyState[ch]='present';
+        else if(!prev)keyState[ch]='absent';
+        updKeyColor(ch);
+      },ci*300);
+    })(i,result[i],guess[i]);
+  }
+}
+
+function updKeyColor(ch){
+  var btns=kbEl.querySelectorAll('[data-k="'+ch+'"]');
+  for(var i=0;i<btns.length;i++){
+    btns[i].classList.remove('correct','present','absent');
+    if(keyState[ch])btns[i].classList.add(keyState[ch]);
+  }
+}
+
+function shakeRow(){
+  for(var i=0;i<wlen;i++){
+    var tile=document.getElementById('t'+row+'_'+i);
+    tile.parentNode.classList.add('row-shake');
+  }
+  setTimeout(function(){
+    var tiles=gridEl.querySelectorAll('.row-shake');
+    for(var i=0;i<tiles.length;i++)tiles[i].classList.remove('row-shake');
+  },400);
+}
+
+function bounceRow(r){
+  for(var i=0;i<wlen;i++){
+    (function(ci){
+      setTimeout(function(){
+        var tile=document.getElementById('t'+r+'_'+ci);
+        tile.style.animation='bounce .5s ease';
+      },ci*100);
+    })(i);
+  }
+}
+
+/* Keyboard input */
+document.addEventListener('keydown',function(e){
+  if(over)return;
+  if(e.key==='Enter'){submitGuess();return;}
+  if(e.key==='Backspace'){delLetter();return;}
+  if(/^[a-zA-Z]$/.test(e.key))addLetter(e.key.toLowerCase());
+});
+
+/* Length buttons */
+var lbs=document.getElementById('lb').children;
+for(var i=0;i<lbs.length;i++){
+  lbs[i].addEventListener('click',(function(b){return function(){
+    newGame(parseInt(b.getAttribute('data-l')));
+  };})(lbs[i]));
+}
+
+document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+document.getElementById('ovB').addEventListener('click',function(){newGame();});
+
+newGame();
+})();
+</script>
+</body>
+</html>

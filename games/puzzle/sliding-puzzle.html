@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sliding Puzzle">
+<title>Sliding Puzzle</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+  height:100vh;height:100dvh;
+  padding:8px;
+  user-select:none;-webkit-user-select:none;
+}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.dbtn{display:flex;gap:5px}
+.dbtn button{
+  font-family:inherit;font-size:.6rem;font-weight:700;
+  padding:4px 8px;border:none;border-radius:20px;
+  background:#16213e;color:#888;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;
+}
+.dbtn button.on{background:#e94560;color:#fff}
+.stats{display:flex;gap:12px}
+.stats span{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
+
+.actions{display:flex;gap:6px}
+.actions button{
+  font-family:inherit;font-size:.7rem;font-weight:700;
+  padding:6px 14px;border:none;border-radius:16px;
+  background:#16213e;color:#aaa;cursor:pointer;
+}
+
+.board{
+  width:100%;max-width:360px;
+  display:grid;gap:4px;
+  border:3px solid #e94560;border-radius:8px;
+  padding:4px;background:#0f0f23;
+  touch-action:manipulation;
+}
+.tile{
+  aspect-ratio:1;
+  display:flex;align-items:center;justify-content:center;
+  background:#16213e;
+  border-radius:6px;
+  font-size:clamp(1.2rem,5vw,2rem);
+  font-weight:800;
+  color:#e0e0e0;
+  cursor:pointer;
+  transition:transform .15s ease,background .15s;
+}
+.tile:active{transform:scale(.95)}
+.tile.empty{background:transparent;cursor:default}
+.tile.correct{color:#4fc3f7}
+
+.ov{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(26,26,46,.93);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s;
+}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.6rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem;text-align:center}
+.ov button{
+  font-family:inherit;padding:12px 28px;border:none;border-radius:30px;
+  background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>SLIDING PUZZLE</h1>
+
+<div class="topbar">
+  <div class="dbtn" id="db">
+    <button data-d="3" class="on">3×3</button>
+    <button data-d="4">4×4</button>
+    <button data-d="5">5×5</button>
+  </div>
+  <div class="stats">
+    <span id="moves">Moves: 0</span>
+    <span id="tmr">00:00</span>
+  </div>
+</div>
+
+<div class="actions">
+  <button id="newBtn">↻ Shuffle</button>
+</div>
+
+<div class="board" id="brd"></div>
+
+<div class="ov" id="ov">
+  <h2>🎉 Solved!</h2>
+  <p id="ovM"></p>
+  <button id="ovB">Play Again</button>
+</div>
+
+<script>
+(function(){
+  var N=3,tiles,emptyIdx,moves,over,tsec,tint;
+  var brdEl=document.getElementById('brd');
+  var movesEl=document.getElementById('moves'),tmrEl=document.getElementById('tmr');
+  var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+
+  function isSolvable(arr,n){
+    var inv=0;
+    for(var i=0;i<arr.length;i++)for(var j=i+1;j<arr.length;j++){
+      if(arr[i]&&arr[j]&&arr[i]>arr[j])inv++;
+    }
+    if(n%2===1)return inv%2===0;
+    var emptyRow=Math.floor(arr.indexOf(0)/n);
+    var fromBottom=n-emptyRow;
+    return(fromBottom%2===0)!==(inv%2===0);
+  }
+
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var t=arr[i];arr[i]=arr[j];arr[j]=t;
+    }
+    return arr;
+  }
+
+  function newGame(n){
+    if(n)N=n;
+    var total=N*N;
+    tiles=[];
+    for(var i=1;i<total;i++)tiles.push(i);
+    tiles.push(0);
+    do{shuffle(tiles);}while(!isSolvable(tiles,N));
+    emptyIdx=tiles.indexOf(0);
+    moves=0;over=false;
+    if(tint)clearInterval(tint);tsec=0;updT();
+    tint=setInterval(function(){tsec++;updT();},1000);
+    ov.className='ov';updD();render();
+  }
+
+  function updD(){var bs=document.getElementById('db').children;for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-d'))===N?'on':'';}
+  function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+
+  function render(){
+    brdEl.innerHTML='';
+    brdEl.style.gridTemplateColumns='repeat('+N+',1fr)';
+    for(var i=0;i<tiles.length;i++){
+      var d=document.createElement('div');
+      if(tiles[i]===0){
+        d.className='tile empty';
+      }else{
+        d.className='tile';
+        d.textContent=tiles[i];
+        // Highlight if in correct position
+        if(tiles[i]===i+1)d.classList.add('correct');
+      }
+      d.setAttribute('data-i',i);
+      brdEl.appendChild(d);
+    }
+    movesEl.textContent='Moves: '+moves;
+  }
+
+  function tryMove(idx){
+    if(over||tiles[idx]===0)return;
+    var r=Math.floor(idx/N),c=idx%N;
+    var er=Math.floor(emptyIdx/N),ec=emptyIdx%N;
+    if(!((r===er&&Math.abs(c-ec)===1)||(c===ec&&Math.abs(r-er)===1)))return;
+
+    tiles[emptyIdx]=tiles[idx];
+    tiles[idx]=0;
+    emptyIdx=idx;
+    moves++;
+    render();
+    checkWin();
+  }
+
+  function checkWin(){
+    for(var i=0;i<tiles.length-1;i++){
+      if(tiles[i]!==i+1)return;
+    }
+    over=true;clearInterval(tint);
+    var m=Math.floor(tsec/60),s=tsec%60;
+    ovM.textContent='Solved in '+moves+' moves, '+m+'m '+(s<10?'0':'')+s+'s';
+    setTimeout(function(){ov.className='ov show';},300);
+  }
+
+  brdEl.addEventListener('click',function(e){
+    var t=e.target.closest('.tile');if(!t)return;
+    tryMove(parseInt(t.getAttribute('data-i')));
+  });
+
+  // Swipe support
+  var sx=0,sy=0;
+  brdEl.addEventListener('touchstart',function(e){var t=e.touches[0];sx=t.clientX;sy=t.clientY;},{passive:true});
+  brdEl.addEventListener('touchend',function(e){
+    if(over)return;
+    var t=e.changedTouches[0];
+    var dx=t.clientX-sx,dy=t.clientY-sy;
+    var adx=Math.abs(dx),ady=Math.abs(dy);
+    if(adx<15&&ady<15)return;
+    var er=Math.floor(emptyIdx/N),ec=emptyIdx%N;
+    var tr,tc;
+    if(adx>ady){
+      // Horizontal swipe - move tile INTO empty space
+      tc=ec+(dx>0?-1:1);tr=er;
+    }else{
+      tr=er+(dy>0?-1:1);tc=ec;
+    }
+    if(tr>=0&&tr<N&&tc>=0&&tc<N){
+      tryMove(tr*N+tc);
+    }
+  },{passive:true});
+
+  // Keyboard
+  document.addEventListener('keydown',function(e){
+    if(over)return;
+    var er=Math.floor(emptyIdx/N),ec=emptyIdx%N,tr=er,tc=ec;
+    switch(e.key){
+      case'ArrowUp':tr=er+1;break;
+      case'ArrowDown':tr=er-1;break;
+      case'ArrowLeft':tc=ec+1;break;
+      case'ArrowRight':tc=ec-1;break;
+      default:return;
+    }
+    e.preventDefault();
+    if(tr>=0&&tr<N&&tc>=0&&tc<N)tryMove(tr*N+tc);
+  });
+
+  var dbs=document.getElementById('db').children;
+  for(var i=0;i<dbs.length;i++){
+    dbs[i].addEventListener('click',(function(b){return function(){newGame(parseInt(b.getAttribute('data-d')));};})(dbs[i]));
+  }
+  document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+  document.getElementById('ovB').addEventListener('click',function(){newGame();});
+
+  newGame();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Pong</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:8px;user-select:none}
+h1{font-size:1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.dbtn{display:flex;gap:5px}
+.dbtn button{font-family:inherit;font-size:.6rem;font-weight:700;padding:4px 8px;border:none;border-radius:20px;background:#16213e;color:#888;cursor:pointer}
+.dbtn button.on{background:#e94560;color:#fff}
+.wrap{width:100%;max-width:400px;aspect-ratio:3/4;border:3px solid #e94560;border-radius:6px;overflow:hidden;position:relative;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+.scores{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+.scores .ai-sc{font-size:2rem;font-weight:800;color:rgba(233,69,96,.4)}
+.scores .dash{color:#2a2a4a;font-size:1rem}
+.scores .pl-sc{font-size:2rem;font-weight:800;color:rgba(79,195,247,.4)}
+.hint{font-size:.6rem;color:#555;text-align:center}
+</style>
+</head>
+<body>
+<h1>PONG</h1>
+<div class="dbtn" id="db">
+  <button data-d="easy" class="on">Easy</button>
+  <button data-d="medium">Med</button>
+  <button data-d="hard">Hard</button>
+</div>
+<div class="wrap" id="wrap">
+  <canvas id="cvs"></canvas>
+  <div class="scores"><span class="ai-sc" id="aiSc">0</span><span class="dash">—</span><span class="pl-sc" id="plSc">0</span></div>
+</div>
+<p class="hint">Drag bottom paddle · First to 7 wins</p>
+<script>
+(function(){
+var cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
+var wrap=document.getElementById('wrap');
+var W,H,ball,player,ai,plScore,aiScore,diff='easy',running;
+var AI_SPEED={easy:0.03,medium:0.05,hard:0.08};
+var WIN_SCORE=7;
+
+function resize(){var r=wrap.getBoundingClientRect();W=cvs.width=Math.floor(r.width);H=cvs.height=Math.floor(r.height);}
+
+function init(){
+  resize();
+  var pw=W*0.22,ph=H*0.015,br=H*0.012;
+  player={x:W/2-pw/2,y:H-ph-H*0.03,w:pw,h:ph};
+  ai={x:W/2-pw/2,y:H*0.03,w:pw,h:ph};
+  ball={x:W/2,y:H/2,r:br,vx:0,vy:0};
+  plScore=0;aiScore=0;running=true;
+  document.getElementById('plSc').textContent='0';
+  document.getElementById('aiSc').textContent='0';
+  serveBall(1);
+  loop();
+}
+
+function serveBall(dir){
+  ball.x=W/2;ball.y=H/2;
+  var angle=(Math.random()-.5)*0.8;
+  var speed=H*0.006;
+  ball.vx=Math.sin(angle)*speed;
+  ball.vy=dir*Math.cos(angle)*speed;
+}
+
+function update(){
+  ball.x+=ball.vx;ball.y+=ball.vy;
+  // Walls
+  if(ball.x-ball.r<0||ball.x+ball.r>W)ball.vx*=-1;
+  // Player paddle
+  if(ball.vy>0&&ball.y+ball.r>=player.y&&ball.y-ball.r<player.y+player.h){
+    if(ball.x>=player.x&&ball.x<=player.x+player.w){
+      ball.vy*=-1.05;ball.y=player.y-ball.r;
+      ball.vx+=((ball.x-player.x)/player.w-.5)*H*0.006;
+    }
+  }
+  // AI paddle
+  if(ball.vy<0&&ball.y-ball.r<=ai.y+ai.h&&ball.y+ball.r>ai.y){
+    if(ball.x>=ai.x&&ball.x<=ai.x+ai.w){
+      ball.vy*=-1.05;ball.y=ai.y+ai.h+ball.r;
+      ball.vx+=((ball.x-ai.x)/ai.w-.5)*H*0.006;
+    }
+  }
+  // Speed cap
+  var maxS=H*0.015;
+  if(Math.abs(ball.vx)>maxS)ball.vx=maxS*(ball.vx>0?1:-1);
+  if(Math.abs(ball.vy)>maxS)ball.vy=maxS*(ball.vy>0?1:-1);
+
+  // Score
+  if(ball.y>H+ball.r){aiScore++;document.getElementById('aiSc').textContent=aiScore;checkWin();serveBall(-1);}
+  if(ball.y<-ball.r){plScore++;document.getElementById('plSc').textContent=plScore;checkWin();serveBall(1);}
+
+  // AI movement
+  var target=ball.x-ai.w/2;
+  var aiSpd=AI_SPEED[diff]*W;
+  if(ai.x<target)ai.x=Math.min(ai.x+aiSpd,target);
+  if(ai.x>target)ai.x=Math.max(ai.x-aiSpd,target);
+  ai.x=Math.max(0,Math.min(W-ai.w,ai.x));
+}
+
+function draw(){
+  ctx.fillStyle='#0f0f23';ctx.fillRect(0,0,W,H);
+  // Center line
+  ctx.setLineDash([8,8]);ctx.strokeStyle='#2a2a4a';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
+  // AI paddle
+  ctx.fillStyle='#e94560';ctx.shadowColor='#e94560';ctx.shadowBlur=8;
+  ctx.fillRect(ai.x,ai.y,ai.w,ai.h);
+  // Player paddle
+  ctx.fillStyle='#4fc3f7';ctx.shadowColor='#4fc3f7';
+  ctx.fillRect(player.x,player.y,player.w,player.h);ctx.shadowBlur=0;
+  // Ball
+  ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=10;
+  ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+}
+
+function loop(){if(!running)return;update();draw();requestAnimationFrame(loop);}
+
+function checkWin(){
+  if(plScore>=WIN_SCORE||aiScore>=WIN_SCORE){
+    running=false;
+    setTimeout(function(){alert((plScore>=WIN_SCORE?'You win! 🎉':'AI wins!')+' '+plScore+'-'+aiScore);init();},200);
+  }
+}
+
+// Touch control
+wrap.addEventListener('touchmove',function(e){
+  e.preventDefault();
+  var rect=wrap.getBoundingClientRect();
+  var x=(e.touches[0].clientX-rect.left)/rect.width*W-player.w/2;
+  player.x=Math.max(0,Math.min(W-player.w,x));
+},{passive:false});
+
+wrap.addEventListener('mousemove',function(e){
+  var rect=wrap.getBoundingClientRect();
+  var x=(e.clientX-rect.left)/rect.width*W-player.w/2;
+  player.x=Math.max(0,Math.min(W-player.w,x));
+});
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowLeft')player.x=Math.max(0,player.x-W*0.05);
+  if(e.key==='ArrowRight')player.x=Math.min(W-player.w,player.x+W*0.05);
+});
+
+var dbs=document.getElementById('db').children;
+for(var i=0;i<dbs.length;i++){dbs[i].addEventListener('click',(function(b){return function(){
+  diff=b.getAttribute('data-d');
+  for(var j=0;j<dbs.length;j++)dbs[j].className=dbs[j]===b?'on':'';
+  init();
+};})(dbs[i]));}
+
+init();
+})();
+</script>
+</body>
+</html>

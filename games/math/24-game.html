@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>24 Game</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:8px;user-select:none}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.7rem;color:#888;text-align:center}
+.stats{display:flex;gap:16px;align-items:center}
+.stats span{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
+.stats .score{color:#4fc3f7}
+.cards{display:flex;gap:10px;justify-content:center}
+.card{
+  width:clamp(60px,18vw,80px);height:clamp(80px,24vw,110px);
+  background:#16213e;border:3px solid #2a2a4a;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1.4rem,6vw,2rem);font-weight:800;color:#e0e0e0;
+  cursor:pointer;transition:transform .1s,border-color .2s;
+}
+.card:active{transform:scale(.95)}
+.card.sel{border-color:#e94560;background:rgba(233,69,96,.15)}
+.card.used{opacity:.2;cursor:default}
+.ops{display:flex;gap:8px;justify-content:center}
+.op{
+  width:clamp(48px,14vw,60px);height:clamp(48px,14vw,60px);
+  background:#16213e;border:2px solid #2a2a4a;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1.2rem,5vw,1.6rem);font-weight:800;color:#e0e0e0;cursor:pointer;
+}
+.op:active{background:#e94560}
+.op.sel{border-color:#e94560;background:rgba(233,69,96,.15)}
+.result{font-size:1.2rem;color:#aaa;text-align:center;min-height:1.5em;font-weight:700}
+.result.win{color:#538d4e;font-size:1.4rem}
+.result.err{color:#e94560}
+.actions{display:flex;gap:8px}
+.actions button{font-family:inherit;font-size:.7rem;font-weight:700;padding:8px 16px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+.actions button.primary{background:#e94560;color:#fff}
+</style>
+</head>
+<body>
+<h1>24 GAME</h1>
+<p class="sub">Use all 4 numbers with +, −, ×, ÷ to make 24</p>
+<div class="stats"><span class="score" id="score">Score: 0</span><span id="tmr">00:00</span></div>
+<div class="cards" id="cards"></div>
+<div class="ops" id="ops">
+  <div class="op" data-op="+">+</div>
+  <div class="op" data-op="-">−</div>
+  <div class="op" data-op="*">×</div>
+  <div class="op" data-op="/">÷</div>
+</div>
+<div class="result" id="res"></div>
+<div class="actions">
+  <button id="undoBtn">↩ Undo</button>
+  <button id="skipBtn">⏭ Skip</button>
+  <button id="newBtn">↻ New</button>
+</div>
+<script>
+(function(){
+var PUZZLES=[];
+// Pre-generate solvable puzzles
+function canMake24(nums){
+  if(nums.length===1)return Math.abs(nums[0]-24)<0.001;
+  for(var i=0;i<nums.length;i++)for(var j=0;j<nums.length;j++){
+    if(i===j)continue;
+    var rest=[];for(var k=0;k<nums.length;k++)if(k!==i&&k!==j)rest.push(nums[k]);
+    var a=nums[i],b=nums[j];
+    var results=[a+b,a-b,a*b];
+    if(b!==0)results.push(a/b);
+    for(var r=0;r<results.length;r++){
+      var next=rest.slice();next.push(results[r]);
+      if(canMake24(next))return true;
+    }
+  }
+  return false;
+}
+
+function genPuzzles(){
+  for(var a=1;a<=9;a++)for(var b=a;b<=9;b++)for(var c=b;c<=9;c++)for(var d=c;d<=9;d++){
+    if(canMake24([a,b,c,d]))PUZZLES.push([a,b,c,d]);
+  }
+}
+genPuzzles();
+
+var nums,slots,selSlot=-1,selOp='',score=0,tsec,tint,history=[];
+var cardsEl=document.getElementById('cards'),resEl=document.getElementById('res');
+var scoreEl=document.getElementById('score'),tmrEl=document.getElementById('tmr');
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+function newRound(){
+  var p=PUZZLES[Math.floor(Math.random()*PUZZLES.length)].slice();
+  shuffle(p);
+  nums=p;slots=p.map(function(v){return{val:v,used:false};});
+  selSlot=-1;selOp='';history=[];
+  resEl.textContent='';resEl.className='result';
+  render();
+}
+
+function newGame(){
+  score=0;scoreEl.textContent='Score: 0';
+  if(tint)clearInterval(tint);tsec=0;updT();
+  tint=setInterval(function(){tsec++;updT();},1000);
+  newRound();
+}
+
+function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+
+function render(){
+  cardsEl.innerHTML='';
+  for(var i=0;i<slots.length;i++){
+    var d=document.createElement('div');d.className='card';
+    if(slots[i].used)d.classList.add('used');
+    else{
+      d.textContent=Math.round(slots[i].val*1000)/1000;
+      if(i===selSlot)d.classList.add('sel');
+    }
+    d.setAttribute('data-i',i);
+    cardsEl.appendChild(d);
+  }
+  var ops=document.querySelectorAll('.op');
+  for(var i=0;i<ops.length;i++)ops[i].classList.toggle('sel',ops[i].getAttribute('data-op')===selOp);
+}
+
+function tryCompute(i){
+  if(slots[i].used)return;
+  if(selSlot<0){selSlot=i;render();return;}
+  if(i===selSlot){selSlot=-1;render();return;}
+  if(!selOp){selSlot=i;render();return;}
+  var a=slots[selSlot].val,b=slots[i].val,result;
+  switch(selOp){
+    case'+':result=a+b;break;
+    case'-':result=a-b;break;
+    case'*':result=a*b;break;
+    case'/':if(b===0){resEl.textContent='Cannot divide by 0';resEl.className='result err';return;}result=a/b;break;
+  }
+  history.push({s1:selSlot,v1:a,u1:false,s2:i,v2:b,u2:false,ri:i,rv:slots[i].val});
+  slots[selSlot].used=true;
+  slots[i].val=result;slots[i].used=false;
+  selSlot=-1;selOp='';
+  // Check if only one number left
+  var active=[];for(var k=0;k<slots.length;k++)if(!slots[k].used)active.push(k);
+  if(active.length===1){
+    if(Math.abs(slots[active[0]].val-24)<0.001){
+      score++;scoreEl.textContent='Score: '+score;
+      resEl.textContent='🎉 = 24! Nice!';resEl.className='result win';
+      setTimeout(newRound,1200);
+    }else{
+      resEl.textContent='= '+Math.round(slots[active[0]].val*100)/100+' (not 24)';resEl.className='result err';
+      setTimeout(function(){undo();},800);
+    }
+  }else{
+    resEl.textContent='= '+Math.round(result*100)/100;resEl.className='result';
+  }
+  render();
+}
+
+function undo(){
+  if(!history.length)return;
+  var h=history.pop();
+  slots[h.s1].used=false;slots[h.s1].val=h.v1;
+  slots[h.s2||h.ri].val=h.v2||h.rv;slots[h.s2||h.ri].used=false;
+  selSlot=-1;selOp='';resEl.textContent='';resEl.className='result';
+  render();
+}
+
+cardsEl.addEventListener('click',function(e){var t=e.target.closest('.card');if(!t)return;tryCompute(parseInt(t.getAttribute('data-i')));});
+document.getElementById('ops').addEventListener('click',function(e){var t=e.target.closest('.op');if(!t)return;selOp=t.getAttribute('data-op');render();});
+document.getElementById('undoBtn').addEventListener('click',undo);
+document.getElementById('skipBtn').addEventListener('click',newRound);
+document.getElementById('newBtn').addEventListener('click',newGame);
+newGame();
+})();
+</script>
+</body>
+</html>

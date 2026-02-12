@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>FreePlay — 31 Free HTML Games</title>
+
+<style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --card-hover:#263548;
+  --accent:#38bdf8;
+  --accent-soft:#0ea5e9;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --border:#334155;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.5;
+}
+
+/* HERO */
+.hero{
+  text-align:center;
+  padding:60px 20px 40px;
+  background:linear-gradient(180deg,#0f172a 0%, #111827 100%);
+  border-bottom:1px solid var(--border);
+}
+
+.hero h1{
+  font-size:2.2rem;
+  font-weight:800;
+  letter-spacing:.05em;
+}
+
+.hero p{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:.95rem;
+}
+
+.hero .badge{
+  margin-top:18px;
+  display:inline-block;
+  padding:6px 14px;
+  font-size:.75rem;
+  border-radius:20px;
+  background:var(--accent);
+  color:#000;
+  font-weight:600;
+}
+
+/* SECTION */
+.section{
+  max-width:1100px;
+  margin:50px auto 0;
+  padding:0 20px;
+}
+
+.section h2{
+  font-size:1.1rem;
+  margin-bottom:18px;
+  color:var(--accent);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:18px;
+}
+
+/* CARD */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:22px 10px;
+  text-align:center;
+  text-decoration:none;
+  color:inherit;
+  transition:.2s ease;
+}
+
+.card:hover{
+  background:var(--card-hover);
+  transform:translateY(-4px);
+  border-color:var(--accent-soft);
+}
+
+.card .icon{
+  font-size:2rem;
+}
+
+.card .name{
+  margin-top:10px;
+  font-size:.85rem;
+  font-weight:600;
+}
+
+.footer{
+  margin-top:80px;
+  padding:40px 20px;
+  text-align:center;
+  font-size:.8rem;
+  color:var(--muted);
+  border-top:1px solid var(--border);
+}
+
+.footer a{
+  color:var(--accent);
+  text-decoration:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="hero">
+  <h1>🎮 FreePlay</h1>
+  <p>31 Ad-Free · Offline · Pure HTML Games</p>
+  <div class="badge">100% Free · No Tracking</div>
+</div>
+
+<!-- PUZZLE -->
+<div class="section">
+  <h2>🧩 Puzzle</h2>
+  <div class="grid">
+    <a class="card" href="games/puzzle/sudoku.html"><div class="icon">🔢</div><div class="name">Sudoku</div></a>
+    <a class="card" href="games/puzzle/word-guess.html"><div class="icon">📝</div><div class="name">Word Guess</div></a>
+    <a class="card" href="games/puzzle/minesweeper.html"><div class="icon">💣</div><div class="name">Minesweeper</div></a>
+    <a class="card" href="games/puzzle/2048.html"><div class="icon">🔢</div><div class="name">2048</div></a>
+    <a class="card" href="games/puzzle/nonogram.html"><div class="icon">🖼</div><div class="name">Nonogram</div></a>
+    <a class="card" href="games/puzzle/sliding-puzzle.html"><div class="icon">🧊</div><div class="name">Sliding Puzzle</div></a>
+    <a class="card" href="games/puzzle/lights-out.html"><div class="icon">💡</div><div class="name">Lights Out</div></a>
+    <a class="card" href="games/puzzle/mastermind.html"><div class="icon">🎨</div><div class="name">Mastermind</div></a>
+    <a class="card" href="games/puzzle/hangman.html"><div class="icon">☠️</div><div class="name">Hangman</div></a>
+    <a class="card" href="games/puzzle/word-search.html"><div class="icon">🔍</div><div class="name">Word Search</div></a>
+    <a class="card" href="games/puzzle/mini-crossword.html"><div class="icon">✏️</div><div class="name">Crossword</div></a>
+  </div>
+</div>
+
+<!-- MATH -->
+<div class="section">
+  <h2>🔢 Math & Logic</h2>
+  <div class="grid">
+    <a class="card" href="games/math/kenken.html"><div class="icon">➗</div><div class="name">KenKen</div></a>
+    <a class="card" href="games/math/24-game.html"><div class="icon">🎯</div><div class="name">24 Game</div></a>
+    <a class="card" href="games/math/math-sprint.html"><div class="icon">⚡</div><div class="name">Math Sprint</div></a>
+    <a class="card" href="games/math/number-sequence.html"><div class="icon">🔮</div><div class="name">Number Sequence</div></a>
+    <a class="card" href="games/math/binary-puzzle.html"><div class="icon">🤖</div><div class="name">Binary Puzzle</div></a>
+  </div>
+</div>
+
+<!-- AI -->
+<div class="section">
+  <h2>🧠 AI Inspired</h2>
+  <div class="grid">
+    <a class="card" href="games/ai/ai-guesser.html"><div class="icon">🧠</div><div class="name">AI Guesser</div></a>
+    <a class="card" href="games/ai/pattern-classifier.html"><div class="icon">🔬</div><div class="name">Pattern Classifier</div></a>
+    <a class="card" href="games/ai/chatbot-maze.html"><div class="icon">🤖</div><div class="name">Chatbot Maze</div></a>
+  </div>
+</div>
+
+<!-- CARDS -->
+<div class="section">
+  <h2>🃏 Card Games</h2>
+  <div class="grid">
+    <a class="card" href="games/cards/solitaire.html"><div class="icon">🃏</div><div class="name">Solitaire</div></a>
+    <a class="card" href="games/cards/blackjack.html"><div class="icon">🎰</div><div class="name">Blackjack</div></a>
+    <a class="card" href="games/cards/memory-match.html"><div class="icon">🧠</div><div class="name">Memory Match</div></a>
+    <a class="card" href="games/cards/video-poker.html"><div class="icon">🎲</div><div class="name">Video Poker</div></a>
+  </div>
+</div>
+
+<!-- ARCADE -->
+<div class="section">
+  <h2>🕹 Arcade</h2>
+  <div class="grid">
+    <a class="card" href="games/arcade/snake.html"><div class="icon">🐍</div><div class="name">Snake</div></a>
+    <a class="card" href="games/arcade/block-stack.html"><div class="icon">🧱</div><div class="name">Block Stack</div></a>
+    <a class="card" href="games/arcade/tap-bird.html"><div class="icon">🐦</div><div class="name">Tap Bird</div></a>
+    <a class="card" href="games/arcade/brick-breaker.html"><div class="icon">🧱</div><div class="name">Brick Breaker</div></a>
+    <a class="card" href="games/arcade/paddle-ball.html"><div class="icon">🏓</div><div class="name">Paddle Ball</div></a>
+    <a class="card" href="games/arcade/pixel-runner.html"><div class="icon">🟩</div><div class="name">Pixel Runner</div></a>
+  </div>
+</div>
+
+<!-- QUICK -->
+<div class="section">
+  <h2>⚡ Quick Fun</h2>
+  <div class="grid">
+    <a class="card" href="games/quick/simon-says.html"><div class="icon">🎵</div><div class="name">Simon Says</div></a>
+    <a class="card" href="games/quick/reaction-time.html"><div class="icon">⚡</div><div class="name">Reaction Time</div></a>
+  </div>
+</div>
+
+<div class="footer">
+  FreePlay v1.0 · Open Source ·
+  <a href="https://github.com/YOUR_USERNAME/freeplay">GitHub</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Chatbot Maze</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:6px 8px;user-select:none}
+h1{font-size:1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.stats span{font-family:monospace;font-size:.8rem;font-weight:700}
+.lv{color:#e94560}.mv{color:#aaa}
+
+.maze-wrap{width:100%;max-width:320px;aspect-ratio:1;position:relative}
+canvas{width:100%;height:100%;display:block;border:3px solid #e94560;border-radius:6px;background:#0f0f23}
+
+.chat{width:100%;max-width:400px;max-height:18vh;overflow-y:auto;padding:4px;background:#0f0f23;border-radius:8px;border:1px solid #2a2a4a;font-size:.7rem;line-height:1.5}
+.chat .bot{color:#4fc3f7}.chat .usr{color:#e94560}.chat .sys{color:#538d4e}
+
+.quick-cmds{display:flex;gap:4px;width:100%;max-width:400px;flex-wrap:wrap;justify-content:center}
+.qc{font-family:inherit;font-size:.65rem;font-weight:700;padding:6px 10px;border:none;border-radius:14px;background:#16213e;color:#aaa;cursor:pointer}
+.qc:active{background:#e94560;color:#fff}
+
+.input-row{display:flex;gap:4px;width:100%;max-width:400px}
+.input-row input{
+  flex:1;font-family:inherit;font-size:.8rem;
+  padding:8px 12px;border:2px solid #2a2a4a;border-radius:20px;
+  background:#16213e;color:#e0e0e0;outline:none;
+}
+.input-row input:focus{border-color:#e94560}
+.input-row button{font-family:inherit;font-size:.8rem;font-weight:700;padding:8px 16px;border:none;border-radius:20px;background:#e94560;color:#fff;cursor:pointer}
+
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>🤖 CHATBOT MAZE</h1>
+<div class="topbar">
+  <div class="stats"><span class="lv" id="lv">Level 1</span></div>
+  <div class="stats"><span class="mv" id="mv">Moves: 0</span></div>
+</div>
+<div class="maze-wrap"><canvas id="cvs"></canvas></div>
+<div class="chat" id="chat"></div>
+<div class="quick-cmds" id="qc"></div>
+<div class="input-row">
+  <input type="text" id="inp" placeholder="Type a command..." autocomplete="off">
+  <button id="sendBtn">Send</button>
+</div>
+<div class="ov" id="ov">
+  <h2>🎉 Maze Solved!</h2>
+  <p id="ovM"></p>
+  <button id="ovB">Next Level</button>
+</div>
+<script>
+(function(){
+var cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
+var chatEl=document.getElementById('chat'),inp=document.getElementById('inp');
+var mvEl=document.getElementById('mv'),lvEl=document.getElementById('lv');
+var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+
+var maze,N,px,py,ex,ey,moves,level=0,cellW,cellH;
+var CMDS=['go up','go down','go left','go right','look','help'];
+
+// Build quick command buttons
+var qcEl=document.getElementById('qc');
+['⬆ Up','⬇ Down','⬅ Left','➡ Right','👀 Look','❓ Help'].forEach(function(label,i){
+  var b=document.createElement('button');b.className='qc';b.textContent=label;
+  b.addEventListener('click',function(){processCmd(CMDS[i]);});
+  qcEl.appendChild(b);
+});
+
+function genMaze(n){
+  // DFS maze generation
+  var grid=[];
+  for(var r=0;r<n;r++){grid[r]=[];for(var c=0;c<n;c++)grid[r][c]={top:1,right:1,bottom:1,left:1,visited:false};}
+  var stack=[[0,0]];grid[0][0].visited=true;
+  var dirs=[[-1,0,'top','bottom'],[1,0,'bottom','top'],[0,-1,'left','right'],[0,1,'right','left']];
+  while(stack.length){
+    var cur=stack[stack.length-1],cr=cur[0],cc=cur[1];
+    var neighbors=[];
+    for(var d=0;d<dirs.length;d++){
+      var nr=cr+dirs[d][0],nc=cc+dirs[d][1];
+      if(nr>=0&&nr<n&&nc>=0&&nc<n&&!grid[nr][nc].visited)neighbors.push(d);
+    }
+    if(neighbors.length===0){stack.pop();continue;}
+    var di=neighbors[Math.floor(Math.random()*neighbors.length)];
+    var d=dirs[di],nr=cr+d[0],nc=cc+d[1];
+    grid[cr][cc][d[2]]=0;grid[nr][nc][d[3]]=0;
+    grid[nr][nc].visited=true;stack.push([nr,nc]);
+  }
+  return grid;
+}
+
+function newLevel(){
+  level++;N=Math.min(4+level,10);
+  maze=genMaze(N);
+  px=0;py=0;ex=N-1;ey=N-1;moves=0;
+  lvEl.textContent='Level '+level;mvEl.textContent='Moves: 0';
+  ov.className='ov';chatEl.innerHTML='';
+  resize();draw();
+  addMsg('bot','🤖 Welcome to Maze Level '+level+'! ('+N+'×'+N+')');
+  addMsg('bot','Navigate to the 🟢 exit. Type commands or use buttons.');
+  addMsg('sys','Commands: go up/down/left/right, look, help');
+}
+
+function resize(){
+  var wrap=cvs.parentElement;
+  var size=Math.floor(Math.min(wrap.clientWidth,wrap.clientHeight));
+  cvs.width=size;cvs.height=size;
+  cellW=size/N;cellH=size/N;
+}
+
+function draw(){
+  resize();
+  ctx.fillStyle='#0f0f23';ctx.fillRect(0,0,cvs.width,cvs.height);
+  ctx.strokeStyle='#2a2a4a';ctx.lineWidth=2;
+
+  // Draw maze walls
+  for(var r=0;r<N;r++){
+    for(var c=0;c<N;c++){
+      var x=c*cellW,y=r*cellH,cell=maze[r][c];
+      ctx.strokeStyle='#e94560';ctx.lineWidth=2;
+      if(cell.top){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+cellW,y);ctx.stroke();}
+      if(cell.bottom){ctx.beginPath();ctx.moveTo(x,y+cellH);ctx.lineTo(x+cellW,y+cellH);ctx.stroke();}
+      if(cell.left){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+cellH);ctx.stroke();}
+      if(cell.right){ctx.beginPath();ctx.moveTo(x+cellW,y);ctx.lineTo(x+cellW,y+cellH);ctx.stroke();}
+    }
+  }
+
+  // Exit
+  ctx.fillStyle='rgba(83,141,78,.4)';
+  ctx.fillRect(ey*cellW+2,ex*cellH+2,cellW-4,cellH-4);
+  ctx.fillStyle='#538d4e';ctx.font='bold '+Math.floor(cellW*0.5)+'px sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('🟢',ey*cellW+cellW/2,ex*cellH+cellH/2);
+
+  // Player
+  ctx.fillStyle='rgba(79,195,247,.3)';
+  ctx.fillRect(py*cellW+2,px*cellH+2,cellW-4,cellH-4);
+  ctx.fillStyle='#4fc3f7';
+  ctx.fillText('🤖',py*cellW+cellW/2,px*cellH+cellH/2);
+}
+
+function addMsg(type,text){
+  var d=document.createElement('div');d.className=type;d.textContent=text;
+  chatEl.appendChild(d);chatEl.scrollTop=chatEl.scrollHeight;
+}
+
+function canMove(dir){
+  var cell=maze[px][py];
+  if(dir==='up')return!cell.top;if(dir==='down')return!cell.bottom;
+  if(dir==='left')return!cell.left;if(dir==='right')return!cell.right;
+  return false;
+}
+
+function getAvailableDirs(){
+  var dirs=[];
+  if(canMove('up'))dirs.push('up');if(canMove('down'))dirs.push('down');
+  if(canMove('left'))dirs.push('left');if(canMove('right'))dirs.push('right');
+  return dirs;
+}
+
+function processCmd(cmd){
+  cmd=cmd.toLowerCase().trim();
+  addMsg('usr','> '+cmd);
+
+  if(cmd.indexOf('help')>=0){
+    addMsg('bot','Commands: go up, go down, go left, go right, look');
+    addMsg('bot','Navigate to the green exit. I\'ll tell you what I see!');
+    return;
+  }
+
+  if(cmd.indexOf('look')>=0||cmd.indexOf('where')>=0||cmd.indexOf('scan')>=0){
+    var dirs=getAvailableDirs();
+    addMsg('bot','📍 Position: ('+py+','+px+'). Exit at ('+(ey)+','+(ex)+').');
+    addMsg('bot','Available paths: '+dirs.join(', '));
+    var dx=ey-py,dy=ex-px;
+    var hint=[];
+    if(dy<0)hint.push('up');if(dy>0)hint.push('down');
+    if(dx<0)hint.push('left');if(dx>0)hint.push('right');
+    addMsg('bot','🧭 Exit is to the: '+hint.join(' and '));
+    return;
+  }
+
+  var dir=null;
+  if(cmd.indexOf('up')>=0||cmd.indexOf('north')>=0)dir='up';
+  else if(cmd.indexOf('down')>=0||cmd.indexOf('south')>=0)dir='down';
+  else if(cmd.indexOf('left')>=0||cmd.indexOf('west')>=0)dir='left';
+  else if(cmd.indexOf('right')>=0||cmd.indexOf('east')>=0)dir='right';
+  else if(cmd.indexOf('forward')>=0||cmd.indexOf('go')>=0){
+    addMsg('bot','Which direction? Try: go up, go down, go left, go right');return;
+  }
+  else{addMsg('bot','🤔 I don\'t understand "'+cmd+'". Type "help" for commands.');return;}
+
+  if(!canMove(dir)){
+    addMsg('bot','🧱 Wall! Can\'t go '+dir+'. Try: '+getAvailableDirs().join(', '));
+    return;
+  }
+
+  if(dir==='up')px--;if(dir==='down')px++;
+  if(dir==='left')py--;if(dir==='right')py++;
+  moves++;mvEl.textContent='Moves: '+moves;
+  draw();
+
+  addMsg('bot','✓ Moved '+dir+'. Available: '+getAvailableDirs().join(', '));
+
+  if(px===ex&&py===ey){
+    addMsg('sys','🎉 EXIT REACHED!');
+    ovM.textContent='Solved Level '+level+' in '+moves+' moves!';
+    setTimeout(function(){ov.className='ov show';},400);
+  }
+}
+
+function send(){
+  var val=inp.value.trim();
+  if(!val)return;
+  inp.value='';
+  processCmd(val);
+}
+
+inp.addEventListener('keydown',function(e){if(e.key==='Enter')send();});
+document.getElementById('sendBtn').addEventListener('click',send);
+document.getElementById('ovB').addEventListener('click',newLevel);
+
+// Keyboard shortcuts
+document.addEventListener('keydown',function(e){
+  if(document.activeElement===inp)return;
+  if(e.key==='ArrowUp'){processCmd('go up');e.preventDefault();}
+  if(e.key==='ArrowDown'){processCmd('go down');e.preventDefault();}
+  if(e.key==='ArrowLeft'){processCmd('go left');e.preventDefault();}
+  if(e.key==='ArrowRight'){processCmd('go right');e.preventDefault();}
+});
+
+newLevel();
+})();
+</script>
+</body>
+</html>

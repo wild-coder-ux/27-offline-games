@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Solitaire</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;height:100vh;height:100dvh;padding:4px;user-select:none}
+h1{font-size:.9rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560;margin:2px 0}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:420px;margin-bottom:2px}
+.stats span{font-family:monospace;font-size:.75rem;font-weight:700;color:#aaa}
+.actions{display:flex;gap:4px}
+.actions button{font-family:inherit;font-size:.6rem;font-weight:700;padding:3px 8px;border:none;border-radius:12px;background:#16213e;color:#aaa;cursor:pointer}
+.game{width:100%;max-width:420px;flex:1;position:relative;overflow:hidden}
+
+.card{
+  position:absolute;
+  width:calc((100% - 30px) / 7);
+  aspect-ratio:5/7;
+  border-radius:5px;
+  font-size:clamp(.55rem,2.2vw,.75rem);
+  font-weight:800;
+  cursor:pointer;
+  transition:box-shadow .15s;
+  display:flex;flex-direction:column;
+  padding:2px 3px;
+  border:1.5px solid #2a2a4a;
+}
+.card.face-down{background:linear-gradient(135deg,#16213e 25%,#1a2744 25%,#1a2744 50%,#16213e 50%,#16213e 75%,#1a2744 75%);background-size:8px 8px;border-color:#2a2a4a}
+.card.face-up{background:#f0f0f0;color:#333;border-color:#ddd}
+.card.red{color:#e94560}
+.card.black{color:#333}
+.card.selected{box-shadow:0 0 0 2px #e94560;z-index:100!important}
+.card .rank{line-height:1}.card .suit{font-size:clamp(.5rem,2vw,.7rem)}
+.card .center-suit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(1rem,4vw,1.4rem);opacity:.3}
+
+.slot{
+  position:absolute;
+  width:calc((100% - 30px) / 7);
+  aspect-ratio:5/7;
+  border:1.5px dashed #2a2a4a;
+  border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(.6rem,2.5vw,.8rem);color:#2a2a4a;
+}
+
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:200;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>SOLITAIRE</h1>
+<div class="topbar">
+  <div class="stats"><span id="moves">Moves: 0</span> <span id="tmr">00:00</span></div>
+  <div class="actions"><button id="undoBtn">↩</button><button id="newBtn">↻ New</button></div>
+</div>
+<div class="game" id="game"></div>
+<div class="ov" id="ov"><h2>🎉 You Win!</h2><p id="ovM"></p><button id="ovB">New Game</button></div>
+<script>
+(function(){
+var SUITS=['♠','♥','♦','♣'];
+var RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+var RED={'\u2665':1,'\u2666':1};
+
+var deck,stock,waste,foundations,tableau,selected,moveCount,tsec,tint;
+var gameEl=document.getElementById('game');
+var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+var movesEl=document.getElementById('moves'),tmrEl=document.getElementById('tmr');
+
+function mkDeck(){
+  var d=[];
+  for(var s=0;s<4;s++)for(var r=0;r<13;r++)d.push({suit:SUITS[s],rank:RANKS[r],val:r+1,red:!!RED[SUITS[s]],faceUp:false});
+  return shuffle(d);
+}
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+function newGame(){
+  deck=mkDeck();stock=[];waste=[];
+  foundations=[[],[],[],[]];
+  tableau=[[],[],[],[],[],[],[]];
+  selected=null;moveCount=0;
+  if(tint)clearInterval(tint);tsec=0;updT();
+  tint=setInterval(function(){tsec++;updT();},1000);
+  ov.className='ov';
+
+  // Deal
+  var idx=0;
+  for(var col=0;col<7;col++){
+    for(var row=0;row<=col;row++){
+      var card=deck[idx++];
+      card.faceUp=(row===col);
+      tableau[col].push(card);
+    }
+  }
+  stock=deck.slice(idx);
+  render();
+}
+
+function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+
+function colW(){return(gameEl.clientWidth-30)/7;}
+function cardH(){return colW()*7/5;}
+
+function render(){
+  gameEl.innerHTML='';
+  var cw=colW(),ch=cardH(),gap=5;
+
+  // Stock slot
+  mkSlot(0,0,'🔄');
+  // Waste slot
+  mkSlot(cw+gap,0,'');
+  // Foundation slots
+  for(var f=0;f<4;f++)mkSlot((3+f)*(cw+gap),0,SUITS[f]);
+
+  // Stock cards
+  if(stock.length>0){
+    var sc=mkCard(stock[stock.length-1],0,0,false);
+    sc.className='card face-down';
+    sc.onclick=function(){drawStock();};
+  }else{
+    // Click empty stock to recycle
+    var sl=gameEl.querySelector('.slot');
+    sl.onclick=function(){recycleStock();};
+  }
+
+  // Waste - show top card
+  if(waste.length>0){
+    var wc=waste[waste.length-1];
+    wc.faceUp=true;
+    var we=mkCard(wc,cw+gap,0,true);
+    we.onclick=function(){selectCard('waste',waste.length-1);};
+  }
+
+  // Foundations
+  for(var f=0;f<4;f++){
+    if(foundations[f].length>0){
+      var fc=foundations[f][foundations[f].length-1];
+      mkCard(fc,(3+f)*(cw+gap),0,true);
+    }
+  }
+
+  // Tableau
+  var tabY=ch+8;
+  for(var col=0;col<7;col++){
+    mkSlot(col*(cw+gap),tabY,'');
+    for(var row=0;row<tableau[col].length;row++){
+      var card=tableau[col][row];
+      var y=tabY+row*Math.min(22,ch*0.25);
+      var el=mkCard(card,col*(cw+gap),y,card.faceUp);
+      if(card.faceUp){
+        (function(c,r){el.onclick=function(){selectCard('tableau',c,r);};})(col,row);
+      }
+    }
+  }
+
+  movesEl.textContent='Moves: '+moveCount;
+  // Check selected highlight
+  if(selected){
+    var cards=gameEl.querySelectorAll('.card');
+    // Handled by re-render with selected state
+  }
+}
+
+function mkSlot(x,y,text){
+  var d=document.createElement('div');d.className='slot';
+  d.style.left=x+'px';d.style.top=y+'px';
+  d.textContent=text;
+  gameEl.appendChild(d);
+  return d;
+}
+
+function mkCard(card,x,y,faceUp){
+  var d=document.createElement('div');
+  d.className='card '+(faceUp?'face-up':'face-down');
+  if(faceUp&&card.red)d.classList.add('red');
+  if(faceUp&&!card.red)d.classList.add('black');
+  d.style.left=x+'px';d.style.top=y+'px';
+  d.style.zIndex=Math.floor(y);
+  if(faceUp){
+    d.innerHTML='<span class="rank">'+card.rank+'</span><span class="suit">'+card.suit+'</span><span class="center-suit">'+card.suit+'</span>';
+  }
+  if(selected&&selected.card===card)d.classList.add('selected');
+  gameEl.appendChild(d);
+  return d;
+}
+
+function drawStock(){
+  if(stock.length===0)return;
+  var card=stock.pop();
+  card.faceUp=true;
+  waste.push(card);
+  render();
+}
+
+function recycleStock(){
+  if(waste.length===0)return;
+  stock=waste.reverse();
+  waste=[];
+  for(var i=0;i<stock.length;i++)stock[i].faceUp=false;
+  render();
+}
+
+function selectCard(source,col,row){
+  if(selected){
+    // Try to move
+    if(tryMove(selected,source,col,row)){
+      selected=null;moveCount++;render();checkWin();return;
+    }
+  }
+  if(source==='waste'){
+    selected={source:'waste',card:waste[waste.length-1],col:null,row:null};
+  }else if(source==='tableau'){
+    var card=tableau[col][row];
+    if(!card.faceUp)return;
+    selected={source:'tableau',card:card,col:col,row:row};
+  }
+  render();
+  // Also try auto-move to foundation on double-tap
+}
+
+function tryMove(sel,targetSource,targetCol,targetRow){
+  // Try foundation
+  for(var f=0;f<4;f++){
+    if(canMoveToFoundation(sel.card,f)){
+      moveToFoundation(sel,f);return true;
+    }
+  }
+  // Try tableau
+  if(targetSource==='tableau'){
+    if(canMoveToTableau(sel,targetCol)){
+      moveToTableau(sel,targetCol);return true;
+    }
+  }
+  return false;
+}
+
+function canMoveToFoundation(card,f){
+  var pile=foundations[f];
+  if(pile.length===0)return card.val===1;
+  var top=pile[pile.length-1];
+  return top.suit===card.suit&&card.val===top.val+1;
+}
+
+function canMoveToTableau(sel,targetCol){
+  var pile=tableau[targetCol];
+  if(pile.length===0)return sel.card.val===13; // Only King on empty
+  var top=pile[pile.length-1];
+  if(!top.faceUp)return false;
+  return sel.card.red!==top.red&&sel.card.val===top.val-1;
+}
+
+function moveToFoundation(sel,f){
+  if(sel.source==='waste'){
+    foundations[f].push(waste.pop());
+  }else{
+    // Only single card to foundation
+    var card=tableau[sel.col].splice(sel.row,1)[0];
+    foundations[f].push(card);
+    flipTop(sel.col);
+  }
+}
+
+function moveToTableau(sel,targetCol){
+  if(sel.source==='waste'){
+    tableau[targetCol].push(waste.pop());
+  }else{
+    // Move card + all cards below it
+    var cards=tableau[sel.col].splice(sel.row);
+    for(var i=0;i<cards.length;i++)tableau[targetCol].push(cards[i]);
+    flipTop(sel.col);
+  }
+}
+
+function flipTop(col){
+  var pile=tableau[col];
+  if(pile.length>0&&!pile[pile.length-1].faceUp){
+    pile[pile.length-1].faceUp=true;
+  }
+}
+
+// Tap on empty tableau or foundation
+gameEl.addEventListener('click',function(e){
+  if(!selected)return;
+  var t=e.target.closest('.slot');
+  if(!t)return;
+  var slots=gameEl.querySelectorAll('.slot');
+  var idx=Array.prototype.indexOf.call(slots,t);
+  var cw=colW(),gap=5;
+
+  // Foundation slots (idx 2-5)
+  if(idx>=2&&idx<=5){
+    var f=idx-2;
+    if(canMoveToFoundation(selected.card,f)){
+      moveToFoundation(selected,f);
+      selected=null;moveCount++;render();checkWin();
+    }
+    return;
+  }
+  // Tableau slots (idx 6-12)
+  if(idx>=6&&idx<=12){
+    var col=idx-6;
+    if(canMoveToTableau(selected,col)){
+      moveToTableau(selected,col);
+      selected=null;moveCount++;render();checkWin();
+    }
+    return;
+  }
+});
+
+function checkWin(){
+  var total=0;
+  for(var f=0;f<4;f++)total+=foundations[f].length;
+  if(total===52){
+    clearInterval(tint);
+    var m=Math.floor(tsec/60),s=tsec%60;
+    ovM.textContent='Won in '+moveCount+' moves, '+m+'m '+(s<10?'0':'')+s+'s';
+    setTimeout(function(){ov.className='ov show';},400);
+  }
+}
+
+document.getElementById('newBtn').addEventListener('click',newGame);
+document.getElementById('ovB').addEventListener('click',newGame);
+document.getElementById('undoBtn').addEventListener('click',function(){selected=null;render();});
+
+newGame();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Number Sequence</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:8px;user-select:none}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.7rem;color:#888;text-align:center}
+.stats{display:flex;gap:16px;align-items:center}
+.stats span{font-family:monospace;font-size:.9rem;font-weight:700}
+.stats .sc{color:#4fc3f7}.stats .lv{color:#e94560}
+.sequence{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;width:100%;max-width:400px}
+.seq-num{
+  width:clamp(44px,12vw,56px);height:clamp(44px,12vw,56px);
+  background:#16213e;border:2px solid #2a2a4a;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(.9rem,4vw,1.3rem);font-weight:800;color:#e0e0e0;
+}
+.seq-num.blank{border-color:#e94560;color:#e94560;border-style:dashed}
+.seq-num.blank.filled{color:#4fc3f7;border-style:solid;border-color:#4fc3f7}
+.hint{font-size:.75rem;color:#888;text-align:center;min-height:1em;margin:4px 0}
+.answer{font-size:clamp(1.6rem,7vw,2.5rem);font-weight:800;color:#4fc3f7;text-align:center;min-height:1.2em}
+.feedback{font-size:1rem;text-align:center;min-height:1.2em;font-weight:700}
+.feedback.correct{color:#538d4e}.feedback.wrong{color:#e94560}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;max-width:260px}
+.numpad button{font-family:inherit;font-size:clamp(1.1rem,5vw,1.6rem);font-weight:800;padding:12px 0;border:none;border-radius:10px;background:#16213e;color:#e0e0e0;cursor:pointer}
+.numpad button:active{background:#e94560}
+.actions{display:flex;gap:8px}
+.actions button{font-family:inherit;font-size:.7rem;font-weight:700;padding:6px 14px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>NUMBER SEQUENCE</h1>
+<p class="sub">Find the pattern, fill in the missing number</p>
+<div class="stats"><span class="lv" id="lv">Level 1</span><span class="sc" id="sc">Score: 0</span></div>
+<div class="sequence" id="seq"></div>
+<p class="hint" id="hint"></p>
+<div class="answer" id="ans"></div>
+<div class="feedback" id="fb"></div>
+<div class="numpad" id="np"></div>
+<div class="actions">
+  <button id="hintBtn">💡 Hint</button>
+  <button id="skipBtn">⏭ Skip</button>
+</div>
+<script>
+(function(){
+var level=1,score=0,answer='',curSeq,curAns,curHint,curBlankIdx;
+var seqEl=document.getElementById('seq'),ansEl=document.getElementById('ans');
+var fbEl=document.getElementById('fb'),hintEl=document.getElementById('hint');
+var scEl=document.getElementById('sc'),lvEl=document.getElementById('lv');
+
+function genSequence(lv){
+  var type,seq,ans,hint,start,diff,ratio;
+  var r=Math.random();
+  if(lv<=3){
+    // Simple arithmetic
+    start=Math.floor(Math.random()*10)+1;
+    diff=Math.floor(Math.random()*Math.min(lv*3,10))+2;
+    if(r<0.5){hint='Add '+diff+' each time';seq=[];for(var i=0;i<6;i++)seq.push(start+diff*i);}
+    else{hint='Subtract '+diff+' each time';seq=[];start=start+diff*6;for(var i=0;i<6;i++)seq.push(start-diff*i);}
+  }else if(lv<=6){
+    if(r<0.3){
+      ratio=Math.floor(Math.random()*3)+2;start=Math.floor(Math.random()*3)+1;
+      hint='Multiply by '+ratio+' each time';seq=[];var v=start;for(var i=0;i<6;i++){seq.push(v);v*=ratio;}
+    }else if(r<0.6){
+      start=Math.floor(Math.random()*5)+1;
+      hint='Square numbers pattern';seq=[];for(var i=0;i<6;i++)seq.push((start+i)*(start+i));
+    }else{
+      diff=Math.floor(Math.random()*5)+2;start=Math.floor(Math.random()*10)+1;
+      var inc=diff;hint='Increasing differences (+'+diff+', +'+(diff+1)+', ...)';
+      seq=[start];for(var i=1;i<6;i++){seq.push(seq[i-1]+inc);inc++;}
+    }
+  }else{
+    if(r<0.25){
+      start=Math.floor(Math.random()*3)+1;
+      hint='Fibonacci-like: each = sum of previous two';
+      var a=start,b=start+Math.floor(Math.random()*3)+1;seq=[a,b];
+      for(var i=2;i<6;i++){var c=a+b;seq.push(c);a=b;b=c;}
+    }else if(r<0.5){
+      hint='Triangular numbers';seq=[];var s=Math.floor(Math.random()*2);
+      for(var i=s;i<s+6;i++)seq.push((i+1)*(i+2)/2);
+    }else if(r<0.75){
+      start=Math.floor(Math.random()*5)+1;diff=Math.floor(Math.random()*4)+2;
+      hint='Alternating: +'+diff+', -1';
+      seq=[start];for(var i=1;i<6;i++){seq.push(i%2===1?seq[i-1]+diff:seq[i-1]-1);}
+    }else{
+      hint='Cube numbers';start=Math.floor(Math.random()*2)+1;
+      seq=[];for(var i=start;i<start+6;i++)seq.push(i*i*i);
+    }
+  }
+  // Pick blank position (not first)
+  var blankIdx=Math.floor(Math.random()*(seq.length-1))+1;
+  return{seq:seq,ans:seq[blankIdx],hint:hint,blankIdx:blankIdx};
+}
+
+function nextQ(){
+  var q=genSequence(level);
+  curSeq=q.seq;curAns=q.ans;curHint=q.hint;curBlankIdx=q.blankIdx;
+  answer='';ansEl.textContent='';fbEl.textContent='';fbEl.className='feedback';
+  hintEl.textContent='';
+  renderSeq();
+}
+
+function renderSeq(){
+  seqEl.innerHTML='';
+  for(var i=0;i<curSeq.length;i++){
+    var d=document.createElement('div');d.className='seq-num';
+    if(i===curBlankIdx){
+      d.classList.add('blank');
+      if(answer){d.textContent=answer;d.classList.add('filled');}
+      else d.textContent='?';
+    }else{
+      d.textContent=curSeq[i];
+    }
+    seqEl.appendChild(d);
+  }
+}
+
+function submit(){
+  if(answer==='')return;
+  var num=parseInt(answer);
+  if(num===curAns){
+    score++;level=Math.floor(score/3)+1;
+    fbEl.textContent='✓ Correct!';fbEl.className='feedback correct';
+    scEl.textContent='Score: '+score;lvEl.textContent='Level '+level;
+    setTimeout(nextQ,800);
+  }else{
+    fbEl.textContent='✕ It was '+curAns;fbEl.className='feedback wrong';
+    setTimeout(nextQ,1200);
+  }
+}
+
+function addDigit(d){if(answer.length<6){answer+=d;ansEl.textContent=answer;renderSeq();}}
+function delDigit(){answer=answer.slice(0,-1);ansEl.textContent=answer||'';renderSeq();}
+function toggleNeg(){if(answer.charAt(0)==='-')answer=answer.slice(1);else answer='-'+answer;ansEl.textContent=answer;renderSeq();}
+
+var np=document.getElementById('np');
+for(var i=1;i<=9;i++){var b=document.createElement('button');b.textContent=i;b.addEventListener('click',(function(n){return function(){addDigit(''+n);};})(i));np.appendChild(b);}
+var nb=document.createElement('button');nb.textContent='±';nb.addEventListener('click',toggleNeg);np.appendChild(nb);
+var zb=document.createElement('button');zb.textContent='0';zb.addEventListener('click',function(){addDigit('0');});np.appendChild(zb);
+var eb=document.createElement('button');eb.textContent='✓';eb.addEventListener('click',submit);np.appendChild(eb);
+
+document.addEventListener('keydown',function(e){
+  var n=parseInt(e.key);if(n>=0&&n<=9)addDigit(e.key);
+  if(e.key==='Backspace')delDigit();
+  if(e.key==='Enter')submit();
+  if(e.key==='-')toggleNeg();
+});
+
+document.getElementById('hintBtn').addEventListener('click',function(){hintEl.textContent=curHint;});
+document.getElementById('skipBtn').addEventListener('click',function(){
+  fbEl.textContent='Answer: '+curAns;fbEl.className='feedback wrong';
+  setTimeout(nextQ,1000);
+});
+
+nextQ();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nonogram">
+<title>Nonogram</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+  height:100vh;height:100dvh;
+  padding:6px 8px;
+  user-select:none;-webkit-user-select:none;
+}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:420px}
+.dbtn{display:flex;gap:5px}
+.dbtn button{
+  font-family:inherit;font-size:.6rem;font-weight:700;
+  padding:4px 8px;border:none;border-radius:20px;
+  background:#16213e;color:#888;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;
+}
+.dbtn button.on{background:#e94560;color:#fff}
+.timer{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
+
+.actions{display:flex;gap:6px;width:100%;max-width:420px;justify-content:center}
+.actions button{
+  font-family:inherit;font-size:.7rem;font-weight:700;
+  padding:6px 14px;border:none;border-radius:16px;
+  background:#16213e;color:#aaa;cursor:pointer;
+}
+.actions button.on{background:#e94560;color:#fff}
+
+.puzzle-wrap{
+  width:100%;max-width:420px;
+  display:flex;justify-content:center;align-items:center;
+  overflow:hidden;
+  touch-action:manipulation;
+}
+
+.puzzle{display:grid;gap:0}
+
+.clue-corner{background:#1a1a2e}
+.clue-col{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  background:#16213e;padding:2px;
+  font-size:clamp(.4rem,1.5vw,.65rem);font-weight:700;color:#aaa;
+  border:1px solid #2a2a4a;
+  line-height:1.3;
+}
+.clue-row{
+  display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:2px;
+  background:#16213e;padding:2px 4px;
+  font-size:clamp(.4rem,1.5vw,.65rem);font-weight:700;color:#aaa;
+  border:1px solid #2a2a4a;
+}
+.cell{
+  background:#0f0f23;
+  border:1px solid #2a2a4a;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .1s;
+}
+.cell.filled{background:#4fc3f7}
+.cell.marked{background:#0f0f23}
+.cell.marked::after{content:'✕';color:#555;font-size:clamp(.4rem,1.5vw,.6rem);font-weight:700}
+
+.clue-col.done,.clue-row.done{color:#538d4e}
+
+.ov{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(26,26,46,.93);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s;
+}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.6rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem;text-align:center}
+.ov button{
+  font-family:inherit;padding:12px 28px;border:none;border-radius:30px;
+  background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>NONOGRAM</h1>
+
+<div class="topbar">
+  <div class="dbtn" id="db">
+    <button data-d="5" class="on">5×5</button>
+    <button data-d="8">8×8</button>
+    <button data-d="10">10×10</button>
+  </div>
+  <span class="timer" id="tmr">00:00</span>
+</div>
+
+<div class="actions">
+  <button id="markBtn">✕ Mark</button>
+  <button id="newBtn">↻ New</button>
+</div>
+
+<div class="puzzle-wrap">
+  <div class="puzzle" id="pzl"></div>
+</div>
+
+<div class="ov" id="ov">
+  <h2>🎉 Solved!</h2>
+  <p id="ovM"></p>
+  <button id="ovB">New Puzzle</button>
+</div>
+
+<script>
+(function(){
+  var N=5,solution,grid,markMode=false,over=false;
+  var tsec,tint;
+  var pzlEl=document.getElementById('pzl');
+  var tmrEl=document.getElementById('tmr');
+  var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+  var markBtn=document.getElementById('markBtn');
+
+  function genSolution(n){
+    var sol=[];
+    // Generate random pattern with ~40-60% fill
+    for(var r=0;r<n;r++){
+      sol[r]=[];
+      for(var c=0;c<n;c++){
+        sol[r][c]=Math.random()<0.5?1:0;
+      }
+    }
+    // Ensure at least one filled per row/col
+    for(var r=0;r<n;r++){
+      var has=false;for(var c=0;c<n;c++)if(sol[r][c])has=true;
+      if(!has)sol[r][Math.floor(Math.random()*n)]=1;
+    }
+    for(var c=0;c<n;c++){
+      var has=false;for(var r=0;r<n;r++)if(sol[r][c])has=true;
+      if(!has)sol[Math.floor(Math.random()*n)][c]=1;
+    }
+    return sol;
+  }
+
+  function getClues(line){
+    var clues=[],count=0;
+    for(var i=0;i<line.length;i++){
+      if(line[i]===1)count++;
+      else{if(count>0)clues.push(count);count=0;}
+    }
+    if(count>0)clues.push(count);
+    if(clues.length===0)clues=[0];
+    return clues;
+  }
+
+  function getRowClues(sol,r){return getClues(sol[r]);}
+  function getColClues(sol,c){
+    var col=[];for(var r=0;r<sol.length;r++)col.push(sol[r][c]);
+    return getClues(col);
+  }
+
+  function newGame(n){
+    if(n)N=n;
+    solution=genSolution(N);
+    grid=[];
+    for(var r=0;r<N;r++){grid[r]=[];for(var c=0;c<N;c++)grid[r][c]=0;}
+    over=false;markMode=false;
+    markBtn.className='';
+    if(tint)clearInterval(tint);tsec=0;updT();
+    tint=setInterval(function(){tsec++;updT();},1000);
+    ov.className='ov';updD();buildPuzzle();
+  }
+
+  function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+  function updD(){var bs=document.getElementById('db').children;for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-d'))===N?'on':'';}
+
+  function buildPuzzle(){
+    pzlEl.innerHTML='';
+    var maxRowClue=0,maxColClue=0;
+    var rowClues=[],colClues=[];
+    for(var r=0;r<N;r++){rowClues[r]=getRowClues(solution,r);maxRowClue=Math.max(maxRowClue,rowClues[r].length);}
+    for(var c=0;c<N;c++){colClues[c]=getColClues(solution,c);maxColClue=Math.max(maxColClue,colClues[c].length);}
+
+    var totalCols=maxRowClue+N;
+    var totalRows=maxColClue+N;
+    var cellSize=Math.floor(Math.min(380/(totalCols),380/(totalRows)));
+    cellSize=Math.max(cellSize,20);
+    cellSize=Math.min(cellSize,50);
+
+    pzlEl.style.gridTemplateColumns=cellSize*maxRowClue+'px repeat('+N+','+cellSize+'px)';
+    pzlEl.style.gridTemplateRows=cellSize*maxColClue+'px repeat('+N+','+cellSize+'px)';
+
+    // Corner
+    var corner=document.createElement('div');corner.className='clue-corner';pzlEl.appendChild(corner);
+
+    // Column clues
+    for(var c=0;c<N;c++){
+      var d=document.createElement('div');d.className='clue-col';d.id='cc'+c;
+      for(var i=0;i<colClues[c].length;i++){
+        var s=document.createElement('span');s.textContent=colClues[c][i];d.appendChild(s);
+      }
+      pzlEl.appendChild(d);
+    }
+
+    // Rows
+    for(var r=0;r<N;r++){
+      // Row clue
+      var rd=document.createElement('div');rd.className='clue-row';rd.id='cr'+r;
+      for(var i=0;i<rowClues[r].length;i++){
+        var s=document.createElement('span');s.textContent=rowClues[r][i];rd.appendChild(s);
+      }
+      pzlEl.appendChild(rd);
+
+      // Cells
+      for(var c=0;c<N;c++){
+        var cell=document.createElement('div');cell.className='cell';
+        cell.setAttribute('data-r',r);cell.setAttribute('data-c',c);
+        cell.style.width=cellSize+'px';cell.style.height=cellSize+'px';
+        pzlEl.appendChild(cell);
+      }
+    }
+
+    // Store clues for checking
+    pzlEl._rowClues=rowClues;
+    pzlEl._colClues=colClues;
+  }
+
+  function gc(r,c){
+    // cells start after corner + colClues (N+1), then each row has 1 clue + N cells
+    var idx=(N+1)+(r*(N+1))+1+c;
+    return pzlEl.children[idx];
+  }
+
+  function handleTap(r,c){
+    if(over)return;
+    if(markMode){
+      if(grid[r][c]===1)return; // can't mark filled
+      grid[r][c]=grid[r][c]===2?0:2;
+      var cell=gc(r,c);
+      cell.classList.toggle('marked',grid[r][c]===2);
+    }else{
+      if(grid[r][c]===2)return; // can't fill marked
+      grid[r][c]=grid[r][c]===1?0:1;
+      var cell=gc(r,c);
+      cell.classList.toggle('filled',grid[r][c]===1);
+    }
+    checkClues();
+    checkWin();
+  }
+
+  function checkClues(){
+    // Check each row/col against solution clues
+    for(var r=0;r<N;r++){
+      var line=[];for(var c=0;c<N;c++)line.push(grid[r][c]===1?1:0);
+      var clues=getClues(line);
+      var match=JSON.stringify(clues)===JSON.stringify(pzlEl._rowClues[r]);
+      document.getElementById('cr'+r).classList.toggle('done',match);
+    }
+    for(var c=0;c<N;c++){
+      var line=[];for(var r=0;r<N;r++)line.push(grid[r][c]===1?1:0);
+      var clues=getClues(line);
+      var match=JSON.stringify(clues)===JSON.stringify(pzlEl._colClues[c]);
+      document.getElementById('cc'+c).classList.toggle('done',match);
+    }
+  }
+
+  function checkWin(){
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+      if(solution[r][c]===1&&grid[r][c]!==1)return;
+      if(solution[r][c]===0&&grid[r][c]===1)return;
+    }
+    over=true;clearInterval(tint);
+    var m=Math.floor(tsec/60),s=tsec%60;
+    ovM.textContent='Solved in '+m+'m '+(s<10?'0':'')+s+'s';
+    setTimeout(function(){ov.className='ov show';},300);
+  }
+
+  // Drag to fill/mark multiple cells
+  var dragging=false,dragVal=-1,dragMark=false;
+  pzlEl.addEventListener('pointerdown',function(e){
+    var t=e.target.closest('.cell');if(!t||over)return;
+    e.preventDefault();
+    var r=parseInt(t.getAttribute('data-r')),c=parseInt(t.getAttribute('data-c'));
+    dragging=true;dragMark=markMode;
+    if(dragMark){
+      dragVal=grid[r][c]===2?0:2;
+    }else{
+      dragVal=grid[r][c]===1?0:1;
+    }
+    applyDrag(r,c);
+  });
+  pzlEl.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    var el=document.elementFromPoint(e.clientX,e.clientY);
+    if(!el)return;var t=el.closest('.cell');if(!t)return;
+    var r=parseInt(t.getAttribute('data-r')),c=parseInt(t.getAttribute('data-c'));
+    applyDrag(r,c);
+  });
+  document.addEventListener('pointerup',function(){dragging=false;});
+
+  function applyDrag(r,c){
+    if(dragMark){
+      if(grid[r][c]===1)return;
+      grid[r][c]=dragVal;
+      gc(r,c).classList.toggle('marked',dragVal===2);
+    }else{
+      if(grid[r][c]===2)return;
+      grid[r][c]=dragVal;
+      gc(r,c).classList.toggle('filled',dragVal===1);
+    }
+    checkClues();checkWin();
+  }
+
+  markBtn.addEventListener('click',function(){markMode=!markMode;markBtn.className=markMode?'on':'';});
+  document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+  document.getElementById('ovB').addEventListener('click',function(){newGame();});
+
+  var dbs=document.getElementById('db').children;
+  for(var i=0;i<dbs.length;i++){
+    dbs[i].addEventListener('click',(function(b){return function(){newGame(parseInt(b.getAttribute('data-d')));};})(dbs[i]));
+  }
+
+  newGame();
+})();
+</script>
+</body>
+</html>

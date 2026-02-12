@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Sprint</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:#0f172a;
+  color:#e2e8f0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-evenly;
+  padding:12px;
+  user-select:none;
+}
+
+h1{
+  font-size:1rem;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:#38bdf8;
+}
+
+/* TOP BAR */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  width:100%;
+  max-width:420px;
+  align-items:center;
+}
+
+#restartBtn{
+  background:#1e293b;
+  border:none;
+  color:#94a3b8;
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:.7rem;
+  cursor:pointer;
+}
+
+.stats{
+  display:flex;
+  gap:10px;
+  font-family:monospace;
+  font-weight:700;
+  font-size:.9rem;
+}
+
+.sc{color:#4ade80}
+.st{color:#f87171}
+.combo{color:#facc15}
+.hs{color:#38bdf8}
+.tm{color:#cbd5e1}
+
+/* TIMER BAR */
+.progress{
+  width:100%;
+  max-width:420px;
+  height:6px;
+  background:#1e293b;
+  border-radius:3px;
+  overflow:hidden;
+}
+.bar{
+  height:100%;
+  background:#38bdf8;
+  width:100%;
+  transition:width 1s linear;
+}
+
+/* QUESTION */
+.question{text-align:center}
+.expr{
+  font-size:clamp(2rem,9vw,3rem);
+  font-weight:800;
+}
+.eq{font-size:1.5rem;color:#38bdf8}
+
+.answer{
+  font-size:clamp(2rem,9vw,3rem);
+  font-weight:800;
+  color:#4ade80;
+  min-height:1.2em;
+}
+
+.feedback{min-height:1.2em;font-weight:700}
+.correct{color:#4ade80}
+.wrong{color:#f87171}
+
+/* NUMPAD */
+.numpad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  width:100%;
+  max-width:280px;
+}
+.numpad button{
+  font-size:1.4rem;
+  font-weight:800;
+  padding:14px 0;
+  border:none;
+  border-radius:10px;
+  background:#1e293b;
+  color:#e2e8f0;
+  cursor:pointer;
+}
+.numpad button:active{
+  background:#38bdf8;
+  color:#000;
+}
+
+/* OVERLAY */
+.ov{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.95);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  visibility:hidden;
+  opacity:0;
+  transition:.25s ease;
+}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{color:#38bdf8}
+.ov .big{font-size:2rem;font-weight:800;color:#4ade80}
+.ov button{
+  padding:12px 28px;
+  border:none;
+  border-radius:30px;
+  background:#38bdf8;
+  color:#000;
+  font-size:1rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+/* DIFFICULTY */
+.dbtn{display:flex;gap:8px}
+.dbtn button{
+  font-size:.75rem;
+  font-weight:700;
+  padding:6px 14px;
+  border:none;
+  border-radius:20px;
+  background:#1e293b;
+  color:#94a3b8;
+  cursor:pointer;
+}
+.dbtn button.on{
+  background:#38bdf8;
+  color:#000;
+}
+</style>
+</head>
+
+<body>
+
+<h1>MATH SPRINT</h1>
+
+<div class="topbar">
+  <button id="restartBtn">⏹ Restart</button>
+  <div class="stats">
+    <span class="sc" id="sc">0</span>
+    <span class="st" id="st">0✕</span>
+    <span class="combo" id="combo">🔥0</span>
+    <span class="hs" id="hs">HS:0</span>
+    <span class="tm" id="tm">60</span>
+  </div>
+</div>
+
+<div class="progress"><div class="bar" id="bar"></div></div>
+
+<div class="question">
+  <div class="expr" id="expr"></div>
+  <div class="eq">=</div>
+</div>
+
+<div class="answer" id="ans"></div>
+<div class="feedback" id="fb"></div>
+<div class="numpad" id="np"></div>
+
+<!-- START SCREEN -->
+<div class="ov show" id="startOv">
+  <h2>⚡ Math Sprint</h2>
+  <p>Select difficulty</p>
+  <div class="dbtn" id="startDiff">
+    <button data-d="easy" class="on">Easy</button>
+    <button data-d="med">Med</button>
+    <button data-d="hard">Hard</button>
+  </div>
+  <button id="startBtn">Start</button>
+</div>
+
+<!-- END SCREEN -->
+<div class="ov" id="endOv">
+  <h2>⏱ Time's Up!</h2>
+  <div class="big" id="finalScore"></div>
+  <p id="finalMsg"></p>
+  <button id="retryBtn">Play Again</button>
+</div>
+
+<script>
+(function(){
+
+let diff='easy',correct=0,wrong=0,combo=0,highScore=0;
+let timeLeft=60,timer,running=false;
+let answer='',curQ;
+
+const exprEl=document.getElementById('expr');
+const ansEl=document.getElementById('ans');
+const fbEl=document.getElementById('fb');
+const barEl=document.getElementById('bar');
+const scEl=document.getElementById('sc');
+const stEl=document.getElementById('st');
+const comboEl=document.getElementById('combo');
+const hsEl=document.getElementById('hs');
+const tmEl=document.getElementById('tm');
+const startOv=document.getElementById('startOv');
+const endOv=document.getElementById('endOv');
+
+highScore=parseInt(localStorage.getItem("mathSprintHS")||0);
+hsEl.textContent="HS:"+highScore;
+
+/* ---------- QUESTION GENERATOR ---------- */
+function genQ(){
+  let a,b,op,ans;
+
+  if(diff==='easy'){
+    op=['+','-'][Math.floor(Math.random()*2)];
+    a=Math.floor(Math.random()*20)+1;
+    b=Math.floor(Math.random()*20)+1;
+  }
+  else if(diff==='med'){
+    op=['+','-','×'][Math.floor(Math.random()*3)];
+    a=Math.floor(Math.random()*60)+1;
+    b=Math.floor(Math.random()*60)+1;
+  }
+else{
+    op=['+','-','×','÷'][Math.floor(Math.random()*4)];
+    if(op==='÷'){
+      b=Math.floor(Math.random()*12)+2;
+      a=b*(Math.floor(Math.random()*12)+2);
+    }else{
+      a=Math.floor(Math.random()*150)+1;
+      b=Math.floor(Math.random()*150)+1;
+    }
+  }
+
+  if(op==='-' && a<b)[a,b]=[b,a];
+
+  if(op==='+')ans=a+b;
+  else if(op==='-')ans=a-b;
+  else if(op==='×')ans=a*b;
+  else ans=a/b;
+
+  if(diff==='hard' && Math.random()<0.3){
+    ans*=-1;
+    a=-a;
+  }
+
+  return {expr:`${a} ${op} ${b}`,ans:ans};
+}
+
+/* ---------- GAME FLOW ---------- */
+function updateBar(){
+  barEl.style.width=(timeLeft/60)*100+"%";
+}
+
+function nextQ(){
+  curQ=genQ();
+  exprEl.textContent=curQ.expr;
+  answer='';
+  ansEl.textContent='';
+  fbEl.textContent='';
+}
+
+function submit(){
+  if(!running||answer==='')return;
+
+  let num=parseInt(answer);
+
+  if(num===curQ.ans){
+    correct++;
+    combo++;
+    fbEl.textContent="✓ Correct";
+    fbEl.className="feedback correct";
+  }else{
+    wrong++;
+    combo=0;
+    fbEl.textContent="✕ "+curQ.ans;
+    fbEl.className="feedback wrong";
+  }
+
+  scEl.textContent=correct;
+  stEl.textContent=wrong+"✕";
+  comboEl.textContent="🔥"+combo;
+
+  setTimeout(nextQ,300);
+}
+
+function startGame(){
+  correct=0;wrong=0;combo=0;timeLeft=60;
+  running=true;
+
+  scEl.textContent="0";
+  stEl.textContent="0✕";
+  comboEl.textContent="🔥0";
+  tmEl.textContent="60";
+  barEl.style.width="100%";
+
+  startOv.classList.remove("show");
+  endOv.classList.remove("show");
+
+  nextQ();
+
+  timer=setInterval(()=>{
+    timeLeft--;
+    tmEl.textContent=timeLeft;
+    updateBar();
+
+    if(timeLeft<=0){
+      clearInterval(timer);
+      running=false;
+
+      if(correct>highScore){
+        highScore=correct;
+        localStorage.setItem("mathSprintHS",highScore);
+        hsEl.textContent="HS:"+highScore;
+      }
+
+      let total=correct+wrong;
+      let accuracy=total>0?Math.round((correct/total)*100):0;
+
+      document.getElementById("finalScore").textContent=correct+" correct";
+      document.getElementById("finalMsg").textContent=
+        wrong+" wrong · "+accuracy+"% accuracy";
+
+      endOv.classList.add("show");
+    }
+  },1000);
+}
+
+function stopGame(){
+  clearInterval(timer);
+  running=false;
+  startOv.classList.add("show");
+}
+
+/* ---------- INPUT ---------- */
+function addDigit(d){
+  if(!running)return;
+  if(answer.length<6){
+    answer+=d;
+    ansEl.textContent=answer;
+  }
+}
+
+function toggleNeg(){
+  if(!running)return;
+  if(answer.startsWith('-'))answer=answer.slice(1);
+  else if(answer!=='')answer='-'+answer;
+  ansEl.textContent=answer;
+}
+
+function delDigit(){
+  if(!running)return;
+  answer=answer.slice(0,-1);
+  ansEl.textContent=answer;
+}
+
+const np=document.getElementById('np');
+for(let i=1;i<=9;i++){
+  let b=document.createElement('button');
+  b.textContent=i;
+  b.onclick=()=>addDigit(i);
+  np.appendChild(b);
+}
+
+let neg=document.createElement('button');
+neg.textContent='±';
+neg.onclick=toggleNeg;
+np.appendChild(neg);
+
+let zero=document.createElement('button');
+zero.textContent='0';
+zero.onclick=()=>addDigit(0);
+np.appendChild(zero);
+
+let enter=document.createElement('button');
+enter.textContent='✓';
+enter.onclick=submit;
+np.appendChild(enter);
+
+document.addEventListener('keydown',e=>{
+  if(!running)return;
+  if(e.key>='0'&&e.key<='9')addDigit(e.key);
+  if(e.key==='Enter')submit();
+  if(e.key==='Backspace')delDigit();
+  if(e.key==='-')toggleNeg();
+});
+
+/* ---------- DIFFICULTY ---------- */
+document.querySelectorAll("#startDiff button").forEach(btn=>{
+  btn.onclick=()=>{
+    diff=btn.dataset.d;
+    document.querySelectorAll("#startDiff button")
+      .forEach(b=>b.classList.remove("on"));
+    btn.classList.add("on");
+  };
+});
+
+/* ---------- BUTTONS ---------- */
+document.getElementById("startBtn").onclick=startGame;
+document.getElementById("retryBtn").onclick=startGame;
+document.getElementById("restartBtn").onclick=()=>{
+  if(running){
+    if(confirm("Stop current game and change difficulty?")){
+      stopGame();
+    }
+  }
+};
+
+})();
+</script>
+</body>
+</html>

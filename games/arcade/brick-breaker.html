@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<title>Brick Breaker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;height:100dvh;padding:4px;user-select:none;gap:4px}
+h1{font-size:1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.stats span{font-family:monospace;font-size:.8rem;font-weight:700}
+.sc{color:#4fc3f7}.lv{color:#e94560}.li{color:#aaa}
+canvas{display:block;border:3px solid #e94560;border-radius:6px;background:#0f0f23;touch-action:none}
+</style>
+</head>
+<body>
+<h1>BRICK BREAKER</h1>
+<div class="topbar">
+  <span class="stats"><span class="sc" id="sc">Score: 0</span></span>
+  <span class="stats"><span class="lv" id="lv">Level 1</span> <span class="li" id="li">❤️ 3</span></span>
+</div>
+<canvas id="c"></canvas>
+<script>
+(function(){
+var c=document.getElementById('c'),ctx=c.getContext('2d');
+var COLS=8,ROWS=5,COLORS=['#e94560','#ff7043','#ffca28','#66bb6a','#4fc3f7','#ab47bc'];
+var W,H,px,py,pw,ph,bx,by,br,bvx,bvy,stuck;
+var bricks,score,lives,level,state;
+// state: 'menu','play','over'
+
+function sz(){
+  var mw=Math.min(window.innerWidth-8,400);
+  var mh=window.innerHeight*0.68;
+  W=Math.floor(mw);H=Math.floor(Math.min(mw*4/3,mh));
+  c.width=W;c.height=H;
+}
+
+function initGame(){
+  score=0;lives=3;level=1;state='play';
+  buildLevel();
+}
+
+function buildLevel(){
+  sz();
+  pw=W*0.22;ph=Math.max(8,H*0.018);
+  px=W/2-pw/2;py=H-ph-10;
+  br=Math.max(5,H*0.012);
+  bx=W/2;by=py-br-2;bvx=0;bvy=0;stuck=true;
+  bricks=[];
+  var bw=W/COLS,bh=Math.max(12,H*0.035),top=H*0.06;
+  for(var r=0;r<ROWS;r++)for(var cl=0;cl<COLS;cl++){
+    bricks.push({x:cl*bw+1,y:top+r*(bh+1)+1,w:bw-2,h:bh-1,alive:true,color:COLORS[r%6]});
+  }
+  updHUD();
+}
+
+function launchBall(){
+  if(!stuck)return;stuck=false;
+  var a=-Math.PI/2+(Math.random()-.5)*0.7;
+  var spd=Math.max(3,H*0.007);
+  bvx=Math.cos(a)*spd;bvy=Math.sin(a)*spd;
+}
+
+function updHUD(){
+  document.getElementById('sc').textContent='Score: '+score;
+  document.getElementById('lv').textContent='Level '+level;
+  document.getElementById('li').textContent='❤️ '+lives;
+}
+
+function step(){
+  if(state!=='play')return;
+  if(stuck){bx=px+pw/2;by=py-br-2;return;}
+  bx+=bvx;by+=bvy;
+  if(bx-br<0){bx=br;bvx=Math.abs(bvx);}
+  if(bx+br>W){bx=W-br;bvx=-Math.abs(bvx);}
+  if(by-br<0){by=br;bvy=Math.abs(bvy);}
+  if(by-br>H){
+    lives--;updHUD();
+    if(lives<=0){state='over';return;}
+    stuck=true;return;
+  }
+  // Paddle hit
+  if(bvy>0&&by+br>=py&&by+br<=py+ph+6&&bx>=px-4&&bx<=px+pw+4){
+    bvy=-Math.abs(bvy)*1.01;
+    bvx+=((bx-(px+pw/2))/(pw/2))*2.5;
+    by=py-br-1;
+  }
+  // Speed limits
+  var ms=H*0.014;
+  if(Math.abs(bvx)>ms)bvx=ms*(bvx>0?1:-1);
+  if(Math.abs(bvy)>ms)bvy=ms*(bvy>0?1:-1);
+  if(Math.abs(bvy)<1.5)bvy=bvy<0?-1.5:1.5;
+  // Bricks
+  for(var i=0;i<bricks.length;i++){
+    var b=bricks[i];if(!b.alive)continue;
+    if(bx+br>b.x&&bx-br<b.x+b.w&&by+br>b.y&&by-br<b.y+b.h){
+      b.alive=false;score+=10*level;updHUD();
+      var ox=(bx-(b.x+b.w/2))/b.w,oy=(by-(b.y+b.h/2))/b.h;
+      if(Math.abs(ox)>Math.abs(oy))bvx*=-1;else bvy*=-1;
+      break;
+    }
+  }
+  var left=0;for(var i=0;i<bricks.length;i++)if(bricks[i].alive)left++;
+  if(left===0){level++;buildLevel();}
+}
+
+function render(){
+  ctx.fillStyle='#0f0f23';ctx.fillRect(0,0,W,H);
+  // Bricks
+  for(var i=0;i<bricks.length;i++){
+    var b=bricks[i];if(!b.alive)continue;
+    ctx.fillStyle=b.color;ctx.fillRect(b.x,b.y,b.w,b.h);
+  }
+  // Paddle
+  ctx.fillStyle='#4fc3f7';ctx.fillRect(px,py,pw,ph);
+  // Ball
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(bx,by,br,0,Math.PI*2);ctx.fill();
+  // Overlay
+  if(state==='menu'||state==='over'){
+    ctx.fillStyle='rgba(10,10,30,.85)';ctx.fillRect(0,H*.3,W,H*.35);
+    ctx.textAlign='center';
+    ctx.fillStyle='#e94560';ctx.font='bold '+Math.floor(W*.06)+'px sans-serif';
+    ctx.fillText(state==='over'?'GAME OVER':'BRICK BREAKER',W/2,H*.45);
+    ctx.fillStyle='#aaa';ctx.font=Math.floor(W*.035)+'px sans-serif';
+    ctx.fillText(state==='over'?'Score: '+score+' · Tap to restart':'Tap to play · Drag to move paddle',W/2,H*.55);
+  }
+}
+
+function tick(){step();render();requestAnimationFrame(tick);}
+
+function movePad(cx){
+  var r=c.getBoundingClientRect();
+  px=Math.max(0,Math.min(W-pw,(cx-r.left)/(r.right-r.left)*W-pw/2));
+}
+
+function handleTap(cx){
+  if(state==='menu'){initGame();return;}
+  if(state==='over'){initGame();return;}
+  if(stuck)launchBall();
+  movePad(cx);
+}
+
+c.addEventListener('touchstart',function(e){e.preventDefault();handleTap(e.touches[0].clientX);},{passive:false});
+c.addEventListener('touchmove',function(e){e.preventDefault();if(state==='play')movePad(e.touches[0].clientX);},{passive:false});
+c.addEventListener('click',function(e){handleTap(e.clientX);});
+c.addEventListener('mousemove',function(e){if(state==='play')movePad(e.clientX);});
+document.addEventListener('keydown',function(e){
+  if(state!=='play')return;
+  if(e.key==='ArrowLeft')px=Math.max(0,px-W*.05);
+  if(e.key==='ArrowRight')px=Math.min(W-pw,px+W*.05);
+  if(e.key===' '){e.preventDefault();launchBall();}
+});
+
+// Init
+sz();pw=W*.22;ph=Math.max(8,H*.018);px=W/2-pw/2;py=H-ph-10;
+br=Math.max(5,H*.012);bx=W/2;by=py-br-2;bvx=0;bvy=0;stuck=true;
+bricks=[];state='menu';
+var bw=W/COLS,bh=Math.max(12,H*.035),top2=H*.06;
+for(var r=0;r<ROWS;r++)for(var cl=0;cl<COLS;cl++){
+  bricks.push({x:cl*bw+1,y:top2+r*(bh+1)+1,w:bw-2,h:bh-1,alive:true,color:COLORS[r%6]});
+}
+tick();
+})();
+</script>
+</body>
+</html>
