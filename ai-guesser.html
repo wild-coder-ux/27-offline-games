@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>AI Guesser</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:8px;user-select:none}
+h1{font-size:1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.65rem;color:#888;text-align:center;max-width:340px}
+.brain{font-size:3rem;text-align:center;line-height:1}
+.confidence{width:100%;max-width:340px}
+.conf-bar{height:8px;background:#16213e;border-radius:4px;overflow:hidden;margin-top:4px}
+.conf-fill{height:100%;background:linear-gradient(90deg,#e94560,#4fc3f7);transition:width .5s;border-radius:4px}
+.conf-label{font-size:.65rem;color:#888;display:flex;justify-content:space-between}
+.question-area{width:100%;max-width:380px;text-align:center;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.q-num{font-size:.6rem;color:#e94560;font-weight:700;margin-bottom:4px}
+.q-text{font-size:clamp(.95rem,4vw,1.2rem);font-weight:700;color:#e0e0e0;line-height:1.4}
+.guess-text{font-size:clamp(1.2rem,5vw,1.6rem);font-weight:800;color:#4fc3f7}
+.buttons{display:flex;gap:8px;width:100%;max-width:380px;justify-content:center;flex-wrap:wrap}
+.btn{
+  font-family:inherit;font-size:.85rem;font-weight:700;
+  padding:12px 24px;border:none;border-radius:20px;
+  cursor:pointer;min-width:80px;
+}
+.btn.yes{background:#538d4e;color:#fff}
+.btn.no{background:#e94560;color:#fff}
+.btn.maybe{background:#b59f3b;color:#fff}
+.btn.action{background:#16213e;color:#aaa}
+.btn:active{transform:scale(.95)}
+.history{width:100%;max-width:380px;max-height:15vh;overflow-y:auto;font-size:.65rem;color:#555;line-height:1.6}
+.history .hq{color:#888}.history .ha{font-weight:700}
+.history .ha.y{color:#538d4e}.history .ha.n{color:#e94560}.history .ha.m{color:#b59f3b}
+.cat-select{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:100%;max-width:380px}
+.cat-btn{font-family:inherit;font-size:.7rem;font-weight:700;padding:8px 14px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+.cat-btn:active,.cat-btn.on{background:#e94560;color:#fff}
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:.95rem;text-align:center;max-width:340px}
+.ov .guess{font-size:1.5rem;color:#4fc3f7;font-weight:800}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>🧠 AI GUESSER</h1>
+<p class="sub">Think of something. I'll try to guess it in 20 questions!</p>
+<div class="brain" id="brain">🤖</div>
+<div class="confidence">
+  <div class="conf-label"><span>AI Confidence</span><span id="confPct">0%</span></div>
+  <div class="conf-bar"><div class="conf-fill" id="confFill" style="width:0%"></div></div>
+</div>
+<div class="question-area" id="qa"></div>
+<div class="buttons" id="btns"></div>
+<div class="history" id="hist"></div>
+
+<div class="ov" id="ov">
+  <h2 id="ovT"></h2>
+  <p class="guess" id="ovG"></p>
+  <p id="ovM"></p>
+  <button id="ovB">Play Again</button>
+</div>
+
+<script>
+(function(){
+/* Knowledge base — objects with properties and questions */
+var DB = {
+  Animals: {
+    items: [
+      {name:"Dog",tags:{pet:1,legs4:1,fur:1,domestic:1,bark:1,common:1,land:1,mammal:1}},
+      {name:"Cat",tags:{pet:1,legs4:1,fur:1,domestic:1,purr:1,common:1,land:1,mammal:1}},
+      {name:"Elephant",tags:{big:1,legs4:1,wild:1,trunk:1,land:1,mammal:1,gray:1}},
+      {name:"Eagle",tags:{bird:1,fly:1,wild:1,predator:1,beak:1,feather:1}},
+      {name:"Shark",tags:{water:1,predator:1,fish:1,teeth:1,ocean:1,big:1}},
+      {name:"Penguin",tags:{bird:1,water:1,cold:1,black:1,waddle:1,cantfly:1}},
+      {name:"Snake",tags:{reptile:1,slither:1,nolegs:1,wild:1,land:1,scales:1}},
+      {name:"Dolphin",tags:{water:1,mammal:1,smart:1,ocean:1,friendly:1,gray:1}},
+      {name:"Frog",tags:{amphibian:1,jump:1,water:1,land:1,green:1,small:1}},
+      {name:"Lion",tags:{big:1,legs4:1,wild:1,predator:1,mane:1,land:1,mammal:1,roar:1}},
+      {name:"Rabbit",tags:{pet:1,legs4:1,fur:1,hop:1,small:1,land:1,mammal:1,ears:1}},
+      {name:"Horse",tags:{big:1,legs4:1,ride:1,land:1,mammal:1,domestic:1,fast:1}},
+      {name:"Butterfly",tags:{insect:1,fly:1,colorful:1,small:1,wings:1}},
+      {name:"Turtle",tags:{reptile:1,shell:1,slow:1,water:1,land:1,green:1}},
+      {name:"Parrot",tags:{bird:1,fly:1,pet:1,talk:1,colorful:1,feather:1}},
+      {name:"Whale",tags:{water:1,mammal:1,big:1,ocean:1,spray:1}},
+      {name:"Spider",tags:{insect:1,legs8:1,web:1,small:1,land:1}},
+      {name:"Bear",tags:{big:1,legs4:1,wild:1,fur:1,land:1,mammal:1,hibernate:1}},
+      {name:"Goldfish",tags:{pet:1,water:1,fish:1,small:1,gold:1,bowl:1}},
+      {name:"Owl",tags:{bird:1,fly:1,nocturnal:1,wise:1,feather:1,predator:1}}
+    ],
+    questions: [
+      {q:"Does it live in water?",tag:"water",yes:1},
+      {q:"Is it a common household pet?",tag:"pet",yes:1},
+      {q:"Does it have 4 legs?",tag:"legs4",yes:1},
+      {q:"Is it a mammal?",tag:"mammal",yes:1},
+      {q:"Can it fly?",tag:"fly",yes:1},
+      {q:"Is it a predator/carnivore?",tag:"predator",yes:1},
+      {q:"Is it bigger than a human?",tag:"big",yes:1},
+      {q:"Does it have fur or hair?",tag:"fur",yes:1},
+      {q:"Is it a bird?",tag:"bird",yes:1},
+      {q:"Does it live in the ocean?",tag:"ocean",yes:1},
+      {q:"Is it an insect or arachnid?",tag:"insect",yes:1},
+      {q:"Is it found in cold climates?",tag:"cold",yes:1},
+      {q:"Is it typically green?",tag:"green",yes:1},
+      {q:"Does it have a shell?",tag:"shell",yes:1},
+      {q:"Is it nocturnal?",tag:"nocturnal",yes:1},
+      {q:"Can it be ridden by humans?",tag:"ride",yes:1},
+      {q:"Does it make a distinctive sound?",tag:"bark",yes:1},
+      {q:"Is it a reptile?",tag:"reptile",yes:1},
+      {q:"Does it have scales?",tag:"scales",yes:1},
+      {q:"Is it colorful?",tag:"colorful",yes:1}
+    ]
+  },
+  Fruits: {
+    items: [
+      {name:"Apple",tags:{red:1,common:1,tree:1,round:1,crunchy:1,temperate:1}},
+      {name:"Banana",tags:{yellow:1,tropical:1,long:1,peel:1,common:1,soft:1}},
+      {name:"Orange",tags:{orange:1,citrus:1,round:1,juicy:1,peel:1,common:1}},
+      {name:"Strawberry",tags:{red:1,small:1,berry:1,seeds:1,sweet:1,common:1}},
+      {name:"Watermelon",tags:{green:1,big:1,seeds:1,summer:1,juicy:1,red:1}},
+      {name:"Grape",tags:{purple:1,small:1,bunch:1,vine:1,wine:1,common:1}},
+      {name:"Pineapple",tags:{tropical:1,spiky:1,yellow:1,sweet:1,big:1}},
+      {name:"Mango",tags:{tropical:1,orange:1,sweet:1,pit:1,soft:1}},
+      {name:"Lemon",tags:{yellow:1,citrus:1,sour:1,small:1,juicy:1}},
+      {name:"Cherry",tags:{red:1,small:1,pit:1,tree:1,sweet:1,pair:1}},
+      {name:"Coconut",tags:{tropical:1,hard:1,white:1,brown:1,big:1,hairy:1}},
+      {name:"Peach",tags:{fuzzy:1,pit:1,sweet:1,orange:1,soft:1,tree:1}},
+      {name:"Kiwi",tags:{green:1,fuzzy:1,small:1,seeds:1,brown:1}},
+      {name:"Avocado",tags:{green:1,pit:1,creamy:1,savory:1,soft:1}}
+    ],
+    questions: [
+      {q:"Is it typically red?",tag:"red",yes:1},
+      {q:"Is it a tropical fruit?",tag:"tropical",yes:1},
+      {q:"Is it a citrus fruit?",tag:"citrus",yes:1},
+      {q:"Is it small (fits in your palm)?",tag:"small",yes:1},
+      {q:"Does it have a pit/stone inside?",tag:"pit",yes:1},
+      {q:"Is it yellow?",tag:"yellow",yes:1},
+      {q:"Does it have a peel you remove?",tag:"peel",yes:1},
+      {q:"Is it round?",tag:"round",yes:1},
+      {q:"Does it grow on a tree?",tag:"tree",yes:1},
+      {q:"Is it very juicy?",tag:"juicy",yes:1},
+      {q:"Is it green on the outside?",tag:"green",yes:1},
+      {q:"Does it have visible seeds?",tag:"seeds",yes:1},
+      {q:"Is it soft when ripe?",tag:"soft",yes:1},
+      {q:"Is it bigger than a fist?",tag:"big",yes:1},
+      {q:"Is it fuzzy on the outside?",tag:"fuzzy",yes:1},
+      {q:"Is it sour/tart?",tag:"sour",yes:1},
+      {q:"Is it very common in grocery stores?",tag:"common",yes:1},
+      {q:"Is it crunchy?",tag:"crunchy",yes:1},
+      {q:"Does it come in bunches?",tag:"bunch",yes:1},
+      {q:"Is it creamy/buttery?",tag:"creamy",yes:1}
+    ]
+  },
+  Countries: {
+    items: [
+      {name:"USA",tags:{big:1,america:1,english:1,rich:1,cold:1,diverse:1}},
+      {name:"Japan",tags:{asia:1,island:1,tech:1,small:1,sushi:1,east:1}},
+      {name:"Brazil",tags:{america:1,big:1,hot:1,soccer:1,carnival:1,south:1}},
+      {name:"Egypt",tags:{africa:1,desert:1,pyramids:1,hot:1,ancient:1}},
+      {name:"India",tags:{asia:1,big:1,hot:1,spicy:1,billion:1,diverse:1}},
+      {name:"France",tags:{europe:1,wine:1,romantic:1,tower:1,small:1}},
+      {name:"Australia",tags:{island:1,big:1,hot:1,animals:1,beach:1,english:1}},
+      {name:"Canada",tags:{america:1,big:1,cold:1,english:1,polite:1,north:1}},
+      {name:"Italy",tags:{europe:1,boot:1,pizza:1,art:1,romantic:1,small:1}},
+      {name:"China",tags:{asia:1,big:1,billion:1,wall:1,east:1,ancient:1}},
+      {name:"Mexico",tags:{america:1,hot:1,tacos:1,spanish:1,south:1}},
+      {name:"Germany",tags:{europe:1,beer:1,cars:1,cold:1,tech:1}},
+      {name:"Russia",tags:{europe:1,big:1,cold:1,vast:1,north:1}},
+      {name:"Iceland",tags:{europe:1,island:1,cold:1,small:1,north:1,volcanic:1}}
+    ],
+    questions: [
+      {q:"Is it in Asia?",tag:"asia",yes:1},
+      {q:"Is it in Europe?",tag:"europe",yes:1},
+      {q:"Is it in the Americas?",tag:"america",yes:1},
+      {q:"Is it a large country by area?",tag:"big",yes:1},
+      {q:"Is it typically hot/warm climate?",tag:"hot",yes:1},
+      {q:"Is it an island or island continent?",tag:"island",yes:1},
+      {q:"Is English the main language?",tag:"english",yes:1},
+      {q:"Is it known for ancient history?",tag:"ancient",yes:1},
+      {q:"Does it have a population over 1 billion?",tag:"billion",yes:1},
+      {q:"Is it in the Northern hemisphere cold zone?",tag:"cold",yes:1},
+      {q:"Is it known for its cuisine worldwide?",tag:"spicy",yes:1},
+      {q:"Is it famous for wine or beer?",tag:"wine",yes:1},
+      {q:"Is it in Africa?",tag:"africa",yes:1},
+      {q:"Is it considered a tech hub?",tag:"tech",yes:1},
+      {q:"Is it a small country?",tag:"small",yes:1},
+      {q:"Is it known for soccer/football?",tag:"soccer",yes:1},
+      {q:"Is it in South America or south of USA?",tag:"south",yes:1},
+      {q:"Is it known for unique wildlife?",tag:"animals",yes:1},
+      {q:"Is it considered romantic?",tag:"romantic",yes:1},
+      {q:"Is it volcanic?",tag:"volcanic",yes:1}
+    ]
+  }
+};
+
+var category,items,questions,scores,asked,qIdx,maxQ=20,phase;
+var qaEl=document.getElementById('qa'),btnsEl=document.getElementById('btns');
+var histEl=document.getElementById('hist'),brainEl=document.getElementById('brain');
+var confPct=document.getElementById('confPct'),confFill=document.getElementById('confFill');
+var ov=document.getElementById('ov'),ovT=document.getElementById('ovT');
+var ovG=document.getElementById('ovG'),ovM=document.getElementById('ovM');
+
+function startCategorySelect(){
+  phase='select';ov.className='ov';
+  qaEl.innerHTML='<div class="q-text">Pick a category, then think of something!</div>';
+  btnsEl.innerHTML='';
+  var cats=Object.keys(DB);
+  for(var i=0;i<cats.length;i++){
+    var b=document.createElement('button');b.className='btn action';b.textContent=cats[i];
+    b.addEventListener('click',(function(c){return function(){startGame(c);};})(cats[i]));
+    btnsEl.appendChild(b);
+  }
+  histEl.innerHTML='';
+  confFill.style.width='0%';confPct.textContent='0%';
+  brainEl.textContent='🤔';
+}
+
+function startGame(cat){
+  category=cat;
+  items=DB[cat].items.slice();
+  questions=DB[cat].questions.slice();
+  scores={};
+  for(var i=0;i<items.length;i++)scores[i]=0;
+  asked=[];qIdx=0;phase='asking';
+  // Shuffle questions but prioritize high-info ones
+  shuffle(questions);
+  askNext();
+}
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}}
+
+function getBestQuestion(){
+  // Pick question that best splits remaining candidates
+  var best=-1,bestScore=-1;
+  for(var q=0;q<questions.length;q++){
+    if(asked.indexOf(q)>=0)continue;
+    var yesCount=0,noCount=0;
+    for(var i=0;i<items.length;i++){
+      if(items[i].tags[questions[q].tag])yesCount++;else noCount++;
+    }
+    var balance=Math.min(yesCount,noCount);
+    if(balance>bestScore){bestScore=balance;best=q;}
+  }
+  return best;
+}
+
+function askNext(){
+  if(qIdx>=maxQ||qIdx>=questions.length){makeGuess();return;}
+  var qi=getBestQuestion();
+  if(qi<0){makeGuess();return;}
+  asked.push(qi);
+  var q=questions[qi];
+  qaEl.innerHTML='<div class="q-num">Question '+(qIdx+1)+'/'+maxQ+'</div><div class="q-text">'+q.q+'</div>';
+  btnsEl.innerHTML='';
+  var yb=document.createElement('button');yb.className='btn yes';yb.textContent='Yes';
+  yb.addEventListener('click',function(){answer(qi,'yes');});
+  var nb=document.createElement('button');nb.className='btn no';nb.textContent='No';
+  nb.addEventListener('click',function(){answer(qi,'no');});
+  var mb=document.createElement('button');mb.className='btn maybe';mb.textContent='Maybe';
+  mb.addEventListener('click',function(){answer(qi,'maybe');});
+  btnsEl.appendChild(yb);btnsEl.appendChild(mb);btnsEl.appendChild(nb);
+}
+
+function answer(qi,ans){
+  var q=questions[qi];
+  // Update scores
+  for(var i=0;i<items.length;i++){
+    var hasTag=items[i].tags[q.tag]?1:0;
+    if(ans==='yes')scores[i]+=hasTag?2:-2;
+    else if(ans==='no')scores[i]+=hasTag?-2:2;
+    else scores[i]+=hasTag?0.5:0.5;
+  }
+  // History
+  var ac=ans==='yes'?'y':(ans==='no'?'n':'m');
+  histEl.innerHTML='<span class="hq">Q'+(qIdx+1)+': '+q.q+'</span> <span class="ha '+ac+'">'+ans.toUpperCase()+'</span><br>'+histEl.innerHTML;
+
+  qIdx++;
+  updateConfidence();
+  // Check if confident enough to guess early
+  var top=getTopGuess();
+  if(top.score>8&&qIdx>=5){makeGuess();return;}
+  askNext();
+}
+
+function getTopGuess(){
+  var best=-1,bestScore=-999;
+  for(var i=0;i<items.length;i++){
+    if(scores[i]>bestScore){bestScore=scores[i];best=i;}
+  }
+  return{idx:best,score:bestScore,name:items[best].name};
+}
+
+function updateConfidence(){
+  var top=getTopGuess();
+  var maxPossible=qIdx*2;
+  var conf=maxPossible>0?Math.min(Math.round((top.score/maxPossible)*100),99):0;
+  conf=Math.max(conf,5);
+  confFill.style.width=conf+'%';confPct.textContent=conf+'%';
+  if(conf>70)brainEl.textContent='🧠';
+  else if(conf>40)brainEl.textContent='🤔';
+  else brainEl.textContent='🤖';
+}
+
+function makeGuess(){
+  phase='guess';
+  var top=getTopGuess();
+  qaEl.innerHTML='<div class="q-num">After '+qIdx+' questions...</div><div class="guess-text">Is it a '+top.name+'?</div>';
+  btnsEl.innerHTML='';
+  var yb=document.createElement('button');yb.className='btn yes';yb.textContent='✓ Yes!';
+  yb.addEventListener('click',function(){
+    brainEl.textContent='🎉';
+    confFill.style.width='100%';confPct.textContent='100%';
+    ovT.textContent='🎉 I got it!';ovG.textContent=top.name;
+    ovM.textContent='Guessed in '+qIdx+' questions using pattern matching!';
+    setTimeout(function(){ov.className='ov show';},300);
+  });
+  var nb=document.createElement('button');nb.className='btn no';nb.textContent='✕ Nope';
+  nb.addEventListener('click',function(){
+    // Show top 3 guesses
+    var sorted=[];for(var i=0;i<items.length;i++)sorted.push({i:i,s:scores[i]});
+    sorted.sort(function(a,b){return b.s-a.s;});
+    var guesses=sorted.slice(0,3).map(function(x){return items[x.i].name;}).join(', ');
+    brainEl.textContent='😅';
+    ovT.textContent='😅 I couldn\'t get it!';ovG.textContent='';
+    ovM.textContent='My best guesses were: '+guesses+'. I\'ll learn next time!';
+    setTimeout(function(){ov.className='ov show';},300);
+  });
+  btnsEl.appendChild(yb);btnsEl.appendChild(nb);
+}
+
+document.getElementById('ovB').addEventListener('click',startCategorySelect);
+startCategorySelect();
+})();
+</script>
+</body>
+</html>

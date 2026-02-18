@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Toggle Lights">
+<title>Lights Out</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+  height:100vh;height:100dvh;
+  padding:8px;
+  user-select:none;-webkit-user-select:none;
+}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.7rem;color:#888;text-align:center}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px}
+.dbtn{display:flex;gap:5px}
+.dbtn button{font-family:inherit;font-size:.6rem;font-weight:700;padding:4px 8px;border:none;border-radius:20px;background:#16213e;color:#888;text-transform:uppercase;cursor:pointer}
+.dbtn button.on{background:#e94560;color:#fff}
+.stats span{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
+.board{display:grid;gap:6px;width:100%;max-width:320px;padding:8px;touch-action:manipulation}
+.cell{aspect-ratio:1;border-radius:8px;cursor:pointer;background:#16213e;transition:background .2s,box-shadow .2s;border:2px solid #2a2a4a}
+.cell.on{background:#e94560;box-shadow:0 0 16px rgba(233,69,96,.5);border-color:#e94560}
+.cell:active{transform:scale(.95)}
+.actions button{font-family:inherit;font-size:.7rem;font-weight:700;padding:6px 14px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+.lights-left{font-family:monospace;font-size:1rem;color:#e94560;font-weight:700}
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.6rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>TOGGLE LIGHTS</h1>
+<p class="sub">Tap to toggle — turn off all the lights!</p>
+<div class="topbar">
+  <div class="dbtn" id="db">
+    <button data-d="4">4×4</button>
+    <button data-d="5" class="on">5×5</button>
+    <button data-d="6">6×6</button>
+  </div>
+  <div class="stats"><span id="moves">Moves: 0</span></div>
+</div>
+<span class="lights-left" id="ll"></span>
+<div class="board" id="brd"></div>
+<div class="actions"><button id="newBtn">↻ New Puzzle</button></div>
+<div class="ov" id="ov">
+  <h2>🎉 Lights Out!</h2>
+  <p id="ovM"></p>
+  <button id="ovB">Next Puzzle</button>
+</div>
+<script>
+(function(){
+  var N=5,grid,moves,over;
+  var brdEl=document.getElementById('brd');
+  var movesEl=document.getElementById('moves'),llEl=document.getElementById('ll');
+  var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+
+  function newGame(n){
+    if(n)N=n;
+    grid=[];moves=0;over=false;
+    for(var r=0;r<N;r++){grid[r]=[];for(var c=0;c<N;c++)grid[r][c]=0;}
+    // Random presses to ensure solvable
+    var presses=Math.floor(N*N*0.4)+5;
+    for(var i=0;i<presses;i++){
+      var rr=Math.floor(Math.random()*N),cc=Math.floor(Math.random()*N);
+      toggle(rr,cc,true);
+    }
+    // Make sure at least some lights are on
+    var cnt=countOn();
+    if(cnt<3){for(var i=0;i<5;i++){toggle(Math.floor(Math.random()*N),Math.floor(Math.random()*N),true);}}
+    ov.className='ov';updD();render();
+  }
+
+  function updD(){var bs=document.getElementById('db').children;for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-d'))===N?'on':'';}
+
+  function toggle(r,c,silent){
+    var dirs=[[0,0],[-1,0],[1,0],[0,-1],[0,1]];
+    for(var i=0;i<dirs.length;i++){
+      var nr=r+dirs[i][0],nc=c+dirs[i][1];
+      if(nr>=0&&nr<N&&nc>=0&&nc<N) grid[nr][nc]=1-grid[nr][nc];
+    }
+    if(!silent){moves++;render();checkWin();}
+  }
+
+  function countOn(){var c=0;for(var r=0;r<N;r++)for(var cc=0;cc<N;cc++)if(grid[r][cc])c++;return c;}
+
+  function render(){
+    brdEl.innerHTML='';
+    brdEl.style.gridTemplateColumns='repeat('+N+',1fr)';
+    for(var r=0;r<N;r++){
+      for(var c=0;c<N;c++){
+        var d=document.createElement('div');
+        d.className='cell'+(grid[r][c]?' on':'');
+        d.setAttribute('data-r',r);d.setAttribute('data-c',c);
+        brdEl.appendChild(d);
+      }
+    }
+    movesEl.textContent='Moves: '+moves;
+    var on=countOn();
+    llEl.textContent=on>0?on+' light'+(on>1?'s':'')+' remaining':'';
+  }
+
+  function checkWin(){
+    if(countOn()===0){
+      over=true;
+      ovM.textContent='All lights off in '+moves+' moves!';
+      setTimeout(function(){ov.className='ov show';},300);
+    }
+  }
+
+  brdEl.addEventListener('click',function(e){
+    if(over)return;
+    var t=e.target.closest('.cell');if(!t)return;
+    toggle(parseInt(t.getAttribute('data-r')),parseInt(t.getAttribute('data-c')));
+  });
+
+  var dbs=document.getElementById('db').children;
+  for(var i=0;i<dbs.length;i++){dbs[i].addEventListener('click',(function(b){return function(){newGame(parseInt(b.getAttribute('data-d')));};})(dbs[i]));}
+  document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+  document.getElementById('ovB').addEventListener('click',function(){newGame();});
+  newGame();
+})();
+</script>
+</body>
+</html>

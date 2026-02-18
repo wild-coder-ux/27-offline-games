@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Chatbot Maze</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;
+  height:100vh;height:100dvh;
+  padding:6px 10px 8px;
+  gap:5px;
+  user-select:none;-webkit-user-select:none;
+}
+
+/* Header */
+.header{
+  width:100%;max-width:420px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.header h1{
+  font-size:.82rem;font-weight:800;
+  letter-spacing:.18em;text-transform:uppercase;
+  color:#e94560;white-space:nowrap;
+}
+.stats{display:flex;gap:10px;align-items:center;}
+.stats span{font-family:monospace;font-size:.75rem;font-weight:700;white-space:nowrap;}
+.lv{color:#e94560}.mv{color:#888}
+
+/* Maze */
+.maze-wrap{
+  flex-shrink:0;
+  width:min(100%, calc(100dvh - 220px));
+  aspect-ratio:1/1;
+  max-width:420px;
+}
+canvas{
+  width:100%;height:100%;display:block;
+  border:2px solid #e94560;border-radius:6px;
+  background:#0f0f23;touch-action:none;
+}
+
+/* Chat — single slim line */
+.chat{
+  width:100%;max-width:420px;height:28px;flex-shrink:0;
+  overflow:hidden;padding:0 10px;
+  background:#0f0f23;border-radius:20px;border:1px solid #2a2a4a;
+  display:flex;align-items:center;
+}
+.chat-inner{
+  font-size:.68rem;line-height:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;
+}
+.bot{color:#4fc3f7}.sys{color:#538d4e}.usr{color:#e94560}
+
+/* D-pad */
+.controls{
+  flex-shrink:0;
+  display:grid;
+  grid-template-columns:44px 44px 44px;
+  grid-template-rows:44px 44px 44px;
+  gap:4px;
+}
+.dpad-btn{
+  width:44px;height:44px;border:none;border-radius:10px;
+  background:#16213e;color:#ccc;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  transition:background .08s,transform .08s;
+}
+.dpad-btn::after{content:'';position:absolute;inset:-5px}
+.dpad-btn:active,.dpad-btn.pressed{background:#e94560;color:#fff;transform:scale(.9)}
+.up   {grid-column:2;grid-row:1}
+.left {grid-column:1;grid-row:2}
+.mid  {
+  grid-column:2;grid-row:2;
+  background:transparent;color:#333;
+  font-size:.45rem;letter-spacing:.04em;
+  border-radius:50%;border:1px solid #2a2a4a;
+  pointer-events:none;
+}
+.right{grid-column:3;grid-row:2}
+.down {grid-column:2;grid-row:3}
+
+/* Look / Help */
+.util-row{flex-shrink:0;display:flex;gap:8px;}
+.util-btn{
+  font-family:inherit;font-size:.7rem;font-weight:700;
+  padding:7px 20px;border:none;border-radius:12px;
+  background:#16213e;color:#aaa;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  transition:background .08s;
+}
+.util-btn:active{background:#1e3060;color:#fff}
+
+/* Win overlay */
+.ov{
+  position:fixed;inset:0;background:rgba(15,15,35,.96);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  z-index:20;visibility:hidden;opacity:0;transition:opacity .25s;
+}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.6rem;color:#e94560}
+.ov p{color:#888;font-size:.9rem}
+.ov button{
+  font-family:inherit;padding:12px 32px;border:none;border-radius:30px;
+  background:#e94560;color:#fff;font-size:1rem;font-weight:700;
+  cursor:pointer;touch-action:manipulation;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 CHATBOT MAZE</h1>
+  <div class="stats">
+    <span class="lv" id="lv">LVL 1</span>
+    <span class="mv" id="mv">0 moves</span>
+  </div>
+</div>
+
+<div class="maze-wrap"><canvas id="cvs"></canvas></div>
+
+<div class="chat"><span class="chat-inner sys" id="chatTxt">Swipe or tap buttons to move.</span></div>
+
+<div class="controls">
+  <button class="dpad-btn up"    id="btnU">▲</button>
+  <button class="dpad-btn left"  id="btnL">◀</button>
+  <div    class="dpad-btn mid">MOVE</div>
+  <button class="dpad-btn right" id="btnR">▶</button>
+  <button class="dpad-btn down"  id="btnD">▼</button>
+</div>
+
+<div class="util-row">
+  <button class="util-btn" id="btnLook">👀 Look</button>
+  <button class="util-btn" id="btnHelp">❓ Help</button>
+</div>
+
+<div class="ov" id="ov">
+  <h2>🎉 Solved!</h2>
+  <p id="ovM"></p>
+  <button id="ovB">Next Level ▶</button>
+</div>
+
+<script>
+(function(){
+  var cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
+  var chatTxt=document.getElementById('chatTxt');
+  var mvEl=document.getElementById('mv'),lvEl=document.getElementById('lv');
+  var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+  var maze,N,px,py,ex,ey,moves,level=0,cellW,cellH;
+
+  function setMsg(type,text){
+    chatTxt.className='chat-inner '+type;
+    chatTxt.textContent=text;
+  }
+
+  function addTouchBtn(el,action){
+    el.addEventListener('touchstart',function(e){
+      e.preventDefault();el.classList.add('pressed');processCmd(action);
+    },{passive:false});
+    el.addEventListener('touchend',function(e){
+      e.preventDefault();el.classList.remove('pressed');
+    },{passive:false});
+    el.addEventListener('click',function(){processCmd(action);});
+  }
+
+  addTouchBtn(document.getElementById('btnU'),'go up');
+  addTouchBtn(document.getElementById('btnD'),'go down');
+  addTouchBtn(document.getElementById('btnL'),'go left');
+  addTouchBtn(document.getElementById('btnR'),'go right');
+  addTouchBtn(document.getElementById('btnLook'),'look');
+  addTouchBtn(document.getElementById('btnHelp'),'help');
+
+  var tx=0,ty=0;
+  cvs.addEventListener('touchstart',function(e){
+    e.preventDefault();tx=e.touches[0].clientX;ty=e.touches[0].clientY;
+  },{passive:false});
+  cvs.addEventListener('touchend',function(e){
+    e.preventDefault();
+    var dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;
+    if(Math.max(Math.abs(dx),Math.abs(dy))<12)return;
+    processCmd(Math.abs(dx)>Math.abs(dy)?(dx>0?'go right':'go left'):(dy>0?'go down':'go up'));
+  },{passive:false});
+
+  function genMaze(n){
+    var g=[];
+    for(var r=0;r<n;r++){g[r]=[];for(var c=0;c<n;c++)g[r][c]={top:1,right:1,bottom:1,left:1,visited:false};}
+    var stack=[[0,0]];g[0][0].visited=true;
+    var dirs=[[-1,0,'top','bottom'],[1,0,'bottom','top'],[0,-1,'left','right'],[0,1,'right','left']];
+    while(stack.length){
+      var cur=stack[stack.length-1],cr=cur[0],cc=cur[1],nb=[];
+      for(var d=0;d<4;d++){var nr=cr+dirs[d][0],nc=cc+dirs[d][1];if(nr>=0&&nr<n&&nc>=0&&nc<n&&!g[nr][nc].visited)nb.push(d);}
+      if(!nb.length){stack.pop();continue;}
+      var dd=dirs[nb[Math.random()*nb.length|0]],nr2=cr+dd[0],nc2=cc+dd[1];
+      g[cr][cc][dd[2]]=0;g[nr2][nc2][dd[3]]=0;g[nr2][nc2].visited=true;stack.push([nr2,nc2]);
+    }
+    return g;
+  }
+
+  function newLevel(){
+    level++;N=Math.min(4+level,10);
+    maze=genMaze(N);px=0;py=0;ex=N-1;ey=N-1;moves=0;
+    lvEl.textContent='LVL '+level;
+    mvEl.textContent='0 moves';
+    ov.className='ov';
+    resize();draw();
+    setMsg('sys','Level '+level+' ('+N+'×'+N+') — reach 🟢');
+  }
+
+  function resize(){
+    var s=cvs.parentElement.clientWidth;
+    cvs.width=s;cvs.height=s;cellW=s/N;cellH=s/N;
+  }
+
+  function draw(){
+    resize();
+    ctx.fillStyle='#0f0f23';ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.strokeStyle='#e94560';ctx.lineWidth=2;
+    for(var r=0;r<N;r++){
+      for(var c=0;c<N;c++){
+        var x=c*cellW,y=r*cellH,cell=maze[r][c];
+        if(cell.top)   {ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+cellW,y);ctx.stroke();}
+        if(cell.bottom){ctx.beginPath();ctx.moveTo(x,y+cellH);ctx.lineTo(x+cellW,y+cellH);ctx.stroke();}
+        if(cell.left)  {ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+cellH);ctx.stroke();}
+        if(cell.right) {ctx.beginPath();ctx.moveTo(x+cellW,y);ctx.lineTo(x+cellW,y+cellH);ctx.stroke();}
+      }
+    }
+    var fs=Math.max(10,Math.floor(cellW*.52));
+    ctx.font='bold '+fs+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(83,141,78,.35)';ctx.fillRect(ey*cellW+2,ex*cellH+2,cellW-4,cellH-4);
+    ctx.fillText('🟢',ey*cellW+cellW/2,ex*cellH+cellH/2);
+    ctx.fillStyle='rgba(79,195,247,.2)';ctx.fillRect(py*cellW+2,px*cellH+2,cellW-4,cellH-4);
+    ctx.fillText('🤖',py*cellW+cellW/2,px*cellH+cellH/2);
+  }
+
+  function canMove(dir){
+    var c=maze[px][py];
+    return dir==='up'?!c.top:dir==='down'?!c.bottom:dir==='left'?!c.left:!c.right;
+  }
+
+  function getDirs(){
+    var d=[];
+    if(canMove('up'))d.push('↑');if(canMove('down'))d.push('↓');
+    if(canMove('left'))d.push('←');if(canMove('right'))d.push('→');
+    return d;
+  }
+
+  function processCmd(cmd){
+    cmd=cmd.toLowerCase().trim();
+    if(cmd.indexOf('help')>=0){
+      setMsg('bot','Swipe maze or tap ▲▼◀▶. 👀 Look for hints.');return;
+    }
+    if(cmd.indexOf('look')>=0||cmd.indexOf('where')>=0){
+      var dx=ey-py,dy=ex-px,hint=[];
+      if(dy<0)hint.push('↑');if(dy>0)hint.push('↓');
+      if(dx<0)hint.push('←');if(dx>0)hint.push('→');
+      setMsg('bot','Open: '+getDirs().join(' ')+'   Exit: '+hint.join(''));return;
+    }
+    var dir=null;
+    if(cmd.indexOf('up')>=0||cmd.indexOf('north')>=0)dir='up';
+    else if(cmd.indexOf('down')>=0||cmd.indexOf('south')>=0)dir='down';
+    else if(cmd.indexOf('left')>=0||cmd.indexOf('west')>=0)dir='left';
+    else if(cmd.indexOf('right')>=0||cmd.indexOf('east')>=0)dir='right';
+    else return;
+
+    if(!canMove(dir)){setMsg('bot','🧱 Wall! Open: '+getDirs().join(' '));return;}
+    if(dir==='up')px--;if(dir==='down')px++;
+    if(dir==='left')py--;if(dir==='right')py++;
+    moves++;
+    mvEl.textContent=moves+' move'+(moves===1?'':'s');
+    draw();
+    setMsg('bot','Moved '+dir+'.  Open: '+getDirs().join(' '));
+    if(px===ex&&py===ey){
+      setMsg('sys','🎉 Exit!');
+      ovM.textContent='Level '+level+' in '+moves+' moves';
+      setTimeout(function(){ov.className='ov show';},350);
+    }
+  }
+
+  document.getElementById('ovB').addEventListener('touchstart',function(e){e.preventDefault();newLevel();},{passive:false});
+  document.getElementById('ovB').addEventListener('click',newLevel);
+  window.addEventListener('resize',function(){draw();});
+  newLevel();
+})();
+</script>
+</body>
+</html>

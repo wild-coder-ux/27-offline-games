@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Pattern Classifier</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:6px 8px;user-select:none}
+h1{font-size:.9rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.6rem;color:#888;text-align:center;margin-bottom: 18px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.stats span{font-family:monospace;font-size:.85rem;font-weight:700}
+.sc{color:#4fc3f7}.lv{color:#e94560}.tm{color:#aaa}
+.round-info{font-size:.9rem;color:#aaa;text-align:center;font-weight:600}
+.item-area{
+  width:100%;max-width:380px;min-height:70px;
+  display:flex;align-items:center;justify-content:center;
+  background:#0f0f23;border:2px dashed #2a2a4a;border-radius:12px;
+  padding:8px;
+}
+.item{
+  font-size:clamp(.9rem,4vw,1.25rem);font-weight:700;
+  background:#16213e;border:2px solid #2a2a4a;border-radius:10px;
+  padding:10px 20px;color:#e0e0e0;text-align:center;line-height:1.3;
+  max-width:340px;
+}
+.bins{display:flex;gap:8px;width:100%;max-width:400px;justify-content:center}
+.bin{
+  flex:1;min-height:90px;max-width:180px;
+  background:#16213e;border:2px solid #2a2a4a;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;
+  padding:8px 4px;cursor:pointer;transition:border-color .2s,background .2s,transform .12s;
+}
+.bin:active{border-color:#e94560;background:rgba(233,69,96,.1);transform:scale(.97)}
+.bin .bin-label{font-size:clamp(1rem,2.5vw,1rem);font-weight:700;color:#e94560;margin-bottom:6px;text-align:center;line-height:1.3}
+.bin .bin-items{font-size:.5rem;color:#888;text-align:center;line-height:1.5;padding:0 4px;word-break:break-word}
+.bin .bin-count{font-size:.6rem;color:#4fc3f7;font-weight:700;margin-top:4px}
+.feedback{font-size:.78rem;text-align:center;min-height:2.4em;font-weight:700;padding:0 8px;line-height:1.4}
+.feedback.correct{color:#538d4e}.feedback.wrong{color:#e94560}
+.fact{font-size:1rem;color:#aaa;font-weight:400;display:block;margin-top:2px}
+.progress{width:100%;max-width:400px;height:6px;background:#16213e;border-radius:3px;overflow:hidden}
+.progress .bar{height:100%;background:linear-gradient(90deg,#e94560,#4fc3f7);transition:width .3s;border-radius:3px}
+.actions{display:flex;gap:8px;align-items:center;justify-content:center}
+.actions button{font-family:inherit;font-size:.65rem;font-weight:700;padding:5px 12px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+#revealBtn{color:#f0a500}
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:.95rem;text-align:center;padding:0 20px}
+.ov .big{font-size:2rem;color:#4fc3f7;font-weight:800}
+.ov .grade{font-size:.9rem;font-weight:700}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>🔬 PATTERN CLASSIFIER</h1>
+<p class="sub">Sort items into categories · Train your inner neural network!</p>
+<div class="topbar">
+  <div class="stats"><span class="lv" id="lv">Level 1</span></div>
+  <div class="stats"><span class="sc" id="sc">0</span> <span class="tm" id="tm">streak: 0</span></div>
+</div>
+<p class="round-info" id="rinfo"></p>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="item-area"><div class="item" id="item">Loading...</div></div>
+<div class="feedback" id="fb"></div>
+<div class="bins" id="bins"></div>
+<div class="actions">
+  <button id="skipBtn">⭭ Skip</button>
+  <button id="revealBtn">💡 Reveal</button>
+</div>
+<div class="ov" id="ov">
+  <h2>🎉 Level Complete!</h2>
+  <div class="big" id="ovSc"></div>
+  <div class="grade" id="ovGrade"></div>
+  <p id="ovM"></p>
+  <button id="ovB">Next Level ▶</button>
+</div>
+<script>
+(function(){
+var LEVELS=[
+  // ── NATURE & BIOLOGY ──────────────────────────────────────────────────────
+  {title:"🍎 Fruit vs 🥦 Vegetable",cats:["🍎 Fruit","🥦 Vegetable"],
+   items:[
+    {n:"Apple",c:0,f:"Apples are botanically fruits — they contain seeds inside."},
+    {n:"Carrot",c:1,f:"Carrots are roots, making them true vegetables."},
+    {n:"Banana",c:0,f:"Bananas are technically berries in botany!"},
+    {n:"Broccoli",c:1,f:"Broccoli is actually an edible flower head."},
+    {n:"Grape",c:0,f:"Grapes are true berries with seeds inside."},
+    {n:"Spinach",c:1,f:"Spinach leaves have more iron per calorie than beef."},
+    {n:"Mango",c:0,f:"Mangoes are related to cashews and poison ivy."},
+    {n:"Potato",c:1,f:"Potatoes are underground stem tubers, not roots."},
+    {n:"Cherry",c:0,f:"Cherries are stone fruits called drupes."},
+    {n:"Onion",c:1,f:"Onions are bulbs — modified underground leaves."},
+    {n:"Peach",c:0,f:"Peaches and almonds are closely related species."},
+    {n:"Celery",c:1,f:"Celery is a stem vegetable — we eat the stalks."},
+    {n:"Lemon",c:0,f:"Lemons are a hybrid of citron and sour orange."},
+    {n:"Lettuce",c:1,f:"Lettuce is 95% water by weight."},
+    {n:"Kiwi",c:0,f:"Kiwi fruits contain more Vitamin C than oranges."},
+    {n:"Strawberry",c:0,f:"Strawberries are NOT true berries — they're accessory fruits."},
+    {n:"Eggplant",c:1,f:"Eggplant is technically a fruit but used as a vegetable."},
+    {n:"Watermelon",c:0,f:"Watermelons are 92% water and botanically a berry."},
+    {n:"Cucumber",c:1,f:"Cucumbers are fruits botanically but vegetables culinarily."},
+    {n:"Pineapple",c:0,f:"A pineapple is actually a cluster of 200 individual flowers."}
+  ]},
+  {title:"🐾 Mammal vs 🦎 Reptile",cats:["🐾 Mammal","🦎 Reptile"],
+   items:[
+    {n:"Dog",c:0,f:"Dogs were the first animals domesticated by humans, ~15,000 years ago."},
+    {n:"King Cobra",c:1,f:"King Cobras are the world's longest venomous snake at 5.5m."},
+    {n:"Dolphin",c:0,f:"Dolphins sleep with one eye open and one brain hemisphere at a time."},
+    {n:"Komodo Dragon",c:1,f:"Komodo dragons can reproduce without fertilization (parthenogenesis)."},
+    {n:"Whale",c:0,f:"Blue whales have hearts the size of a small car."},
+    {n:"Crocodile",c:1,f:"Crocodiles have barely changed in 200 million years."},
+    {n:"Elephant",c:0,f:"Elephants are the only animals that can't jump."},
+    {n:"Gecko",c:1,f:"Gecko feet have millions of tiny hairs that create van der Waals forces."},
+    {n:"Bat",c:0,f:"Bats are the only mammals capable of true sustained flight."},
+    {n:"Iguana",c:1,f:"Iguanas have a 'third eye' on top of their head to detect predators."},
+    {n:"Platypus",c:0,f:"Platypuses are one of only 5 mammal species that lay eggs."},
+    {n:"Chameleon",c:1,f:"Chameleons change color to communicate mood, not to camouflage."},
+    {n:"Otter",c:0,f:"Sea otters hold hands while sleeping so they don't drift apart."},
+    {n:"Tortoise",c:1,f:"Galapagos tortoises can live over 150 years."},
+    {n:"Tiger",c:0,f:"No two tigers have the same stripe pattern — like fingerprints."}
+  ]},
+  {title:"🦅 Bird vs 🐟 Fish",cats:["🦅 Bird","🐟 Fish"],
+   items:[
+    {n:"Eagle",c:0,f:"Eagles can spot a rabbit from 3 kilometers away."},
+    {n:"Salmon",c:1,f:"Salmon navigate back to their birth river using Earth's magnetic field."},
+    {n:"Penguin",c:0,f:"Penguins propose to their mates with pebbles."},
+    {n:"Clownfish",c:1,f:"All clownfish are born male — dominant ones become female."},
+    {n:"Ostrich",c:0,f:"Ostriches have the largest eyes of any land animal."},
+    {n:"Seahorse",c:1,f:"Male seahorses carry and give birth to the babies."},
+    {n:"Flamingo",c:0,f:"Flamingos are pink because of the carotenoids in their food."},
+    {n:"Shark",c:1,f:"Sharks are older than trees — they evolved 450 million years ago."},
+    {n:"Parrot",c:0,f:"African Grey parrots can understand the concept of zero."},
+    {n:"Anglerfish",c:1,f:"Female anglerfish are 60x larger than males, who fuse to her body."},
+    {n:"Hummingbird",c:0,f:"Hummingbirds are the only birds that can fly backwards."},
+    {n:"Tuna",c:1,f:"Bluefin tuna can swim at 75 km/h and regulate their body temperature."},
+    {n:"Owl",c:0,f:"Owls can rotate their heads 270 degrees."},
+    {n:"Mudskipper",c:1,f:"Mudskippers can breathe through their skin and climb trees."}
+  ]},
+  {title:"🌿 Deciduous vs 🌲 Evergreen Tree",cats:["🌿 Deciduous","🌲 Evergreen"],
+   items:[
+    {n:"Oak",c:0,f:"Oak trees can live over 1,000 years and support 500+ species."},
+    {n:"Pine",c:1,f:"Pine needles are actually modified leaves called fascicles."},
+    {n:"Maple",c:0,f:"Maple syrup needs 40 liters of sap to make 1 liter of syrup."},
+    {n:"Spruce",c:1,f:"Spruce wood is used for violin tops due to its resonance."},
+    {n:"Cherry",c:0,f:"Cherry trees bloom for only 2 weeks, symbolizing life's fleeting nature."},
+    {n:"Cedar",c:1,f:"Cedar wood naturally repels moths and insects."},
+    {n:"Birch",c:0,f:"Birch bark was used as paper by Native Americans."},
+    {n:"Fir",c:1,f:"Fir trees are the most common Christmas tree species worldwide."},
+    {n:"Elm",c:0,f:"Elm trees were nearly wiped out in Europe by Dutch Elm Disease."},
+    {n:"Juniper",c:1,f:"Juniper berries are actually cones and are used to flavor gin."},
+    {n:"Willow",c:0,f:"Aspirin (salicylic acid) was originally derived from willow bark."},
+    {n:"Eucalyptus",c:1,f:"Eucalyptus forests can regenerate themselves after fire."},
+    {n:"Aspen",c:0,f:"A grove of aspens can all be one organism sharing a root system."},
+    {n:"Holly",c:1,f:"Holly berries are toxic to humans but vital winter food for birds."}
+  ]},
+  // ── SCIENCE & CHEMISTRY ────────────────────────────────────────────────────
+  {title:"⚗️ Element vs 🧪 Compound",cats:["⚗️ Element","🧪 Compound"],
+   items:[
+    {n:"Gold",c:0,f:"Gold is so malleable that 1g can be beaten into a 1 sq meter sheet."},
+    {n:"Water (H₂O)",c:1,f:"Water is the only substance that naturally exists in all 3 states on Earth."},
+    {n:"Oxygen",c:0,f:"Oxygen was discovered independently by 3 scientists in the 1770s."},
+    {n:"Salt (NaCl)",c:1,f:"Salt was once used as currency — the word 'salary' comes from salt."},
+    {n:"Carbon",c:0,f:"Carbon can form more compounds than all other elements combined."},
+    {n:"Sugar (C₁₂H₂₂O₁₁)",c:1,f:"Sugar molecules are a combination of carbon, hydrogen, and oxygen."},
+    {n:"Helium",c:0,f:"Helium is the second most abundant element in the universe."},
+    {n:"Rust (Fe₂O₃)",c:1,f:"Rust is iron oxide — a compound formed when iron reacts with oxygen."},
+    {n:"Nitrogen",c:0,f:"78% of the air we breathe is nitrogen."},
+    {n:"Ammonia (NH₃)",c:1,f:"Ammonia is the basis of most agricultural fertilizers worldwide."},
+    {n:"Silicon",c:0,f:"Silicon is the second most abundant element in Earth's crust."},
+    {n:"Vinegar (CH₃COOH)",c:1,f:"Vinegar is dilute acetic acid and has been used for 10,000 years."},
+    {n:"Iron",c:0,f:"Iron in your blood (hemoglobin) is what makes it red."},
+    {n:"Glass (SiO₂)",c:1,f:"Glass is an amorphous solid — technically a very slow-moving liquid."}
+  ]},
+  {title:"🌡 Endothermic vs 🔥 Exothermic Reaction",cats:["❄️ Endothermic","🔥 Exothermic"],
+   items:[
+    {n:"Burning wood",c:1,f:"Combustion releases energy stored in chemical bonds as heat and light."},
+    {n:"Melting ice",c:0,f:"Melting requires heat energy input to break the crystal structure."},
+    {n:"Explosion",c:1,f:"Explosions are rapid exothermic reactions releasing enormous energy."},
+    {n:"Cooking an egg",c:0,f:"Frying an egg denatures proteins using absorbed heat energy."},
+    {n:"Rusting iron",c:1,f:"Rusting slowly releases heat — same reaction as burning, but very slow."},
+    {n:"Dissolving ammonium nitrate",c:0,f:"This reaction absorbs heat, making instant cold packs work."},
+    {n:"Respiration",c:1,f:"Cellular respiration releases ~2900 kJ per mole of glucose."},
+    {n:"Photosynthesis",c:0,f:"Plants absorb light energy to convert CO₂ and water into sugar."},
+    {n:"Neutralization",c:1,f:"Acid + base reactions release heat, hence exothermic."},
+    {n:"Dissolving NaHCO₃",c:0,f:"Baking soda dissolving in water absorbs heat from its surroundings."},
+    {n:"Hand warmer",c:1,f:"Hand warmers use iron oxidation — the same chemistry as rusting."},
+    {n:"Ice pack",c:0,f:"Chemical ice packs use ammonium nitrate dissolving to absorb heat."}
+  ]},
+  {title:"🔴 Acid vs 🔵 Base",cats:["🔴 Acid (pH<7)","🔵 Base (pH>7)"],
+   items:[
+    {n:"Lemon juice",c:0,f:"Lemon juice has a pH of about 2 — very acidic due to citric acid."},
+    {n:"Bleach",c:1,f:"Bleach (sodium hypochlorite) has a pH of 11-13, strongly basic."},
+    {n:"Vinegar",c:0,f:"Vinegar is 5% acetic acid with pH around 2.4."},
+    {n:"Baking soda",c:1,f:"Baking soda (NaHCO₃) has pH of 8.3 — mildly alkaline."},
+    {n:"Battery acid",c:0,f:"Car battery acid (sulfuric acid) has pH near 0 — extremely acidic."},
+    {n:"Ammonia",c:1,f:"Household ammonia solution has pH around 11-12."},
+    {n:"Coffee",c:0,f:"Coffee is mildly acidic with pH 4.5-6 depending on roast."},
+    {n:"Soap",c:1,f:"Most soaps have pH 9-10 — basic enough to break down oils."},
+    {n:"Stomach acid",c:0,f:"Stomach acid (HCl) has pH 1.5-2 — strong enough to dissolve metal."},
+    {n:"Toothpaste",c:1,f:"Toothpaste is slightly basic (pH 8) to neutralize mouth acids."},
+    {n:"Cola drink",c:0,f:"Cola has pH around 2.5 due to phosphoric and carbonic acids."},
+    {n:"Seawater",c:1,f:"Seawater is slightly basic at pH 8.1 — crucial for marine life."}
+  ]},
+  // ── GEOGRAPHY & WORLD ─────────────────────────────────────────────────────
+  {title:"🌍 Africa vs 🌏 Asia (Countries)",cats:["🌍 Africa","🌏 Asia"],
+   items:[
+    {n:"Nigeria",c:0,f:"Nigeria has the largest population in Africa — over 220 million people."},
+    {n:"Japan",c:1,f:"Japan has over 6,800 islands and the world's oldest company (578 AD)."},
+    {n:"Kenya",c:0,f:"Kenya is home to the Great Rift Valley, visible from space."},
+    {n:"India",c:1,f:"India has the world's largest democratic election — 900+ million voters."},
+    {n:"Egypt",c:0,f:"90% of Egypt's population lives within a few kilometers of the Nile."},
+    {n:"Thailand",c:1,f:"Thailand means 'Land of the Free' — it was never colonized."},
+    {n:"Ethiopia",c:0,f:"Ethiopia has its own calendar with 13 months and is ~7 years behind."},
+    {n:"Vietnam",c:1,f:"Vietnam is the world's second-largest coffee exporter."},
+    {n:"Morocco",c:0,f:"Morocco has the world's oldest university, founded in 859 AD."},
+    {n:"Mongolia",c:1,f:"Mongolia has the lowest population density of any country."},
+    {n:"Tanzania",c:0,f:"Mount Kilimanjaro — Africa's highest peak — is in Tanzania."},
+    {n:"Indonesia",c:1,f:"Indonesia has more volcanoes than any other country — over 130 active."},
+    {n:"Ghana",c:0,f:"Ghana was the first sub-Saharan African country to gain independence (1957)."},
+    {n:"Pakistan",c:1,f:"Pakistan has five peaks over 8,000m — more than any other country."},
+    {n:"Zimbabwe",c:0,f:"Victoria Falls, the world's largest waterfall, borders Zimbabwe."}
+  ]},
+  {title:"🌎 North America vs 🌏 South America",cats:["🌎 North America","🌏 South America"],
+   items:[
+    {n:"Canada",c:0,f:"Canada has the longest coastline of any country — 202,080 km."},
+    {n:"Brazil",c:1,f:"Brazil contains 60% of the Amazon rainforest."},
+    {n:"Mexico",c:0,f:"Mexico City is built on the ruins of the Aztec capital Tenochtitlan."},
+    {n:"Argentina",c:1,f:"Argentina is the 8th largest country by land area."},
+    {n:"Cuba",c:0,f:"Cuba has one of the highest literacy rates in the world at 99.7%."},
+    {n:"Peru",c:1,f:"Peru is home to Machu Picchu, built at 2,430 meters altitude."},
+    {n:"Jamaica",c:0,f:"Jamaica was the first Caribbean country to compete in the Winter Olympics."},
+    {n:"Chile",c:1,f:"Chile is the world's longest country at 4,300 km north to south."},
+    {n:"Guatemala",c:0,f:"Guatemala is named from an indigenous word meaning 'land of many trees'."},
+    {n:"Bolivia",c:1,f:"Bolivia has two capital cities — Sucre and La Paz."},
+    {n:"Panama",c:0,f:"The Panama Canal saves ships an 8,000-mile journey around South America."},
+    {n:"Colombia",c:1,f:"Colombia is the only country in South America with both Pacific and Caribbean coasts."},
+    {n:"Haiti",c:0,f:"Haiti was the first Black republic in the world, independent in 1804."},
+    {n:"Venezuela",c:1,f:"Venezuela has the world's largest known oil reserves."}
+  ]},
+  {title:"🗻 Mountain vs 🌋 Volcano",cats:["🗻 Mountain","🌋 Volcano"],
+   items:[
+    {n:"Everest",c:0,f:"Everest grows about 4mm taller every year due to tectonic movement."},
+    {n:"Krakatoa",c:1,f:"The 1883 Krakatoa eruption was heard 4,800 km away in Australia."},
+    {n:"K2",c:0,f:"K2 is harder to climb than Everest — only 377 people have summited it."},
+    {n:"Vesuvius",c:1,f:"Vesuvius buried Pompeii under 6m of ash in 79 AD."},
+    {n:"Mont Blanc",c:0,f:"Mont Blanc is Western Europe's highest peak at 4,808m."},
+    {n:"Etna",c:1,f:"Etna is Europe's most active volcano and has erupted 200+ times."},
+    {n:"Kilimanjaro",c:0,f:"Kilimanjaro is a dormant volcano — and still considered a mountain."},
+    {n:"Mauna Kea",c:1,f:"Mauna Kea is taller than Everest when measured from the ocean floor."},
+    {n:"Matterhorn",c:0,f:"The Matterhorn's shape is a glacial horn carved by 4 glaciers."},
+    {n:"Fuji",c:1,f:"Mount Fuji last erupted in 1707 — it is an active stratovolcano."},
+    {n:"Denali",c:0,f:"Denali in Alaska is North America's highest peak at 6,190m."},
+    {n:"Pinatubo",c:1,f:"The 1991 Pinatubo eruption cooled Earth's temperature by 0.5°C for 2 years."}
+  ]},
+  // ── TECHNOLOGY & COMPUTING ────────────────────────────────────────────────
+  {title:"💻 Programming vs 🗣 Spoken Language",cats:["💻 Programming","🗣 Spoken"],
+   items:[
+    {n:"Python",c:0,f:"Python is named after Monty Python's Flying Circus, not the snake."},
+    {n:"Swahili",c:1,f:"Swahili is spoken by over 200 million people across East Africa."},
+    {n:"Rust",c:0,f:"Rust has been Stack Overflow's most loved language 8 years running."},
+    {n:"Mandarin",c:1,f:"Mandarin is the world's most spoken native language with 920 million speakers."},
+    {n:"JavaScript",c:0,f:"JavaScript was created in just 10 days by Brendan Eich in 1995."},
+    {n:"Arabic",c:1,f:"Arabic is written right to left and has 28 letters."},
+    {n:"Kotlin",c:0,f:"Kotlin was named after Kotlin Island near St. Petersburg, Russia."},
+    {n:"Tagalog",c:1,f:"Tagalog, spoken in the Philippines, has no word for 'no' — only degrees of disagreement."},
+    {n:"Swift",c:0,f:"Swift replaced Objective-C and compiles code 8.4x faster."},
+    {n:"Hindi",c:1,f:"Hindi uses Devanagari script and has no articles (a, an, the)."},
+    {n:"TypeScript",c:0,f:"TypeScript adds static typing to JavaScript and was created at Microsoft."},
+    {n:"Bengali",c:1,f:"Bengali is the 7th most spoken language — 230 million speakers."},
+    {n:"Go",c:0,f:"Go was designed by Google engineers who were frustrated with C++."},
+    {n:"Finnish",c:1,f:"Finnish has 15 grammatical cases — English has only 4."},
+    {n:"Scala",c:0,f:"Scala runs on the JVM and combines object-oriented and functional programming."}
+  ]},
+  {title:"🔴 SQL vs 🟢 NoSQL Database",cats:["🔴 SQL","🟢 NoSQL"],
+   items:[
+    {n:"MySQL",c:0,f:"MySQL powers 39% of the world's websites — including Facebook early on."},
+    {n:"MongoDB",c:1,f:"MongoDB stores data as BSON (Binary JSON) documents."},
+    {n:"PostgreSQL",c:0,f:"PostgreSQL dates back to 1986 at UC Berkeley."},
+    {n:"Redis",c:1,f:"Redis stores data in memory — making it 100,000x faster than disk storage."},
+    {n:"SQLite",c:0,f:"SQLite is the most widely deployed database — it's in every smartphone."},
+    {n:"Cassandra",c:1,f:"Apache Cassandra was originally developed by Facebook for inbox search."},
+    {n:"Oracle DB",c:0,f:"Oracle Database was the first commercial SQL database, released in 1979."},
+    {n:"DynamoDB",c:1,f:"Amazon DynamoDB can handle 10 trillion requests per day."},
+    {n:"MariaDB",c:0,f:"MariaDB was created by MySQL's original developers after Oracle acquired it."},
+    {n:"CouchDB",c:1,f:"CouchDB uses HTTP as its API — you can query it with a web browser."},
+    {n:"MS SQL Server",c:0,f:"SQL Server's T-SQL dialect adds procedural programming to standard SQL."},
+    {n:"Neo4j",c:1,f:"Neo4j is a graph database — perfect for social networks and recommendations."}
+  ]},
+  {title:"🌐 Frontend vs ⚙️ Backend Technology",cats:["🌐 Frontend","⚙️ Backend"],
+   items:[
+    {n:"React",c:0,f:"React introduced the virtual DOM concept to efficiently update web pages."},
+    {n:"Node.js",c:1,f:"Node.js brought JavaScript to servers — it handles 2.4 million npm packages."},
+    {n:"CSS Grid",c:0,f:"CSS Grid was the most requested browser feature before it shipped in 2017."},
+    {n:"Django",c:1,f:"Django powers Instagram and was named after jazz guitarist Django Reinhardt."},
+    {n:"Vue.js",c:0,f:"Vue.js was created by Evan You after working on AngularJS at Google."},
+    {n:"FastAPI",c:1,f:"FastAPI is one of the fastest Python frameworks — up there with Node.js."},
+    {n:"Tailwind CSS",c:0,f:"Tailwind CSS uses utility-first classes directly in HTML markup."},
+    {n:"Spring Boot",c:1,f:"Spring Boot is used by Netflix, Amazon, and Google for microservices."},
+    {n:"WebAssembly",c:0,f:"WebAssembly runs at near-native speed in the browser."},
+    {n:"GraphQL",c:1,f:"GraphQL was developed by Facebook in 2012 to fix REST API limitations."},
+    {n:"Webpack",c:0,f:"Webpack bundles JavaScript modules and assets for the browser."},
+    {n:"Docker",c:1,f:"Docker containers package apps with all dependencies for consistent deployment."},
+    {n:"Three.js",c:0,f:"Three.js makes 3D graphics in the browser using WebGL."},
+    {n:"Kubernetes",c:1,f:"Kubernetes was originally designed by Google, based on their Borg system."}
+  ]},
+  {title:"♻️ Renewable vs ⛽ Non-Renewable Energy",cats:["♻️ Renewable","⛽ Non-Renewable"],
+   items:[
+    {n:"Solar",c:0,f:"The sun delivers more energy in 1 hour than humanity uses in a year."},
+    {n:"Coal",c:1,f:"Coal takes 300 million years to form from ancient plant matter."},
+    {n:"Wind",c:0,f:"Wind turbines can generate electricity for 25+ years with minimal maintenance."},
+    {n:"Crude Oil",c:1,f:"Oil took 50–150 million years to form from marine organisms."},
+    {n:"Hydropower",c:0,f:"Hydropower provides 16% of global electricity — the largest renewable source."},
+    {n:"Natural Gas",c:1,f:"Natural gas is 70-90% methane — a greenhouse gas 80x more potent than CO₂."},
+    {n:"Geothermal",c:0,f:"Iceland gets 25% of its electricity from geothermal energy."},
+    {n:"Diesel",c:1,f:"Diesel fuel takes millions of years to form via geological pressure and heat."},
+    {n:"Biomass",c:0,f:"Biomass energy can be carbon-neutral if managed sustainably."},
+    {n:"Propane",c:1,f:"Propane is a byproduct of natural gas processing and petroleum refining."},
+    {n:"Tidal",c:0,f:"Tidal energy is powered by the gravitational pull of the Moon and Sun."},
+    {n:"Kerosene",c:1,f:"Kerosene (jet fuel) is a refined petroleum product and non-renewable."},
+    {n:"Wave energy",c:0,f:"Wave energy could theoretically power the entire UK from coastal Wales alone."},
+    {n:"Uranium (nuclear)",c:1,f:"Uranium is finite — though 1kg of uranium equals energy from 1,500 tons of coal."}
+  ]},
+  // ── MATH & LOGIC ──────────────────────────────────────────────────────────
+  {title:"📊 Supervised vs 🔍 Unsupervised ML",cats:["📊 Supervised","🔍 Unsupervised"],
+   items:[
+    {n:"Linear Regression",c:0,f:"Linear regression finds the best-fit line through labeled data points."},
+    {n:"K-Means Clustering",c:1,f:"K-Means groups data into K clusters without any labels — pure discovery."},
+    {n:"Decision Tree",c:0,f:"Decision trees split data on features — like a flowchart for predictions."},
+    {n:"PCA",c:1,f:"PCA (Principal Component Analysis) reduces dimensions while preserving variance."},
+    {n:"Random Forest",c:0,f:"Random forests combine hundreds of decision trees to reduce overfitting."},
+    {n:"DBSCAN",c:1,f:"DBSCAN finds clusters of arbitrary shape and labels outliers as noise."},
+    {n:"SVM",c:0,f:"SVMs find the maximum-margin hyperplane between labeled classes."},
+    {n:"Autoencoders",c:1,f:"Autoencoders learn compressed representations of data without labels."},
+    {n:"Logistic Regression",c:0,f:"Despite the name, logistic regression is used for binary classification."},
+    {n:"t-SNE",c:1,f:"t-SNE visualizes high-dimensional data in 2D — widely used in genomics."},
+    {n:"Neural Networks",c:0,f:"Neural networks can be either — but typically trained with labeled examples."},
+    {n:"Hierarchical Clustering",c:1,f:"Hierarchical clustering builds a dendrogram tree of cluster relationships."},
+    {n:"Naive Bayes",c:0,f:"Naive Bayes assumes all features are independent — surprisingly effective."},
+    {n:"Anomaly Detection",c:1,f:"Unsupervised anomaly detection finds outliers without knowing what's 'normal'."}
+  ]},
+  {title:"⚡ O(n) vs 🐌 O(n²) Complexity",cats:["⚡ O(n) or better","🐌 O(n²) or worse"],
+   items:[
+    {n:"Linear Search",c:0,f:"Linear search checks each element once — O(n) worst case."},
+    {n:"Bubble Sort",c:1,f:"Bubble Sort compares adjacent pairs repeatedly — O(n²) on average."},
+    {n:"Binary Search",c:0,f:"Binary search halves the search space each step — only O(log n)!"},
+    {n:"Selection Sort",c:1,f:"Selection sort makes n² comparisons regardless of initial order."},
+    {n:"Hash Table Lookup",c:0,f:"Hash tables offer O(1) average lookup — the fastest possible."},
+    {n:"Insertion Sort",c:1,f:"Insertion sort is O(n²) average but O(n) on nearly-sorted data."},
+    {n:"Counting Occurrences",c:0,f:"One pass through an array to count is always O(n)."},
+    {n:"Naive Matrix Multiply",c:1,f:"Standard matrix multiplication is O(n³) — Strassen's is O(n^2.81)."},
+    {n:"Finding Maximum",c:0,f:"One pass to find the max — always exactly n-1 comparisons."},
+    {n:"Checking All Pairs",c:1,f:"Comparing every pair in a list requires n(n-1)/2 operations — O(n²)."},
+    {n:"Merge Sort",c:0,f:"Merge sort is O(n log n) — provably optimal for comparison sorting."},
+    {n:"Travelling Salesman (brute)",c:1,f:"Brute-force TSP is O(n!) — for 20 cities, more steps than atoms in the universe."}
+  ]},
+  {title:"🔢 Prime vs 🔲 Composite Number",cats:["🔢 Prime","🔲 Composite"],
+   items:[
+    {n:"7",c:0,f:"7 is prime — divisible only by 1 and 7."},
+    {n:"9",c:1,f:"9 = 3 × 3 — it's composite. 9 tricks many people!"},
+    {n:"13",c:0,f:"13 is prime. Many buildings skip the 13th floor due to superstition."},
+    {n:"15",c:1,f:"15 = 3 × 5. Its digits sum to 6, divisible by 3."},
+    {n:"17",c:0,f:"17 is prime and the most commonly picked 'random' number between 1-20."},
+    {n:"21",c:1,f:"21 = 3 × 7. Fun fact: 21 is the sum of 1+2+3+4+5+6."},
+    {n:"23",c:0,f:"23 is prime — and the number of pairs of chromosomes in humans."},
+    {n:"25",c:1,f:"25 = 5². Perfect square but not prime."},
+    {n:"29",c:0,f:"29 is prime — the highest prime below 30."},
+    {n:"33",c:1,f:"33 = 3 × 11. The atomic number of arsenic!"},
+    {n:"37",c:0,f:"37 is prime and appears surprisingly often in human perception research."},
+    {n:"49",c:1,f:"49 = 7². Looks prime but isn't — a classic trick question!"},
+    {n:"41",c:0,f:"41 is prime. Euler's formula n²+n+41 generates primes for n=0 to 39."},
+    {n:"51",c:1,f:"51 = 3 × 17. Often mistaken for prime — 5+1=6, divisible by 3."}
+  ]},
+  // ── HISTORY & CULTURE ─────────────────────────────────────────────────────
+  {title:"🏛 Ancient Greece vs 🏛 Ancient Rome",cats:["🏛 Ancient Greece","🏺 Ancient Rome"],
+   items:[
+    {n:"Olympics",c:0,f:"The ancient Olympics began in 776 BC in Olympia, Greece."},
+    {n:"The Colosseum",c:1,f:"The Colosseum held 50,000-80,000 spectators and had retractable awnings."},
+    {n:"The Parthenon",c:0,f:"The Parthenon was built in 432 BC and dedicated to Athena."},
+    {n:"Julius Caesar",c:1,f:"Caesar was assassinated on March 15, 44 BC — the Ides of March."},
+    {n:"Socrates",c:0,f:"Socrates wrote nothing — all his ideas survive through Plato's dialogues."},
+    {n:"Gladiators",c:1,f:"90% of gladiators survived their bouts — they were valuable entertainment."},
+    {n:"The Iliad",c:0,f:"Homer's Iliad is one of the oldest works of Western literature."},
+    {n:"The Aqueducts",c:1,f:"Roman aqueducts delivered 1 million cubic meters of water daily to Rome."},
+    {n:"Pythagoras",c:0,f:"Pythagoras founded a mathematical cult that considered numbers sacred."},
+    {n:"Pompeii",c:1,f:"Pompeii was buried under 6 meters of ash in just 24 hours in 79 AD."},
+    {n:"Alexander the Great",c:0,f:"Alexander conquered 2 million sq miles before age 30."},
+    {n:"The Senate",c:1,f:"The Roman Senate originally had 300 members, all from patrician families."},
+    {n:"Archimedes",c:0,f:"Archimedes reportedly calculated π to 99.9% accuracy in 250 BC."},
+    {n:"Hadrian's Wall",c:1,f:"Hadrian's Wall stretched 73 miles across northern England."}
+  ]},
+  {title:"🎭 Shakespeare vs 🎩 Dickens (Works)",cats:["🎭 Shakespeare","🎩 Dickens"],
+   items:[
+    {n:"Hamlet",c:0,f:"Hamlet is the most performed play in history."},
+    {n:"Oliver Twist",c:1,f:"Oliver Twist exposed child labor in Victorian workhouses."},
+    {n:"Macbeth",c:0,f:"Actors consider saying 'Macbeth' in a theater to be bad luck."},
+    {n:"A Tale of Two Cities",c:1,f:"A Tale of Two Cities is the best-selling novel ever with 200 million copies."},
+    {n:"Romeo and Juliet",c:0,f:"Shakespeare invented over 1,700 words still used today."},
+    {n:"Great Expectations",c:1,f:"Great Expectations was originally published in weekly serial installments."},
+    {n:"A Midsummer Night's Dream",c:0,f:"This play introduced the fairy character Puck into popular culture."},
+    {n:"A Christmas Carol",c:1,f:"Dickens wrote A Christmas Carol in just 6 weeks."},
+    {n:"The Tempest",c:0,f:"The Tempest is believed to be Shakespeare's final solo play."},
+    {n:"David Copperfield",c:1,f:"Dickens said David Copperfield was his favorite of all his works."},
+    {n:"Othello",c:0,f:"Othello deals with themes of jealousy, race, and manipulation."},
+    {n:"Bleak House",c:1,f:"Bleak House satirized the Victorian legal system — cases lasting decades."}
+  ]},
+  // ── MUSIC & ARTS ──────────────────────────────────────────────────────────
+  {title:"🎻 String vs 🎺 Brass Instrument",cats:["🎻 String","🎺 Brass"],
+   items:[
+    {n:"Violin",c:0,f:"A violin has 4 strings tuned to G, D, A, and E."},
+    {n:"Trumpet",c:1,f:"A trumpet's tubing is about 1.5 meters long when straightened."},
+    {n:"Cello",c:0,f:"The cello's range is close to the human voice."},
+    {n:"Trombone",c:1,f:"The trombone is the only brass instrument that uses a slide."},
+    {n:"Harp",c:0,f:"Concert harps have 47 strings and 7 pedals."},
+    {n:"French Horn",c:1,f:"French horn tubing is 3.7 meters long when fully uncoiled."},
+    {n:"Double Bass",c:0,f:"The double bass is the largest and lowest-pitched string instrument."},
+    {n:"Tuba",c:1,f:"The tuba is the largest and lowest-pitched brass instrument."},
+    {n:"Mandolin",c:0,f:"The mandolin has 8 strings arranged in 4 courses tuned like a violin."},
+    {n:"Flugelhorn",c:1,f:"The flugelhorn has a wider bore than a trumpet — giving it a warmer sound."},
+    {n:"Banjo",c:0,f:"The banjo originated from West African instruments brought to America."},
+    {n:"Euphonium",c:1,f:"The euphonium's name means 'sweet voice' in Greek."}
+  ]},
+  {title:"🎵 Classical vs 🎸 Rock Musician",cats:["🎵 Classical","🎸 Rock"],
+   items:[
+    {n:"Beethoven",c:0,f:"Beethoven composed his greatest symphonies while nearly deaf."},
+    {n:"Jimi Hendrix",c:1,f:"Hendrix was self-taught and learned to play guitar upside down."},
+    {n:"Mozart",c:0,f:"Mozart composed his first symphony at age 8 and wrote 41 total."},
+    {n:"Freddie Mercury",c:1,f:"Freddie Mercury had a 4-octave vocal range."},
+    {n:"Bach",c:0,f:"Bach had 20 children and composed over 1,000 works."},
+    {n:"David Bowie",c:1,f:"Bowie had two different colored eyes — a condition called heterochromia."},
+    {n:"Chopin",c:0,f:"Chopin wrote almost exclusively for the piano."},
+    {n:"Robert Plant",c:1,f:"Led Zeppelin's 'Stairway to Heaven' is the most played rock radio song ever."},
+    {n:"Vivaldi",c:0,f:"Vivaldi wrote 500 concertos — critics joked it was one concerto 500 times."},
+    {n:"Kurt Cobain",c:1,f:"Nirvana's 'Nevermind' album displaced Michael Jackson from #1 in 1991."},
+    {n:"Brahms",c:0,f:"Brahms waited 21 years to release his first symphony, fearing comparison to Beethoven."},
+    {n:"Janis Joplin",c:1,f:"Janis Joplin paid for Bessie Smith's gravestone after it was neglected for 35 years."}
+  ]},
+  // ── HEALTH & HUMAN BODY ───────────────────────────────────────────────────
+  {title:"🦴 Bone vs 💪 Muscle",cats:["🦴 Bone","💪 Muscle"],
+   items:[
+    {n:"Femur",c:0,f:"The femur is the longest and strongest bone — it can support 30x body weight."},
+    {n:"Bicep",c:1,f:"The bicep is actually two muscles — the long and short head."},
+    {n:"Patella",c:0,f:"The kneecap (patella) is a sesamoid bone embedded in the quadriceps tendon."},
+    {n:"Diaphragm",c:1,f:"The diaphragm is a muscle — it contracts to pull air into the lungs."},
+    {n:"Sternum",c:0,f:"The sternum (breastbone) protects the heart and lungs."},
+    {n:"Gluteus Maximus",c:1,f:"The gluteus maximus is the body's largest muscle."},
+    {n:"Coccyx",c:0,f:"The coccyx is the vestigial tailbone — all that remains of our primate tail."},
+    {n:"Trapezius",c:1,f:"The trapezius is a large triangular muscle spanning the back and neck."},
+    {n:"Mandible",c:0,f:"The mandible (jaw) is the only movable bone in the skull."},
+    {n:"Heart",c:1,f:"The heart is a muscle that beats 100,000 times a day."},
+    {n:"Stapes",c:0,f:"The stapes (in the ear) is the smallest bone in the body at 3mm."},
+    {n:"Masseter",c:1,f:"The masseter (jaw muscle) generates the strongest force relative to size."},
+    {n:"Vertebra",c:0,f:"Adults have 33 vertebrae but some fuse — leaving 24 movable bones."},
+    {n:"Sartorius",c:1,f:"The sartorius is the longest muscle — it runs from hip to knee."}
+  ]},
+  {title:"🦠 Virus vs 🦠 Bacteria",cats:["🦠 Virus","🔵 Bacteria"],
+   items:[
+    {n:"Influenza",c:0,f:"The flu virus mutates so fast that vaccines must be updated every year."},
+    {n:"Salmonella",c:1,f:"Salmonella bacteria can survive for weeks on dry surfaces."},
+    {n:"HIV",c:0,f:"HIV attacks CD4 T-cells — the generals of the immune system."},
+    {n:"E. coli",c:1,f:"Most E. coli strains are harmless — some are essential for digestion."},
+    {n:"Herpes Simplex",c:0,f:"Once infected, herpes viruses remain dormant in nerve cells for life."},
+    {n:"Streptococcus",c:1,f:"Strep bacteria can cause throat infections, pneumonia, and scarlet fever."},
+    {n:"SARS-CoV-2",c:0,f:"COVID-19's spike protein binds to ACE2 receptors in human lungs."},
+    {n:"Tuberculosis",c:1,f:"TB bacteria can survive 6 weeks in dried sputum on surfaces."},
+    {n:"Rabies",c:0,f:"Rabies nearly always fatal once symptoms appear — nearly 100% mortality."},
+    {n:"Cholera",c:1,f:"Cholera bacteria can kill within hours through severe dehydration."},
+    {n:"Norovirus",c:0,f:"Norovirus can survive on surfaces for weeks — just 18 particles can infect."},
+    {n:"Helicobacter pylori",c:1,f:"H. pylori causes most stomach ulcers — discovered with a Nobel Prize in 2005."}
+  ]},
+  // ── SPACE & PHYSICS ───────────────────────────────────────────────────────
+  {title:"🪐 Planet vs ⭐ Star",cats:["🪐 Planet","⭐ Star"],
+   items:[
+    {n:"Earth",c:0,f:"Earth is the only planet not named after a Roman or Greek god."},
+    {n:"Proxima Centauri",c:1,f:"Proxima Centauri is the nearest star to our Sun — 4.24 light years away."},
+    {n:"Jupiter",c:0,f:"Jupiter's Great Red Spot is a storm that has raged for 350+ years."},
+    {n:"Betelgeuse",c:1,f:"Betelgeuse is so large that if placed at our Sun, it would engulf Mars."},
+    {n:"Mars",c:0,f:"Mars has the tallest volcano in the solar system — Olympus Mons at 22km."},
+    {n:"Sirius",c:1,f:"Sirius is the brightest star in our night sky — 25x more luminous than our Sun."},
+    {n:"Neptune",c:0,f:"Neptune has winds of 2,100 km/h — the fastest in the solar system."},
+    {n:"Polaris",c:1,f:"Polaris (the North Star) will only stay the pole star for another 2,000 years."},
+    {n:"Uranus",c:0,f:"Uranus rotates on its side — its axis is tilted 98 degrees."},
+    {n:"Alpha Centauri",c:1,f:"Alpha Centauri is actually a binary star system — two stars orbiting each other."},
+    {n:"Venus",c:0,f:"A day on Venus is longer than a year on Venus."},
+    {n:"Vega",c:1,f:"Vega will become Earth's pole star in about 12,000 years due to precession."},
+    {n:"Saturn",c:0,f:"Saturn's rings are 282,000 km wide but only 10 meters thick."},
+    {n:"Rigel",c:1,f:"Rigel is a blue supergiant — 120,000 times more luminous than our Sun."}
+  ]},
+  {title:"⚡ Conductor vs 🚫 Insulator",cats:["⚡ Conductor","🚫 Insulator"],
+   items:[
+    {n:"Copper",c:0,f:"Copper is the most used electrical conductor due to its low resistance."},
+    {n:"Rubber",c:1,f:"Rubber's molecular structure traps electrons, making it an excellent insulator."},
+    {n:"Silver",c:0,f:"Silver is the best conductor of all metals — copper is cheaper though."},
+    {n:"Glass",c:1,f:"Glass insulators were used on telegraph poles throughout the 1800s."},
+    {n:"Gold",c:0,f:"Gold is used in electronics because it doesn't corrode, unlike copper."},
+    {n:"Wood (dry)",c:1,f:"Dry wood insulates well — but wet wood conducts electricity dangerously."},
+    {n:"Aluminum",c:0,f:"Aluminum conducts 60% as well as copper but is far lighter and cheaper."},
+    {n:"Plastic",c:1,f:"PVC plastic insulation on wires has saved millions of lives."},
+    {n:"Graphite",c:0,f:"Graphite is a non-metal conductor — carbon atoms form conductive layers."},
+    {n:"Diamond",c:1,f:"Diamond is an excellent insulator despite being made of carbon like graphite."},
+    {n:"Saltwater",c:0,f:"Saltwater conducts electricity because dissolved ions carry charge."},
+    {n:"Ceramic",c:1,f:"Ceramic insulators on power lines prevent electricity from earthing."}
+  ]},
+  // ── FOOD & CUISINE ────────────────────────────────────────────────────────
+  {title:"🇮🇹 Italian vs 🇯🇵 Japanese Dish",cats:["🇮🇹 Italian","🇯🇵 Japanese"],
+   items:[
+    {n:"Spaghetti Carbonara",c:0,f:"Authentic carbonara has no cream — just egg, guanciale, and pecorino."},
+    {n:"Sushi",c:1,f:"Sushi originally meant 'sour rice' — it was a preservation method for fish."},
+    {n:"Risotto",c:0,f:"Risotto requires constant stirring to release starch from Arborio rice."},
+    {n:"Ramen",c:1,f:"Ramen has 4 main regional styles: shoyu, miso, shio, and tonkotsu."},
+    {n:"Tiramisu",c:0,f:"Tiramisu was invented in Treviso, Italy in the 1960s."},
+    {n:"Tempura",c:1,f:"Tempura was introduced to Japan by Portuguese missionaries in the 1500s."},
+    {n:"Ossobuco",c:0,f:"Ossobuco is braised veal shanks — a Milanese specialty."},
+    {n:"Okonomiyaki",c:1,f:"Okonomiyaki means 'what you like, grilled' — it's a savoury pancake."},
+    {n:"Panna Cotta",c:0,f:"Panna cotta means 'cooked cream' — it's set with gelatin, not eggs."},
+    {n:"Miso Soup",c:1,f:"Miso paste is made from fermented soybeans and has been eaten for 2,500 years."},
+    {n:"Gnocchi",c:0,f:"Gnocchi are potato dumplings — they should float when cooked."},
+    {n:"Yakitori",c:1,f:"Yakitori literally means 'grilled bird' — skewered chicken over charcoal."}
+  ]},
+  {title:"🍷 Fermented vs 🥛 Not Fermented Food",cats:["🍷 Fermented","🥛 Not Fermented"],
+   items:[
+    {n:"Yogurt",c:0,f:"Yogurt bacteria convert lactose to lactic acid — making it digestible."},
+    {n:"Fresh milk",c:1,f:"Fresh milk is not fermented — but it naturally sours if left at room temperature."},
+    {n:"Kimchi",c:0,f:"Koreans eat 1.85 million tons of kimchi per year — it's a national staple."},
+    {n:"Butter",c:1,f:"Regular butter is just churned cream — not fermented (unlike crème fraîche)."},
+    {n:"Sourdough bread",c:0,f:"Sourdough starter is a live culture of wild yeast and bacteria."},
+    {n:"White rice",c:1,f:"Plain cooked rice is not fermented — though sake and rice vinegar are."},
+    {n:"Soy sauce",c:0,f:"Soy sauce is fermented for 6–12 months using Aspergillus mold."},
+    {n:"Olive oil",c:1,f:"Olive oil is cold-pressed, not fermented — it's pure mechanical extraction."},
+    {n:"Cheese",c:0,f:"Cheese requires bacterial cultures to acidify milk and form curds."},
+    {n:"Honey",c:1,f:"Honey doesn't ferment because its low water content inhibits microbes."},
+    {n:"Kombucha",c:0,f:"Kombucha is fermented by a SCOBY — symbiotic culture of bacteria and yeast."},
+    {n:"Pasta",c:1,f:"Pasta is simply dried dough — not fermented, though sourdough pasta exists."}
+  ]},
+  // ── BONUS HARD LEVELS ─────────────────────────────────────────────────────
+  {title:"🧬 DNA vs 🧫 RNA",cats:["🧬 DNA","🧫 RNA"],
+   items:[
+    {n:"Double helix",c:0,f:"DNA's double helix was discovered by Watson and Crick in 1953."},
+    {n:"mRNA vaccines",c:1,f:"mRNA vaccines deliver instructions that degrade after use — no DNA alteration."},
+    {n:"Chromosome",c:0,f:"Humans have 46 chromosomes — 23 pairs — in nearly every cell."},
+    {n:"Ribosome translation",c:1,f:"Ribosomes read mRNA codons to assemble proteins."},
+    {n:"Genome sequencing",c:0,f:"Sequencing a human genome cost $3 billion in 2001; it costs $600 today."},
+    {n:"tRNA",c:1,f:"Transfer RNA brings amino acids to ribosomes during protein synthesis."},
+    {n:"CRISPR-Cas9",c:0,f:"CRISPR uses guide RNA to find and cut specific DNA sequences."},
+    {n:"Splicing",c:1,f:"RNA splicing removes introns from pre-mRNA before translation."},
+    {n:"Deoxyribose sugar",c:0,f:"DNA has deoxyribose sugar — one oxygen atom fewer than RNA's ribose."},
+    {n:"Codon",c:1,f:"A codon is a 3-letter RNA sequence that codes for one amino acid."},
+    {n:"Nucleosome",c:0,f:"DNA wraps around histone proteins to form nucleosomes for compaction."},
+    {n:"Retroviruses use it",c:1,f:"HIV is a retrovirus — it reverses from RNA back to DNA using reverse transcriptase."}
+  ]},
+  {title:"⚖️ Common Law vs 🏛 Civil Law System",cats:["⚖️ Common Law","🏛 Civil Law"],
+   items:[
+    {n:"UK legal system",c:0,f:"England's common law began with the Magna Carta in 1215."},
+    {n:"French legal system",c:1,f:"France's civil law is based on the Napoleonic Code of 1804."},
+    {n:"Precedent-based",c:0,f:"Common law uses past case decisions (precedent) to decide new cases."},
+    {n:"Code-based",c:1,f:"Civil law systems have comprehensive written codes — judges interpret the code."},
+    {n:"Australia",c:0,f:"Australia inherited common law from Britain and has added constitutional elements."},
+    {n:"Germany",c:1,f:"Germany's Bürgerliches Gesetzbuch (BGB) civil code was enacted in 1900."},
+    {n:"India",c:0,f:"India has common law but also codified laws from its colonial history."},
+    {n:"Brazil",c:1,f:"Brazil's civil law comes from Portuguese tradition, based on Roman law."},
+    {n:"Jury of peers",c:0,f:"Jury trials are common in common law systems — rare in civil law."},
+    {n:"Japan",c:1,f:"Japan adopted a civil law system after the Meiji Restoration in 1868."},
+    {n:"USA (federal)",c:0,f:"US federal law is common law; Louisiana alone uses civil law (French heritage)."},
+    {n:"Spain",c:1,f:"Spain's civil code dates to 1889 and draws from Roman and Napoleonic law."}
+  ]}
+];
+
+// ─── ENGINE ──────────────────────────────────────────────────────────────────
+var ORDER=[];
+for(var i=0;i<LEVELS.length;i++)ORDER.push(i);
+(function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}})(ORDER);
+
+var playIdx=0,score=0,streak=0,bestStreak=0,itemIdx,items,correct,total;
+var itemEl=document.getElementById('item'),binsEl=document.getElementById('bins');
+var fbEl=document.getElementById('fb'),barEl=document.getElementById('bar');
+var scEl=document.getElementById('sc'),lvEl=document.getElementById('lv');
+var tmEl=document.getElementById('tm'),rinfoEl=document.getElementById('rinfo');
+var ov=document.getElementById('ov'),ovSc=document.getElementById('ovSc');
+var ovM=document.getElementById('ovM'),ovGrade=document.getElementById('ovGrade');
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}}
+
+function startLevel(){
+  var lv=LEVELS[ORDER[playIdx%ORDER.length]];
+  items=lv.items.slice();shuffle(items);
+  itemIdx=0;correct=0;total=items.length;
+  lvEl.textContent='Level '+(playIdx%LEVELS.length+1)+'/'+LEVELS.length;
+  rinfoEl.textContent=lv.title;
+  ov.className='ov';fbEl.textContent='';fbEl.className='feedback';
+  buildBins(lv.cats);showItem();
+}
+
+function buildBins(cats){
+  binsEl.innerHTML='';
+  for(var i=0;i<cats.length;i++){
+    var d=document.createElement('div');d.className='bin';d.setAttribute('data-c',i);
+    var lbl=document.createElement('div');lbl.className='bin-label';lbl.textContent=cats[i];
+    var cnt=document.createElement('div');cnt.className='bin-count';cnt.id='bc'+i;cnt.textContent='0 sorted';
+    var bi=document.createElement('div');bi.className='bin-items';bi.id='bi'+i;
+    d.appendChild(lbl);d.appendChild(bi);d.appendChild(cnt);
+    d.addEventListener('click',(function(ci){return function(){classify(ci);};})(i));
+    binsEl.appendChild(d);
+  }
+}
+
+function showItem(){
+  if(itemIdx>=items.length){
+    var pct=Math.round(correct/total*100);
+    var grade=pct===100?'🏆 Perfect!':pct>=80?'⭐ Excellent!':pct>=60?'👍 Good':pct>=40?'📖 Keep Learning':'💪 Practice More';
+    ovSc.textContent=correct+'/'+total+' ('+pct+'%)';
+    ovGrade.textContent=grade;
+    ovGrade.style.color=pct===100?'#f0a500':pct>=80?'#538d4e':pct>=60?'#4fc3f7':'#e94560';
+    ovM.textContent='Total Score: '+score+' · Best Streak: '+bestStreak;
+    setTimeout(function(){ov.className='ov show';},400);
+    return;
+  }
+  itemEl.textContent=items[itemIdx].n;
+  fbEl.textContent='';fbEl.className='feedback';
+  barEl.style.width=Math.round(itemIdx/total*100)+'%';
+}
+
+function classify(cat){
+  if(itemIdx>=items.length)return;
+  var item=items[itemIdx];
+  var bi=document.getElementById('bi'+cat);
+  var lv=LEVELS[ORDER[playIdx%ORDER.length]];
+  if(cat===item.c){
+    correct++;score+=streak>=3?2:1; // Bonus points on hot streak
+    streak++;if(streak>bestStreak)bestStreak=streak;
+    var msg='✓ Correct!'+(streak>=3?' 🔥×'+streak:'');
+    fbEl.innerHTML=msg+(item.f?'<span class="fact">💡 '+item.f+'</span>':'');
+    fbEl.className='feedback correct';
+    appendToBin(bi,item.n);
+  }else{
+    streak=0;
+    fbEl.innerHTML='✕ That\'s '+lv.cats[item.c]+'<span class="fact">💡 '+item.f+'</span>';
+    fbEl.className='feedback wrong';
+    appendToBin(document.getElementById('bi'+item.c),item.n);
+  }
+  var bc=document.getElementById('bc'+cat);
+  var cnt=parseInt(bc.textContent)||0;
+  bc.textContent=(cnt+1)+' sorted';
+  scEl.textContent=score;tmEl.textContent='🔥'+streak;
+  itemIdx++;
+  setTimeout(showItem,6000);
+}
+
+function appendToBin(bi,name){
+  var cur=bi.textContent;
+  bi.textContent=cur?(cur+' · '+name):name;
+}
+
+document.getElementById('skipBtn').addEventListener('click',function(){
+  if(itemIdx<items.length){fbEl.textContent='⭭ Skipped';fbEl.className='feedback';itemIdx++;showItem();}
+});
+document.getElementById('revealBtn').addEventListener('click',function(){
+  if(itemIdx>=items.length)return;
+  var item=items[itemIdx];
+  var lv=LEVELS[ORDER[playIdx%ORDER.length]];
+  fbEl.innerHTML='💡 Answer: <strong>'+lv.cats[item.c]+'</strong>'+(item.f?'<span class="fact">'+item.f+'</span>':'');
+  fbEl.className='feedback';
+});
+document.getElementById('ovB').addEventListener('click',function(){playIdx++;startLevel();});
+
+startLevel();
+})();
+</script>
+</body>
+</html>

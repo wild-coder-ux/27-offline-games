@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Credits — 27 Offline Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:      #080c14;
+  --surface: #0e1620;
+  --surface2:#141e2e;
+  --card:    #111827;
+  --card-h:  #162033;
+  --accent:  #22d3ee;
+  --accent2: #f472b6;
+  --accent3: #a78bfa;
+  --gold:    #fbbf24;
+  --text:    #e8edf5;
+  --muted:   #64748b;
+  --border:  rgba(255,255,255,0.07);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  font-family:'DM Sans', sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  padding-bottom:60px;
+}
+
+/* Background glow */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(34,211,238,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(167,139,250,0.06) 0%, transparent 60%);
+  pointer-events:none; z-index:0;
+}
+
+/* ── HEADER ── */
+.header {
+  position:relative; z-index:1;
+  text-align:center;
+  padding:52px 24px 36px;
+  border-bottom:1px solid var(--border);
+}
+
+.back-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  color:var(--muted); text-decoration:none;
+  font-size:0.78rem; font-weight:600; letter-spacing:0.05em;
+  margin-bottom:28px;
+  transition:color 0.2s;
+}
+.back-btn:hover { color:var(--accent); }
+.back-btn svg { width:14px; height:14px; }
+
+.header h1 {
+  font-family:'Syne', sans-serif;
+  font-size:clamp(1.8rem, 5vw, 2.6rem);
+  font-weight:800;
+  letter-spacing:-0.02em;
+  background:linear-gradient(135deg, #e8edf5 30%, var(--accent) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:10px;
+}
+
+.header p {
+  color:var(--muted);
+  font-size:0.88rem;
+  max-width:380px;
+  margin:0 auto;
+  line-height:1.6;
+}
+
+/* ── CONTENT ── */
+.content {
+  position:relative; z-index:1;
+  max-width:680px;
+  margin:0 auto;
+  padding:40px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:32px;
+}
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-family:'Syne', sans-serif;
+  font-size:0.72rem;
+  font-weight:700;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.section-label::after {
+  content:'';
+  flex:1;
+  height:1px;
+  background:var(--border);
+}
+
+/* ── CREDIT CARD ── */
+.credit-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px 22px;
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+  transition:border-color 0.2s, background 0.2s;
+  animation:fadeUp 0.4s both;
+}
+.credit-card:hover {
+  border-color:rgba(255,255,255,0.13);
+  background:var(--card-h);
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.credit-card:nth-child(1){ animation-delay:.04s }
+.credit-card:nth-child(2){ animation-delay:.08s }
+.credit-card:nth-child(3){ animation-delay:.12s }
+.credit-card:nth-child(4){ animation-delay:.16s }
+.credit-card:nth-child(5){ animation-delay:.20s }
+
+.credit-icon {
+  font-size:1.6rem;
+  line-height:1;
+  flex-shrink:0;
+  margin-top:2px;
+}
+
+.credit-body { flex:1; min-width:0; }
+
+.credit-name {
+  font-family:'Syne', sans-serif;
+  font-size:0.95rem;
+  font-weight:700;
+  color:var(--text);
+  margin-bottom:3px;
+}
+
+.credit-author {
+  font-size:0.78rem;
+  color:var(--accent);
+  font-weight:600;
+  margin-bottom:6px;
+}
+
+.credit-desc {
+  font-size:0.8rem;
+  color:var(--muted);
+  line-height:1.55;
+}
+
+.license-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-top:10px;
+  background:rgba(34,211,238,0.07);
+  border:1px solid rgba(34,211,238,0.2);
+  color:var(--accent);
+  font-size:0.68rem;
+  font-weight:600;
+  letter-spacing:0.08em;
+  padding:3px 10px;
+  border-radius:100px;
+}
+
+/* ── MIT TEXT BOX ── */
+.mit-box {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:12px;
+  padding:18px 20px;
+  font-size:0.78rem;
+  color:var(--muted);
+  line-height:1.65;
+  animation:fadeUp 0.4s 0.3s both;
+}
+
+.mit-box strong { color:var(--text); }
+
+/* ── ORIGINAL WORK ── */
+.original-card {
+  background:linear-gradient(135deg, rgba(34,211,238,0.05), rgba(167,139,250,0.05));
+  border:1px solid rgba(34,211,238,0.18);
+  border-radius:16px;
+  padding:22px;
+  text-align:center;
+  animation:fadeUp 0.4s 0.35s both;
+}
+
+.original-card .big-label {
+  font-family:'Syne', sans-serif;
+  font-size:0.7rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:10px;
+}
+
+.original-card p {
+  font-size:0.85rem;
+  color:var(--muted);
+  line-height:1.6;
+}
+
+.original-card strong { color:var(--text); }
+
+/* ── FOOTER NOTE ── */
+.footer-note {
+  text-align:center;
+  color:var(--muted);
+  font-size:0.75rem;
+  padding:0 20px;
+  line-height:1.6;
+  animation:fadeUp 0.4s 0.4s both;
+}
+.footer-note a { color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="index.html" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Back to Games
+  </a>
+  <h1>Credits &amp; Licenses</h1>
+  <p>Open-source attributions and acknowledgements for 27 Offline Games</p>
+</div>
+
+<div class="content">
+
+  <!-- MIT LICENSED GAMES -->
+  <div>
+    <div class="section-label">MIT Licensed Games</div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div class="credit-card">
+        <div class="credit-icon">⬛</div>
+        <div class="credit-body">
+          <div class="credit-name">2048</div>
+          <div class="credit-author">Originally created by Gabriele Cirulli (2014)</div>
+          <div class="credit-desc">
+            Inspired by the original 2048 puzzle game.
+            This version is an independently written implementation
+            with original interface design and gameplay refinements.
+          </div>
+          <div class="license-badge">MIT License</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MIT LICENSE TEXT -->
+  <div class="mit-box">
+    <strong>MIT License — Attribution Notice</strong><br><br>
+    The original 2048 project by Gabriele Cirulli is distributed under the MIT License.
+    The license permits use, modification and commercial distribution,
+    provided that the original copyright notice and license text are included.<br><br>
+    © 2014 Gabriele Cirulli
+  </div>
+
+  <!-- CLASSIC GAMES -->
+  <div>
+    <div class="section-label">Classic Puzzle & Arcade Formats</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div class="credit-card">
+        <div class="credit-icon">💣</div>
+        <div class="credit-body">
+          <div class="credit-name">Minesweeper</div>
+          <div class="credit-desc">
+            A classic logic-based grid puzzle implemented independently with original logic and layout.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🐍</div>
+        <div class="credit-body">
+          <div class="credit-name">Snake</div>
+          <div class="credit-desc">
+            A classic arcade-style movement and growth game recreated with original code and visuals.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🔢</div>
+        <div class="credit-body">
+          <div class="credit-name">Sudoku, Hangman, Word Search, Crossword</div>
+          <div class="credit-desc">
+            Traditional puzzle formats with independently generated grids, clues and word sets.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🎵</div>
+        <div class="credit-body">
+          <div class="credit-name">Follow Me</div>
+          <div class="credit-desc">
+            A memory sequence challenge inspired by classic electronic pattern games.
+            All visuals, sounds and game logic are original.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🧱</div>
+        <div class="credit-body">
+          <div class="credit-name">Brick Breaker & Paddle Ball</div>
+          <div class="credit-desc">
+            Inspired by early paddle-and-ball arcade games.
+            This version uses original mechanics, visuals and tuning.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🧩</div>
+        <div class="credit-body">
+          <div class="credit-name">Block Stack</div>
+          <div class="credit-desc">
+            A falling-block stacking challenge built with original mechanics,
+            visuals and scoring systems.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🟩</div>
+        <div class="credit-body">
+          <div class="credit-name">Pixel Runner</div>
+          <div class="credit-desc">
+            An endless runner-style reflex game developed with original code and assets.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- INSPIRED PUZZLES -->
+  <div>
+    <div class="section-label">Inspired Puzzle Concepts</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div class="credit-card">
+        <div class="credit-icon">💡</div>
+        <div class="credit-body">
+          <div class="credit-name">Toggle Lights</div>
+          <div class="credit-desc">
+            A grid-based toggle puzzle inspired by classic light-switch challenges.
+            Implemented independently with original interface and logic systems.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🎯</div>
+        <div class="credit-body">
+          <div class="credit-name">Target 24</div>
+          <div class="credit-desc">
+            Combine four numbers using arithmetic operations to reach 24.
+            Includes original hint logic, validation systems and gameplay improvements.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">🦜</div>
+        <div class="credit-body">
+          <div class="credit-name">Tap Bird</div>
+          <div class="credit-desc">
+            A tap-to-fly reflex game inspired by early mobile arcade mechanics.
+            Developed with original artwork, physics and scoring systems.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ORIGINAL WORK -->
+  <div>
+  <div class="section-label">General Inspirations</div>
+  <div style="display:flex;flex-direction:column;gap:12px;">
+
+    <div class="credit-card">
+      <div class="credit-icon">🧠</div>
+      <div class="credit-body">
+        <div class="credit-name">
+          AI Guesser, Pattern Classifier, Chatbot Maze,
+          Binary Puzzle, Number Sequence,
+          Math Sprint, Word Builder
+        </div>
+        <div class="credit-desc">
+          These games are inspired by established puzzle, logic and AI-style
+          game formats commonly found across educational and casual gaming platforms.
+          All implementations in 27 Offline Games are independently written,
+          using original code, interface design and rule systems.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div>
+  <div class="section-label">Fully Original Concept</div>
+  <div class="original-card">
+    <div class="big-label">🚀 Created for 27 Offline Games</div>
+    <p>
+      <strong>Neon Logic Runner</strong> is an original game concept
+      designed exclusively for this project.
+      The gameplay structure, multi-mode system and lane-based logic
+      mechanics were independently developed.
+    </p>
+  </div>
+</div>
+
+  <!-- FONTS -->
+  <div>
+    <div class="section-label">Fonts</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div class="credit-card">
+        <div class="credit-icon">🔤</div>
+        <div class="credit-body">
+          <div class="credit-name">Syne & DM Sans</div>
+          <div class="credit-desc">
+            Provided via Google Fonts under the SIL Open Font License 1.1,
+            permitting free commercial use.
+          </div>
+        </div>
+      </div>
+
+      <div class="credit-card">
+        <div class="credit-icon">✨</div>
+        <div class="credit-body">
+          <div class="credit-name">Orbitron & Share Tech Mono</div>
+          <div class="credit-desc">
+            Used for Neon Logic Runner display styling.
+            Distributed under the SIL Open Font License 1.1.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-note">
+    27 Offline Games is independently developed.<br>
+    Fully offline. No ads. No data collection.<br><br>
+    For enquiries, contact the developer via the Play Store listing.
+  </div>
+
+</div>
+
+
+</body>
+</html>

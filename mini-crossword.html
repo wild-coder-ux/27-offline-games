@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Crossword">
+<title>Mini Crossword</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
+  height:100vh;height:100dvh;
+  padding:4px 8px;
+  user-select:none;-webkit-user-select:none;
+}
+h1{font-size:1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.timer{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
+.pnum{font-size:.7rem;color:#888}
+
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;width:100%;max-width:280px}
+.cell{
+  aspect-ratio:1;position:relative;
+  background:#16213e;border:2px solid #2a2a4a;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1rem,5vw,1.5rem);font-weight:800;color:#4fc3f7;
+  cursor:pointer;
+}
+.cell.black{background:#0a0a1a;border-color:#0a0a1a;cursor:default}
+.cell.sel{border-color:#e94560;background:rgba(233,69,96,.2)}
+.cell.hl{background:rgba(79,195,247,.1);border-color:#4fc3f7}
+.cell .num{position:absolute;top:1px;left:3px;font-size:clamp(.4rem,1.5vw,.55rem);color:#888;font-weight:700}
+.cell.correct{color:#538d4e}
+
+.clues{
+  width:100%;max-width:400px;
+  display:flex;gap:12px;
+  font-size:clamp(.6rem,2.5vw,.75rem);
+  overflow-y:auto;max-height:22vh;
+}
+.clue-section{flex:1}
+.clue-section h3{font-size:.7rem;color:#e94560;margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em}
+.clue{padding:3px 0;color:#aaa;cursor:pointer;line-height:1.3}
+.clue:active{color:#fff}
+.clue.sel{color:#4fc3f7;font-weight:700}
+.clue.done{color:#538d4e;text-decoration:line-through}
+.clue span.cn{color:#888;margin-right:4px}
+
+.kb{width:100%;max-width:400px;display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
+.key{
+  font-family:inherit;font-size:clamp(.7rem,3vw,.9rem);font-weight:700;
+  width:clamp(26px,7.5vw,34px);height:clamp(32px,8.5vw,40px);
+  border:none;border-radius:5px;background:#16213e;color:#e0e0e0;
+  cursor:pointer;text-transform:uppercase;
+}
+.key.wide{width:clamp(44px,12vw,56px);font-size:clamp(.55rem,2.2vw,.7rem)}
+.key:active{opacity:.7}
+
+.actions{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+.actions button{font-family:inherit;font-size:.65rem;font-weight:700;padding:5px 12px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer;transition:background .2s,color .2s}
+.actions button:active{opacity:.7}
+#hintBtn{background:#16213e;color:#f0a500}
+#hintBtn:hover{background:#2a2000}
+#cheatBtn{background:#16213e;color:#e94560}
+#cheatBtn:hover{background:#2a0010}
+
+/* hint flash */
+.cell.hinted{animation:hintpop .6s ease;border-color:#f0a500!important;color:#f0a500!important}
+@keyframes hintpop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+/* win overlay */
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+
+/* cheat sheet overlay */
+.cheat-ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(10,10,20,.96);display:flex;flex-direction:column;align-items:center;z-index:20;visibility:hidden;opacity:0;transition:opacity .25s;overflow-y:auto;padding:16px 12px 24px}
+.cheat-ov.show{visibility:visible;opacity:1}
+.cheat-ov h2{font-size:1rem;color:#e94560;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;flex-shrink:0}
+.cheat-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#aaa;font-size:1.4rem;cursor:pointer;line-height:1}
+.cheat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;width:100%;max-width:240px;margin-bottom:14px;flex-shrink:0}
+.cheat-cell{aspect-ratio:1;background:#0d2137;border:2px solid #1a3a5a;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:clamp(.9rem,4vw,1.2rem);font-weight:900;color:#4fc3f7}
+.cheat-clues{width:100%;max-width:320px;display:flex;gap:16px;font-size:.68rem}
+.cheat-clues .cs{flex:1}
+.cheat-clues h3{color:#e94560;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.cheat-clues .cc{color:#ccc;padding:2px 0;line-height:1.4}
+.cheat-clues .cc b{color:#4fc3f7;margin-right:4px}
+.cheat-clues .ca{color:#538d4e;font-weight:700}
+</style>
+</head>
+<body>
+<h1>MINI CROSSWORD</h1>
+<div class="topbar">
+  <span class="pnum" id="pnum">Puzzle 1</span>
+  <span class="timer" id="tmr">00:00</span>
+</div>
+<div class="grid" id="grid"></div>
+<div class="clues" id="clues">
+  <div class="clue-section"><h3>Across</h3><div id="acrossClues"></div></div>
+  <div class="clue-section"><h3>Down</h3><div id="downClues"></div></div>
+</div>
+<div class="kb" id="kb"></div>
+<div class="actions">
+  <button id="hintBtn">💡 Hint</button>
+  <button id="newBtn">↻ Next Puzzle</button>
+  <button id="cheatBtn">🔓 Answers</button>
+</div>
+<div class="ov" id="ov">
+  <h2>🎉 Solved!</h2>
+  <p id="ovM"></p>
+  <button id="ovB">Next Puzzle</button>
+</div>
+<div class="cheat-ov" id="cheatOv">
+  <h2>📋 Answer Sheet</h2>
+  <button class="cheat-close" id="cheatClose">✕</button>
+  <div class="cheat-grid" id="cheatGrid"></div>
+  <div class="cheat-clues" id="cheatClues">
+    <div class="cs"><h3>Across</h3><div id="cheatAc"></div></div>
+    <div class="cs"><h3>Down</h3><div id="cheatDn"></div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var PUZZLES=[
+    // 1
+    {grid:['SWIFT','HOVER','ARISE','RENDS','PESTY'],blacks:[],
+     across:{1:'Fast Apple coding language',4:'Float above the ground',7:'Come into being',8:'Tears apart violently',9:'Annoying like bugs'},
+     down:{1:'Ocean salt content',2:'Vertical up direction',3:'Tamed, not wild',4:'Bunny-like jumper',5:'Place to sit in a room'}},
+    // 2
+    {grid:['GRAPE','RIDER','ARENA','SEVEN','PESTS'],blacks:[],
+     across:{1:'Purple vine fruit',6:'One who bikes or horses',7:'Roman fighting venue',8:'Lucky number ___',9:'Unwanted insects'},
+     down:{1:'Polite and gracious',2:'Compete in a race',3:'Peak of a mountain',4:'Smooth and level',5:'Bird nest locations'}},
+    // 3
+    {grid:['CHESS','LUNAR','ANGLE','SLEEP','PERKS'],blacks:[],
+     across:{1:'Board game with kings and queens',6:'Relating to the moon',7:'Corner measurement in geometry',8:'Nightly rest period',9:'Job bonuses and benefits'},
+     down:{1:'Sofa or couch',2:'Harp or piano, e.g.',3:'Football or tennis',4:'Move like a serpent',5:'Camping shelters'}},
+    // 4
+    {grid:['BLAZE','LUNAR','OPERA','CANDY','KNEEL'],blacks:[],
+     across:{1:'Bright roaring fire',6:'Moon-related adjective',7:'Sung dramatic performance',8:'Sweet sugary treat',9:'Get down on one knee'},
+     down:{1:'Very dark color',2:'Not early, tardy',3:'Geographic region or zone',4:'Core of an atom',5:'Opposite of exit'}},
+    // 5
+    {grid:['STORM','TIGER','ARENA','REBEL','SLYLY'],blacks:[],
+     across:{1:'Thunder and lightning event',6:'Striped jungle cat',7:'Stadium for competitions',8:'One who defies authority',9:'In a sneaky, crafty way'},
+     down:{1:'Sun, moon, or star',2:'Small wind instrument',3:'Begin or commence',4:'Precious gemstone',5:'Free from danger'}},
+    // 6
+    {grid:['PLANT','LEMON','AVIAN','NEVER','TENSE'],blacks:[],
+     across:{1:'Grow in soil',6:'Yellow citrus fruit',7:'Related to birds',8:'Not ever, at no time',9:'Grammar form: past, present, future'},
+     down:{1:'Flat open area',2:'Soft cushioned seat',3:'Compete athletically',4:'Mist or fog',5:'Smooth and silky'}},
+    // 7
+    {grid:['FLAME','LOVER','ABIDE','MERGE','ELDER'],blacks:[],
+     across:{1:'Burning tongue of fire',6:'Devoted romantic partner',7:'Tolerate or endure',8:'Combine into one',9:'Older or senior member'},
+     down:{1:'Flower or bloom',2:'Past tense of leave',3:'Relating to age',4:'Wander or roam',5:'Fear intensely'}},
+    // 8
+    {grid:['BREAD','RISEN','EVADE','ADORE','DENSE'],blacks:[],
+     across:{1:'Baked wheat staple',6:'Came up, ascended',7:'Dodge or avoid',8:'Love deeply',9:'Thick and packed tight'},
+     down:{1:'Short rest period',2:'Reddish-brown color',3:'Female deer',4:'Level or equal',5:'Admirer or fan'}},
+    // 9
+    {grid:['CRANE','RAVEN','ABODE','NOISY','ENDED'],blacks:[],
+     across:{1:'Long-necked wading bird',6:'Large black corvid bird',7:'Home or dwelling place',8:'Loud and clamorous',9:'Came to a finish'},
+     down:{1:'Colorful garden flower',2:'Repair or fix',3:'Perform on stage',4:'New, not old',5:'Downward slope'}},
+    // 10
+    {grid:['FLUTE','LEVEL','UMAMI','TABBY','EVERY'],blacks:[],
+     across:{1:'Woodwind instrument',6:'Perfectly flat or equal',7:'Fifth basic taste',8:'Striped house cat',9:'Each and all'},
+     down:{1:'Blur or blend edge',2:'Clear and obvious',3:'Not here but ___',4:'Bicycle or motorbike',5:'Sticky adhesive substance'}},
+    // 11
+    {grid:['BRAVE','RADIO','ABBEY','VOTED','EXTRA'],blacks:[],
+     across:{1:'Courageous and bold',6:'Wireless audio device',7:'Monastery or convent',8:'Cast a ballot',9:'Additional or bonus'},
+     down:{1:'Wooden plank platform',2:'Compete in a contest',3:'Not urban but ___',4:'Ballot or election',5:'Outer limit or rim'}},
+    // 12
+    {grid:['SHINY','HONEY','INDIA','NOTER','YACHT'],blacks:[],
+     across:{1:'Glossy and bright',6:'Bee-made sweet syrup',7:'Asian subcontinent nation',8:'One who jots things down',9:'Elegant sailing vessel'},
+     down:{1:'Shoulder bag strap',2:'Warmth and coziness',3:'Breathe in deeply',4:'Undo or reverse',5:'Toss into the air'}},
+    // 13
+    {grid:['CRISP','ROBIN','IGLOO','PLANE','SLEEP'],blacks:[],
+     across:{1:'Fresh and crunchy',6:'Red-breasted songbird',7:'Ice dome shelter',8:'Flat surface or aircraft',9:'Slumber and rest'},
+     down:{1:'Circular band ring',2:'Drip or seep slowly',3:'Unwrap or open up',4:'Dip into water',5:'Gentle nudge or prod'}},
+    // 14
+    {grid:['CLOUD','LOSER','OCCUR','DIVER','SIREN'],blacks:[],
+     across:{1:'Fluffy sky formation',6:'One who fails or loses',7:'Take place, happen',8:'Underwater swimmer',9:'Wailing alarm device'},
+     down:{1:'Curved shape line',2:'Tall apartment building',3:'Odd or peculiar',4:'Vertical drop down',5:'Not dry but ___'}},
+    // 15
+    {grid:['DENIM','EAGLE','NASAL','INFER','MESSY'],blacks:[],
+     across:{1:'Blue jeans material',6:'National bird of the USA',7:'Related to the nose',8:'Deduce or conclude',9:'Untidy and cluttered'},
+     down:{1:'Go down below',2:'Nest or home space',3:'Breathe in air',4:'Belonging to me',5:'Extend or reach out'}},
+    // 16
+    {grid:['FINCH','IVORY','NIGHT','COMET','HYENA'],blacks:[],
+     across:{1:'Small seed-eating bird',6:'Creamy white color',7:'Dark hours of day',8:'Speeding space rock',9:'Laughing African predator'},
+     down:{1:'Fuel and fire',2:'Imaginary ideal place',3:'Inside or interior',4:'Opposite of day',5:'Tenth month of year'}},
+    // 17
+    {grid:['GLOBE','LOVER','OPERA','BREED','EXERT'],blacks:[],
+     across:{1:'Round world sphere',6:'Romantic partner',7:'Grand musical drama',8:'Type or variety of animal',9:'Apply effort and strain'},
+     down:{1:'Jump and leap',2:'Upper floor of building',3:'Take from a shelf',4:'Front of a ship',5:'Small spider-like creature'}},
+    // 18
+    {grid:['HAZEL','ALONE','ZONAL','EVERY','LENDS'],blacks:[],
+     across:{1:'Brown nut-bearing tree',6:'By oneself, solitary',7:'Relating to a zone',8:'Each single one',9:'Gives temporarily'},
+     down:{1:'Grasp or seize',2:'Not quite asleep',3:'Dried grape fruit',4:'Time period or age',5:'Flat and smooth'}},
+    // 19
+    {grid:['IVORY','VIOLA','OPERA','RAVEN','YEARS'],blacks:[],
+     across:{1:'Creamy piano key color',6:'String instrument smaller than cello',7:'Sung theatrical work',8:'Deep black-haired',9:'Periods of twelve months'},
+     down:{1:'Plant disease or blight',2:'Wander without aim',3:'Very old and ancient',4:'Time to relax',5:'Quick sharp bark'}},
+    // 20
+    {grid:['JOKER','ULTRA','KNIFE','IVORY','CYCLE'],blacks:[],
+     across:{1:'Clown or prankster',6:'Extreme or beyond normal',7:'Sharp cutting blade',8:'Creamy white shade',9:'Repeat rotation or bike'},
+     down:{1:'Liquid drink jar',2:'Turn on axis',3:'Tidy and orderly',4:'Not outside but ___',5:'Side border rim'}},
+    // 21
+    {grid:['KAYAK','AZURE','YACHT','ABODE','KNEEL'],blacks:[],
+     across:{1:'Paddled narrow boat',6:'Bright sky-blue color',7:'Luxury sailing vessel',8:'Home or residence',9:'Rest on one knee'},
+     down:{1:'Monarch or ruler',2:'Young donkey',3:'Meadow or field',4:'Ache or hurt',5:'Slender and trim'}},
+    // 22
+    {grid:['LEMON','EVERY','MANOR','ONION','NYLON'],blacks:[],
+     across:{1:'Sour yellow citrus',6:'Each and all of them',7:'Large country estate',8:'Layered pungent bulb',9:'Synthetic fabric material'},
+     down:{1:'Light-emitting diode',2:'Distant in space',3:'Perform music',4:'Old or ancient',5:'Midday meal'}},
+    // 23
+    {grid:['MAPLE','AISLE','PLAIN','LINER','ENEMA'],blacks:[],
+     across:{1:'Syrup-giving tree',6:'Row between seats',7:'Simple or flat land',8:'Ocean cruise ship',9:'Medical flush procedure'},
+     down:{1:'Plaid or pattern',2:'Tiny insect pest',3:'Speak at length',4:'Natural or unadorned',5:'Shiny film coating'}},
+    // 24
+    {grid:['NORTH','OLIVE','RIDER','TIGER','HERBS'],blacks:[],
+     across:{1:'Compass direction up',6:'Small Mediterranean fruit',7:'One who rides horses',8:'Jungle striped cat',9:'Cooking plant flavors'},
+     down:{1:'Night sky object',2:'Twist or contort',3:'Dig or hollow out',4:'Wander or drift',5:'Flat grain bread'}},
+    // 25
+    {grid:['OCEAN','CEDAR','EAGLE','ANGEL','NODES'],blacks:[],
+     across:{1:'Vast body of saltwater',6:'Aromatic evergreen tree',7:'Large soaring raptor',8:'Heavenly winged being',9:'Junction points in network'},
+     down:{1:'Cello or bass instrument',2:'Stiff and rigid',3:'Advance forward',4:'Glow of a fire',5:'Rest or sleep'}},
+    // 26
+    {grid:['PIXEL','IVORY','XENON','EVENT','LEVEL'],blacks:[],
+     across:{1:'Tiny screen dot',6:'Off-white piano key',7:'Noble gas element',8:'Happening or occasion',9:'Perfectly flat and even'},
+     down:{1:'Pastry or pie dish',2:'Search carefully',3:'Lean or slant',4:'Not outside',5:'Small body of water'}},
+    // 27
+    {grid:['QUEEN','ULTRA','ICING','NEVER','STERN'],blacks:[],
+     across:{1:'Female monarch',6:'Beyond the extreme',7:'Cake frosting topping',8:'Not at any time',9:'Strict and severe'},
+     down:{1:'Quick and fast',2:'Below the surface',3:'Icy and frozen',4:'Glow dimly',5:'Tiny amount'}},
+    // 28
+    {grid:['RAINY','ABODE','INTER','NIGHT','YARNS'],blacks:[],
+     across:{1:'Wet and drizzling',6:'Place of dwelling',7:'Bury or place between',8:'Dark time after sunset',9:'Tales or threads of fiber'},
+     down:{1:'Raised platform stage',2:'Poke or press in',3:'Not night but ___',4:'Cover with paint',5:'Thin flexible twig'}},
+    // 29
+    {grid:['SANDY','ANVIL','NOVEL','DRAMA','YEARS'],blacks:[],
+     across:{1:'Gritty like a beach',6:'Blacksmith iron block',7:'Long fictional book',8:'Theatrical production',9:'Twelve month periods'},
+     down:{1:'Burn slightly',2:'Dense and compact',3:'Not old but ___',4:'Loud impact sound',5:'Coat with oil'}},
+    // 30
+    {grid:['TANGO','ANVIL','NOBLE','GENRE','OLIVE'],blacks:[],
+     across:{1:'Latin dance or letter T',6:'Blacksmith work surface',7:'Honorable and dignified',8:'Category or type of art',9:'Small green or black fruit'},
+     down:{1:'Injury or wound',2:'Nut or bolt fastener',3:'Dig or excavate',4:'Good and moral',5:'Cello bow material'}},
+    // 31
+    {grid:['ULTRA','NICHE','TREES','RIVER','ASIDE'],blacks:[],
+     across:{1:'Extreme or beyond normal',6:'Small specialized market',7:'Tall woody plants',8:'Flowing freshwater stream',9:'To one side, apart'},
+     down:{1:'Use up resources',2:'Spine or backbone',3:'Lean or slope',4:'Drink slowly',5:'Rub and polish'}},
+    // 32
+    {grid:['VAPOR','IRONY','PENAL','OCEAN','RELAY'],blacks:[],
+     across:{1:'Gas or steam mist',6:'Sarcasm or contradiction',7:'Related to punishment',8:'Vast salty sea',9:'Pass on or race team'},
+     down:{1:'Hollow and empty',2:'Search carefully',3:'Not odd but ___',4:'Cook in oil',5:'Thin string or rope'}},
+    // 33
+    {grid:['WATCH','ATTIC','TRACK','CHAIR','HERBS'],blacks:[],
+     across:{1:'Timepiece on wrist',6:'Top floor storage room',7:'Follow a trail or path',8:'Seat with a back',9:'Fragrant cooking plants'},
+     down:{1:'Walk through water',2:'Tension or pull',3:'Clear and obvious',4:'Two wheeled transport',5:'Polished and refined'}},
+    // 34
+    {grid:['XEROX','EMBER','RISKY','OCEAN','XENON'],blacks:[],
+     across:{1:'Brand name for copy machine',6:'Glowing coal remnant',7:'Full of danger',8:'Vast body of water',9:'Noble inert gas element'},
+     down:{1:'Strange or odd',2:'Very long time ago',3:'Red or pink color',4:'Side of a coin',5:'Short and concise'}},
+    // 35
+    {grid:['YACHT','OPERA','UNCLE','NERVE','GREEN'],blacks:[],
+     across:{1:'Luxury sailing boat',6:'Grand sung performance',7:'Father\'s brother',8:'Courage or anxiety fiber',9:'Color of grass and leaves'},
+     down:{1:'Yellow citrus fruit',2:'Dark and gloomy',3:'Combine together',4:'Solemn promise or vow',5:'Thin and slender'}},
+    // 36
+    {grid:['ZEBRA','EVOKE','BROAD','ROBIN','ANNEX'],blacks:[],
+     across:{1:'Striped African animal',6:'Call to mind, stir up',7:'Wide and spacious',8:'Red-breasted bird',9:'Extension to a building'},
+     down:{1:'Zone or band',2:'Electronic book reader',3:'Formal or official',4:'Heavy downpour',5:'Next to or beside'}},
+    // 37
+    {grid:['ABBOT','BLOOM','BOXER','OLIVE','TOWER'],blacks:[],
+     across:{1:'Head of a monastery',6:'Flower or blossom',7:'Dog breed or fighter',8:'Small Mediterranean fruit',9:'Tall structure building'},
+     down:{1:'Middle or center',2:'Strike with foot',3:'Opposite of inside',4:'Shiny metallic color',5:'Slight trace amount'}},
+    // 38
+    {grid:['BRISK','RIVET','INFER','SEVEN','KNEEL'],blacks:[],
+     across:{1:'Quick and energetic',6:'Metal fastening bolt',7:'Deduce from evidence',8:'Number after six',9:'Go down on one knee'},
+     down:{1:'New arrival infant',2:'Tear or split apart',3:'Short period of time',4:'Old and sage-like',5:'Lean slightly forward'}},
+    // 39
+    {grid:['CACTI','ALGAE','TREND','CEDAR','IMAGE'],blacks:[],
+     across:{1:'Desert spiny plants',6:'Aquatic green plants',7:'Current fashion direction',8:'Fragrant red wood tree',9:'Picture or visual likeness'},
+     down:{1:'Circular band ring',2:'Fluid and graceful',3:'Arrange in a row',4:'Bury or conceal',5:'Sharp and pointed'}},
+    // 40
+    {grid:['DAISY','ALIVE','IMAGE','SOLAR','YEARS'],blacks:[],
+     across:{1:'Common white flower',6:'Living and breathing',7:'Picture or photograph',8:'Powered by the sun',9:'Time spans of twelve months'},
+     down:{1:'Dig a trench',2:'Poorly lit room',3:'Wander without aim',4:'Not big but ___',5:'Rough and coarse'}},
+    // 41
+    {grid:['EASEL','AORTA','STRAW','EMBER','LAYER'],blacks:[],
+     across:{1:'Artist\'s painting stand',6:'Main heart artery',7:'Thin hollow drinking tube',8:'Glowing fire remnant',9:'One level or coating'},
+     down:{1:'Remove or pull out',2:'Belong to us',3:'Worn on foot and leg',4:'Stiff and straight',5:'Wander or drift'}},
+    // 42
+    {grid:['FALLS','ATOLL','LABEL','LADEN','SPECK'],blacks:[],
+     across:{1:'Waterfalls or autumn',6:'Ring-shaped coral island',7:'Tag or name sticker',8:'Heavily loaded down',9:'Tiny dot or spot'},
+     down:{1:'Curve or bend',2:'Slim and slender',3:'Low or sunken',4:'Move gradually',5:'Soft cotton material'}},
+    // 43
+    {grid:['GECKO','EMBER','CURLY','KNELL','OPERA'],blacks:[],
+     across:{1:'Wall-climbing lizard',6:'Smoldering coal fragment',7:'Wavy-haired description',8:'Funeral bell toll sound',9:'Sung theatrical drama'},
+     down:{1:'Hole or opening',2:'Very dark color',3:'Bend low',4:'Peel or uncover',5:'Wild and free roaming'}},
+    // 44
+    {grid:['HELIX','EVERY','LIVER','IGLOO','XENON'],blacks:[],
+     across:{1:'Spiral staircase shape',6:'Each single one',7:'Vital detox organ',8:'Ice dome home',9:'Noble gas element Xe'},
+     down:{1:'Squeeze and press',2:'Swift and agile',3:'Broad and wide',4:'In a single file',5:'Side or border edge'}},
+    // 45
+    {grid:['INTER','NOVEL','TIGER','EVADE','RENDS'],blacks:[],
+     across:{1:'Place between or bury',6:'New long fiction book',7:'Striped big cat',8:'Dodge or avoid',9:'Tears or shreds apart'},
+     down:{1:'Not outdoor but ___',2:'Dig or hollow out',3:'Layer or coat',4:'Vast and enormous',5:'Tie or knot firmly'}},
+    // 46
+    {grid:['JAZZY','AZURE','ZEBRA','ZONES','YARNS'],blacks:[],
+     across:{1:'Lively and spirited music',6:'Brilliant sky blue',7:'Black and white mammal',8:'Defined area regions',9:'Stories or wool threads'},
+     down:{1:'Squeeze citrus juice',2:'Open and receptive',3:'Slumber or doze',4:'Rough or bumpy',5:'Rapid and quick'}},
+    // 47
+    {grid:['KNAVE','IVORY','NERVE','GENRE','STERN'],blacks:[],
+     across:{1:'Jack card or rogue',6:'Creamy off-white color',7:'Courage or anxiety',8:'Category of art or film',9:'Harsh and severe'},
+     down:{1:'Small knife or blade',2:'Lean or tilt sideways',3:'Large group meeting',4:'Vital and essential',5:'Stitch or embroider'}},
+    // 48
+    {grid:['LABOR','AGENT','BELOW','OPENS','RIDER'],blacks:[],
+     across:{1:'Work or toil effort',6:'Spy or representative',7:'Underneath or lower',8:'Unlocks or begins',9:'One who rides a horse'},
+     down:{1:'Leap or bound',2:'Glow or shine',3:'Slow or delay',4:'Weave or interlock',5:'Comb through carefully'}},
+    // 49
+    {grid:['MANOR','AGENT','NEIGH','ORBIT','RIDER'],blacks:[],
+     across:{1:'Large country mansion',6:'Spy or representative',7:'Horse\'s whinny call',8:'Circular path around star',9:'One who rides a bicycle'},
+     down:{1:'Round woven rug',2:'Grain or grate',3:'Link or connect',4:'Blissful and content',5:'Stiff and unyielding'}},
+    // 50
+    {grid:['NASAL','ARMOR','SOLAR','ATONE','LAYER'],blacks:[],
+     across:{1:'Related to the nose',6:'Protective metal suit',7:'Powered by the sun',8:'Make amends for',9:'One thickness coating'},
+     down:{1:'Short and clever saying',2:'Train track pathway',3:'Not hard but ___',4:'Wander aimlessly',5:'Reddish wood tree'}},
+    // 51
+    {grid:['OZONE','LAYER','ASPEN','YACHT','STERN'],blacks:[],
+     across:{1:'Atmospheric gas layer',6:'One level or coating',7:'Quaking mountain tree',8:'Luxury sailing vessel',9:'Rear of a ship'},
+     down:{1:'Own or possess',2:'Zone or band stripe',3:'Clever and witty',4:'Night sky star count',5:'Smooth and polish'}},
+    // 52
+    {grid:['PATIO','LINER','ATONE','NERVE','OZONE'],blacks:[],
+     across:{1:'Outdoor paved area',6:'Ocean cruise ship',7:'Make up for wrong',8:'Bravery or anxiety fiber',9:'Sky-protecting gas'},
+     down:{1:'Flat loaf bread',2:'Not awake but ___',3:'Twist or rotate',4:'Own or have',5:'Stretch or lengthen'}},
+    // 53
+    {grid:['QUILL','UMBRA','IVORY','LINER','LABEL'],blacks:[],
+     across:{1:'Feather pen or spine',6:'Dark core shadow',7:'Creamy white color',8:'Ship or makeup pen',9:'Name tag or sticker'},
+     down:{1:'Steeped herbal drink',2:'Not quite awake',3:'Bright spark or ember',4:'Build or raise up',5:'Loose and relaxed'}},
+    // 54
+    {grid:['RAPID','IRONY','VIGOR','IVORY','DENIM'],blacks:[],
+     across:{1:'Fast and quick-moving',6:'Twist or contradiction',7:'Energy and vitality',8:'Creamy off-white shade',9:'Blue jeans fabric'},
+     down:{1:'Precipitation or rainfall',2:'Dig or tunnel into',3:'Tall and proud',4:'Rotate on an axis',5:'Mild and warm'}},
+    // 55
+    {grid:['SALSA','ANVIL','LOVER','SEDAN','ARENA'],blacks:[],
+     across:{1:'Spicy tomato dip or dance',6:'Iron block for smithing',7:'Devoted partner',8:'Four door family car',9:'Stadium or fighting ring'},
+     down:{1:'Twist or bend',2:'Small insect pest',3:'Search for clues',4:'Shine and glisten',5:'Bold and daring'}},
+    // 56
+    {grid:['TALON','ARENA','LOVER','ONSET','NYMPH'],blacks:[],
+     across:{1:'Bird of prey claw',6:'Sports competition venue',7:'Devoted romantic partner',8:'Start or beginning',9:'Mythological nature spirit'},
+     down:{1:'Thin and slender',2:'Flat open plain',3:'Jump or spring',4:'Spying or watching',5:'Grasp tightly'}},
+    // 57
+    {grid:['URBAN','RIDER','BONES','ALGAE','NERVE'],blacks:[],
+     across:{1:'City or metropolitan',6:'Cyclist or horseman',7:'Skeletal remains',8:'Aquatic plant organism',9:'Courage or nerve fiber'},
+     down:{1:'Down and below',2:'Not dark but ___',3:'Sharp or clever',4:'Move carefully',5:'Gentle or quiet'}},
+    // 58
+    {grid:['VIOLA','ULTRA','LUNAR','COVER','ANGEL'],blacks:[],
+     across:{1:'String instrument',6:'Extreme or beyond',7:'Moon-related adjective',8:'Protect or blanket',9:'Heavenly divine being'},
+     down:{1:'Small rural community',2:'Layer or coat',3:'Relate or apply',4:'Quiet and peaceful',5:'Loose and flowing'}},
+    // 59
+    {grid:['WALTZ','AZURE','LINER','TONGS','ZEBRA'],blacks:[],
+     across:{1:'Ballroom three-beat dance',6:'Deep sky-blue color',7:'Ship or eyeliner',8:'Kitchen gripping tool',9:'Striped African horse'},
+     down:{1:'Woven floor mat',2:'Lean or incline',3:'Not tight but ___',4:'Thin and delicate',5:'Rapid and speedy'}},
+    // 60
+    {grid:['EXACT','LINER','IVORY','SEVEN','TENSE'],blacks:[],
+     across:{1:'Precise and accurate',6:'Ocean ship or cosmetic pen',7:'Creamy white shade',8:'Lucky number after six',9:'Taut or grammar time form'},
+     down:{1:'Jump over',2:'Tug or pull',3:'Secret or concealed',4:'Vigor and vitality',5:'Smooth and even'}},
+    // 61
+    {grid:['YACHT','ANVIL','CORAL','HEDGE','TIDAL'],blacks:[],
+     across:{1:'Sleek sailing boat',6:'Iron smithing block',7:'Ocean reef material',8:'Dense bushes border',9:'Relating to ocean waves'},
+     down:{1:'Ache or throb',2:'Flat open land',3:'Reveal or uncover',4:'Smooth and flat',5:'Lean or tilt'}},
+    // 62
+    {grid:['ZEBRA','IRONY','POLAR','SOLVE','TREND'],blacks:[],
+     across:{1:'Striped horse of Africa',6:'Sarcasm or contradiction',7:'North or South ___',8:'Find the answer to',9:'Current popular direction'},
+     down:{1:'Zone or belt',2:'Build or raise',3:'Tidy and uncluttered',4:'Thin film layer',5:'Quick and nimble'}},
+    // 63
+    {grid:['ABODE','BLOOM','CRAVE','DRAFT','EVERY'],blacks:[],
+     across:{1:'Home or residence',6:'Flower or flourish',7:'Desire intensely',8:'First rough version',9:'Each single one'},
+     down:{1:'Ground below feet',2:'Slender or slim',3:'Wild and free',4:'Set free or release',5:'Tie firmly down'}},
+    // 64
+    {grid:['BISON','LARGO','INFER','NERVE','GEYSER'],blacks:[],
+     across:{1:'American plains buffalo',6:'Slow musical tempo',7:'Deduce or conclude',8:'Axon fiber courage',9:'Hot spring eruption'},
+     down:{1:'Male bovine animal',2:'Thin shoelace strap',3:'Wise and knowing',4:'Glow or shine',5:'Rough and tough'}},
+    // 65
+    {grid:['CLOVE','LOVER','OFFER','VALOR','EMBER'],blacks:[],
+     across:{1:'Spice from flower buds',6:'Romantic devoted partner',7:'Present or propose',8:'Courage and bravery',9:'Glowing coal remnant'},
+     down:{1:'Flower stem cutting',2:'Not asleep but ___',3:'Wander or roam',4:'Loud trumpet call',5:'Dense and thick'}},
+    // 66
+    {grid:['DROVE','RIDER','ORBIT','VIGOR','ENTER'],blacks:[],
+     across:{1:'Steered or large herd',6:'One who cycles or rides',7:'Path around a planet',8:'Energy and strength',9:'Go inside or type in'},
+     down:{1:'Trench or waterway',2:'Wind or coil',3:'Bright and vivid',4:'Odd or peculiar',5:'Pull tight or clench'}},
+    // 67
+    {grid:['EMBER','MANGA','BRAVE','EVENT','RAZOR'],blacks:[],
+     across:{1:'Glowing hot coal',6:'Japanese comic style',7:'Bold and courageous',8:'Happening or occasion',9:'Sharp shaving blade'},
+     down:{1:'Boundary or border',2:'Male bovine',3:'Leap or spring',4:'Very thin and slim',5:'Soft mat cushion'}},
+    // 68
+    {grid:['FINCH','ULTRA','NINJA','CLEFT','HYDRA'],blacks:[],
+     across:{1:'Small seed-cracking bird',6:'Extreme or beyond normal',7:'Silent warrior fighter',8:'Split or gap in rock',9:'Multi-headed mythical serpent'},
+     down:{1:'Burning wick light',2:'Not tight but loose',3:'Lean or angle',4:'Curved arch shape',5:'Tangle or interweave'}},
+    // 69
+    {grid:['GAVEL','IVORY','LINER','DANCE','STERN'],blacks:[],
+     across:{1:'Judge\'s wooden hammer',6:'Off-white cream color',7:'Ship or makeup tool',8:'Move rhythmically to music',9:'Strict or ship\'s rear'},
+     down:{1:'Grateful or thankful',2:'Light and airy',3:'Quiet and still',4:'Blaze or fire',5:'Old and antique'}},
+    // 70
+    {grid:['HERBS','ROVER','BREAD','SIGMA','TREND'],blacks:[],
+     across:{1:'Cooking plant seasonings',6:'Explorer or Mars robot',7:'Baked wheat loaf',8:'Greek letter or sum sign',9:'Current fashion direction'},
+     down:{1:'Haze or steam',2:'Adjust or tune',3:'Search deeply',4:'Blunt and dull',5:'Compact and dense'}},
+    // 71
+    {grid:['IRONY','DRONE','EVERY','WOVEN','NOTED'],blacks:[],
+     across:{1:'Sarcasm or contradiction',6:'Unmanned flying device',7:'Each and every one',8:'Interlaced fabric',9:'Famous or well-known'},
+     down:{1:'Small tropical lizard',2:'Not awake but ___',3:'Curve or bend',4:'Gather or pluck',5:'Vibrant and vivid'}},
+    // 72
+    {grid:['JAPAN','ALGAE','PANEL','ATOLL','NERVE'],blacks:[],
+     across:{1:'East Asian island nation',6:'Aquatic plant life',7:'Flat board section',8:'Ring-shaped reef island',9:'Courage or axon fiber'},
+     down:{1:'Dense berry jam',2:'Thin flat layer',3:'Tiny speck dust',4:'Poke or nudge',5:'Brilliant and bright'}},
+    // 73
+    {grid:['KAYAK','EMBER','LEVER','INFER','NOTCH'],blacks:[],
+     across:{1:'Narrow paddle boat',6:'Glowing coal fragment',7:'Simple machine pry bar',8:'Deduce or conclude',9:'Carved groove or nick'},
+     down:{1:'Monarch or ruler',2:'Search carefully',3:'Walk silently',4:'Dense and heavy',5:'Smooth out or press'}},
+    // 74
+    {grid:['LOFTY','RULER','OPTIC','FENCE','TRYST'],blacks:[],
+     across:{1:'High up or arrogant',6:'Measuring stick or king',7:'Related to the eye',8:'Barrier between properties',9:'Secret romantic meeting'},
+     down:{1:'Layer or coat',2:'Unwind or relax',3:'Flat surface or wing',4:'Tie tightly',5:'Clean and neat'}},
+    // 75
+    {grid:['MANGO','ANVIL','NAVAL','GRIPE','OPTIC'],blacks:[],
+     across:{1:'Tropical sweet fruit',6:'Iron block for hammering',7:'Related to the navy',8:'Complain or grumble',9:'Related to the eye or lens'},
+     down:{1:'Damp or humid',2:'Flat open plain',3:'Dug waterway channel',4:'Tiny particle',5:'Brief encounter'}},
+    // 76
+    {grid:['NIFTY','INERT','FARCE','TANGO','YACHT'],blacks:[],
+     across:{1:'Clever or handy',6:'Not reacting, passive',7:'Absurd comic situation',8:'Latin dance or T in phonetic',9:'Elegant sailing vessel'},
+     down:{1:'Dense woodland',2:'Straight and direct',3:'Time of day after noon',4:'Thin and thread-like',5:'Quick and brief'}},
+    // 77
+    {grid:['ONION','VITAL','IVORY','CEDAR','ANGER'],blacks:[],
+     across:{1:'Layered pungent bulb',6:'Essential or critical',7:'Creamy white color',8:'Aromatic red wood tree',9:'Strong rage or fury'},
+     down:{1:'Vast open sea',2:'Not short but ___',3:'Build or erect',4:'Dull and boring',5:'Thin and slender'}},
+    // 78
+    {grid:['PARCH','RIDER','AGILE','CEDAR','HERBS'],blacks:[],
+     across:{1:'Dry out or scorch',6:'One who rides or cycles',7:'Quick and nimble',8:'Aromatic evergreen wood',9:'Fragrant cooking plants'},
+     down:{1:'Bird of prey claw',2:'Dig or excavate',3:'Lean against',4:'Grow or increase',5:'Bend or arch'}},
+    // 79
+    {grid:['QUIRK','ULTRA','IVORY','CLEFT','KNEEL'],blacks:[],
+     across:{1:'Odd or strange habit',6:'Beyond or extreme',7:'Creamy white shade',8:'Rock split or gap',9:'Go down on one knee'},
+     down:{1:'Quick and brief',2:'Not tight but loose',3:'Tilt or lean over',4:'Glow or ember',5:'Sharp knife edge'}},
+    // 80
+    {grid:['RHINO','ULTRA','NOVEL','EVADE','REEDS'],blacks:[],
+     across:{1:'Horned African mammal',6:'Extreme or beyond',7:'New long fiction story',8:'Dodge or escape',9:'Hollow grass stalks'},
+     down:{1:'Rounded top dome',2:'Not dark but bright',3:'Travel path route',4:'Gentle and calm',5:'Sturdy and strong'}},
+    // 81
+    {grid:['SCONE','CEDAR','ROVER','NICER','EMPTY'],blacks:[],
+     across:{1:'British baked tea cake',6:'Aromatic wood tree',7:'Wanderer or Mars robot',8:'More pleasant or kinder',9:'Hollow and nothing inside'},
+     down:{1:'Scratch or scrape',2:'Dull and dim',3:'Wander or roam',4:'Gather up',5:'Thin and lean'}},
+    // 82
+    {grid:['TALON','IVORY','DEPOT','EVOKE','RONDO'],blacks:[],
+     across:{1:'Sharp bird of prey claw',6:'Creamy off-white shade',7:'Storage warehouse station',8:'Call to mind or stir up',9:'Repeating musical form'},
+     down:{1:'Slim and slender',2:'Search or dig into',3:'Twist or rotate',4:'Glow or shine',5:'Open wide or expand'}},
+    // 83
+    {grid:['UNCLE','MANOR','BONUS','RAZOR','ASTER'],blacks:[],
+     across:{1:'Parent\'s brother',6:'Large estate house',7:'Extra payment or reward',8:'Sharp shaving blade',9:'Star-shaped autumn flower'},
+     down:{1:'Not beneath but ___',2:'Thin and slim',3:'Dig or hollow',4:'Bold and obvious',5:'Thin thread rope'}},
+    // 84
+    {grid:['VERSO','IVORY','NERVE','CANOE','EVENT'],blacks:[],
+     across:{1:'Left-hand book page',6:'Creamy white color',7:'Courage or axon fiber',8:'Narrow paddle boat',9:'Occasion or happening'},
+     down:{1:'Spiral or coil',2:'Search or seek',3:'Curved shape bend',4:'Wander or drift',5:'Thin thread wire'}},
+    // 85
+    {grid:['WALTZ','IVORY','LUNAR','DIZZY','OZONE'],blacks:[],
+     across:{1:'Three-beat ballroom dance',6:'Off-white cream color',7:'Moon-related adjective',8:'Spinning or giddy',9:'Protective atmospheric gas'},
+     down:{1:'Woven floor mat',2:'Thin and wispy',3:'Twist and turn',4:'Sleepy and dozy',5:'Rough and abrasive'}},
+    // 86
+    {grid:['XENON','OZONE','LUNAR','VIGIL','EMBER'],blacks:[],
+     across:{1:'Noble inert gas Xe',6:'Sky-protecting ozone',7:'Moon-relating adjective',8:'Watchful all-night wait',9:'Glowing coal fragment'},
+     down:{1:'Dense or compact',2:'Lean or tip over',3:'Not cold but ___',4:'Broad and wide',5:'Small sharp blade'}},
+    // 87
+    {grid:['YOUTH','OPERA','ULTRA','TIGER','HASTE'],blacks:[],
+     across:{1:'Young person or time',6:'Sung dramatic performance',7:'Beyond the normal extreme',8:'Striped big jungle cat',9:'Speed and rush urgency'},
+     down:{1:'Open wide',2:'Twist or rotate',3:'Relate or apply to',4:'Dense and heavy',5:'Lean against support'}},
+    // 88
+    {grid:['ZEBRA','OZONE','NOVEL','EMBER','SEDAN'],blacks:[],
+     across:{1:'Striped African equine',6:'Upper atmosphere layer',7:'New fictional long book',8:'Glowing hot coal',9:'Standard four-door car'},
+     down:{1:'Zone or belt',2:'Thick and dense',3:'Dim or fade out',4:'Wander without aim',5:'Sharp knife edge'}},
+    // 89
+    {grid:['ABODE','CEDAR','OMEGA','NERVE','TREND'],blacks:[],
+     across:{1:'Home or dwelling place',6:'Aromatic wood tree',7:'Last Greek letter',8:'Courage or axon fiber',9:'Current fashion direction'},
+     down:{1:'Dull and boring',2:'Twist or bend',3:'Layer or coat',4:'Search or seek',5:'Small sharp point'}},
+    // 90
+    {grid:['BLUNT','RIDER','OVOID','NOVEL','TREND'],blacks:[],
+     across:{1:'Dull or outspoken',6:'Cyclist or horseman',7:'Egg-shaped oval',8:'New long fiction book',9:'Current popular fashion'},
+     down:{1:'Blossom or bloom',2:'Dig or scoop out',3:'Odd or strange',4:'Vibrant and alive',5:'Thin string fiber'}},
+    // 91
+    {grid:['CACHE','ULTRA','BRAVE','EMBER','STEAD'],blacks:[],
+     across:{1:'Hidden stored supply',6:'Beyond extreme',7:'Bold and courageous',8:'Glowing coal fragment',9:'Place or position'},
+     down:{1:'Curved arch shape',2:'Layer or coat',3:'Lean or tilt',4:'Wander or roam',5:'Thin thread fiber'}},
+    // 92
+    {grid:['DAUNT','IVORY','VIGOR','EMBER','TENOR'],blacks:[],
+     across:{1:'Intimidate or frighten',6:'Creamy white shade',7:'Energy and vitality',8:'Glowing remnant',9:'High male singing voice'},
+     down:{1:'Flat wooden plank',2:'Thin and wispy',3:'Search or dig into',4:'Gentle glow light',5:'Twist or rotate'}},
+    // 93
+    {grid:['EPOCH','IVORY','NERVE','OZONE','HEDGE'],blacks:[],
+     across:{1:'Historical period or era',6:'Creamy white color',7:'Courage or axon fiber',8:'Protective atmospheric gas',9:'Dense bushes barrier'},
+     down:{1:'Short and pointed',2:'Thin and wispy',3:'Wander or roam',4:'Glow or shine',5:'Lean against support'}},
+    // 94
+    {grid:['FARCE','IVORY','KNEEL','EMBER','LANDS'],blacks:[],
+     across:{1:'Absurd comic situation',6:'Creamy off-white shade',7:'Go down on one knee',8:'Glowing coal fragment',9:'Territory or ground'},
+     down:{1:'Dense woodland',2:'Thin and wispy',3:'Twist or coil',4:'Soft and muted',5:'Sharp blade edge'}},
+    // 95
+    {grid:['GUAVA','IVORY','LYMPH','EMBER','STERN'],blacks:[],
+     across:{1:'Tropical pink fruit',6:'Creamy white color',7:'Body immune fluid',8:'Glowing coal remnant',9:'Strict or ship\'s rear'},
+     down:{1:'Grateful and thankful',2:'Thin and light',3:'Search or dig',4:'Gentle glow',5:'Twist or rotate'}},
+    // 96
+    {grid:['HASTE','IVORY','ANVIL','SOLAR','TREND'],blacks:[],
+     across:{1:'Rush and urgency',6:'Creamy white shade',7:'Iron smithing block',8:'Powered by the sun',9:'Current popular direction'},
+     down:{1:'Tight grip hold',2:'Thin and wispy',3:'Lean or tip over',4:'Wander without aim',5:'Sharp blade edge'}},
+    // 97
+    {grid:['INFER','TIGER','OPERA','KNEEL','SEDAN'],blacks:[],
+     across:{1:'Deduce or conclude',6:'Striped jungle cat',7:'Sung dramatic show',8:'Go down on one knee',9:'Four-door family car'},
+     down:{1:'Not outdoor but inside',2:'Dense and heavy',3:'Rotate or spin',4:'Small and compact',5:'Rough texture surface'}},
+    // 98
+    {grid:['JOUST','IVORY','KNEEL','EMBER','SEDAN'],blacks:[],
+     across:{1:'Medieval lance tournament',6:'Creamy white color',7:'Rest on one knee',8:'Glowing coal fragment',9:'Four-door car style'},
+     down:{1:'Dense woodland',2:'Thin and airy',3:'Search or seek',4:'Soft glow ember',5:'Sharp thin blade'}},
+    // 99
+    {grid:['KNACK','IVORY','NOVEL','EMBER','LEADS'],blacks:[],
+     across:{1:'Special talent or skill',6:'Creamy white shade',7:'New long fiction story',8:'Glowing coal fragment',9:'Goes first or clues'},
+     down:{1:'Monarch or ruler',2:'Thin and light',3:'Lean or angle',4:'Soft glow fire',5:'Sharp blade edge'}},
+    // 100
+    {grid:['LUNAR','IVORY','NERVE','ALPHA','RENDS'],blacks:[],
+     across:{1:'Moon-related adjective',6:'Creamy white color',7:'Courage or axon fiber',8:'First Greek letter',9:'Tears or shreds apart'},
+     down:{1:'Brilliant light',2:'Thin and wispy',3:'Wander or roam',4:'Glow or shine',5:'Sharp blade edge'}},
+    // 101
+    {grid:['MAPLE','ULTRA','SOLAR','IVORY','CEDAR'],blacks:[],
+     across:{1:'Syrup-producing tree',6:'Beyond or extreme',7:'Powered by the sun',8:'Creamy white shade',9:'Aromatic red wood'},
+     down:{1:'Damp and humid',2:'Thin and light',3:'Search or explore',4:'Soft glow',5:'Sharp blade'}},
+    // 102
+    {grid:['NEXUS','IVORY','LUNAR','ALPHA','SOLAR'],blacks:[],
+     across:{1:'Connection or central link',6:'Creamy off-white',7:'Moon-related adjective',8:'First or leading',9:'Sun-powered adjective'},
+     down:{1:'Dense woodland',2:'Thin wisp',3:'Rotate or spin',4:'Glow or shine',5:'Sharp point'}},
+    // 103
+    {grid:['OPTIC','IVORY','NERVE','ALPHA','LASER'],blacks:[],
+     across:{1:'Related to the eye or light',6:'Creamy white color',7:'Axon fiber or courage',8:'First Greek letter',9:'Focused light beam device'},
+     down:{1:'Vast open sea',2:'Thin and light',3:'Wander or drift',4:'Glow warmly',5:'Sharp blade edge'}},
+    // 104
+    {grid:['PRISM','IVORY','ULTRA','SOLAR','TREND'],blacks:[],
+     across:{1:'Light-splitting glass shape',6:'Creamy white shade',7:'Beyond the extreme',8:'Powered by the sun',9:'Current fashion direction'},
+     down:{1:'Flat open plain',2:'Thin and light',3:'Lean or tip',4:'Wander without aim',5:'Sharp knife edge'}},
+    // 105
+    {grid:['QUAFF','IVORY','ULTRA','SOLAR','FIBER'],blacks:[],
+     across:{1:'Drink deeply and heartily',6:'Creamy white color',7:'Extreme or beyond',8:'Sun-powered adjective',9:'Thread or strand material'},
+     down:{1:'Dense woodland',2:'Thin and wispy',3:'Lean or tip',4:'Soft glow fire',5:'Sharp blade edge'}},
+  ];
+
+  // Shuffle using Fisher-Yates seeded by date for daily variety
+  function shuffled(arr){
+    var a=arr.slice();
+    var seed=Math.floor(Date.now()/86400000); // changes daily
+    function rand(n){seed=(seed*1664525+1013904223)&0xffffffff;return Math.abs(seed)%n;}
+    for(var i=a.length-1;i>0;i--){var j=rand(i+1);var t=a[i];a[i]=a[j];a[j]=t;}
+    return a;
+  }
+
+  var ORDER=shuffled(PUZZLES.map(function(_,i){return i;}));
+  var playIdx=0,puzzle,userGrid,selR=-1,selC=-1,selDir='across';
+  var tsec,tint,over;
+  var gridEl=document.getElementById('grid');
+  var acEl=document.getElementById('acrossClues'),dnEl=document.getElementById('downClues');
+  var tmrEl=document.getElementById('tmr'),pnumEl=document.getElementById('pnum');
+  var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+
+  function isBlack(r,c){
+    if(!puzzle)return false;
+    for(var i=0;i<puzzle.blacks.length;i++){
+      if(puzzle.blacks[i][0]===r&&puzzle.blacks[i][1]===c)return true;
+    }
+    return false;
+  }
+
+  function newGame(){
+    puzzle=PUZZLES[ORDER[playIdx%ORDER.length]];
+    pnumEl.textContent='Puzzle '+(playIdx%PUZZLES.length+1)+' of '+PUZZLES.length;
+    playIdx++;
+    userGrid=[];
+    for(var r=0;r<5;r++){userGrid[r]=[];for(var c=0;c<5;c++)userGrid[r][c]='';}
+    selR=0;selC=0;selDir='across';over=false;
+    if(tint)clearInterval(tint);tsec=0;updT();
+    tint=setInterval(function(){tsec++;updT();},1000);
+    ov.className='ov';
+    buildGrid();buildClues();buildKB();render();
+  }
+
+  function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+
+  function buildGrid(){
+    gridEl.innerHTML='';
+    var num=1;
+    for(var r=0;r<5;r++){
+      for(var c=0;c<5;c++){
+        var d=document.createElement('div');
+        if(isBlack(r,c)){
+          d.className='cell black';
+        }else{
+          d.className='cell';
+          var needNum=false;
+          if(c===0||isBlack(r,c-1)){var len=0;for(var cc=c;cc<5&&!isBlack(r,cc);cc++)len++;if(len>1)needNum=true;}
+          if(r===0||isBlack(r-1,c)){var len=0;for(var rr=r;rr<5&&!isBlack(rr,c);rr++)len++;if(len>1)needNum=true;}
+          if(needNum){var sn=document.createElement('span');sn.className='num';sn.textContent=num;d.appendChild(sn);d.setAttribute('data-num',num);num++;}
+        }
+        d.setAttribute('data-r',r);d.setAttribute('data-c',c);
+        gridEl.appendChild(d);
+      }
+    }
+  }
+
+  function buildClues(){
+    acEl.innerHTML='';dnEl.innerHTML='';
+    for(var k in puzzle.across){
+      var d=document.createElement('div');d.className='clue';d.setAttribute('data-n',k);d.setAttribute('data-dir','across');
+      d.innerHTML='<span class="cn">'+k+'</span>'+puzzle.across[k];
+      acEl.appendChild(d);
+    }
+    for(var k in puzzle.down){
+      var d=document.createElement('div');d.className='clue';d.setAttribute('data-n',k);d.setAttribute('data-dir','down');
+      d.innerHTML='<span class="cn">'+k+'</span>'+puzzle.down[k];
+      dnEl.appendChild(d);
+    }
+  }
+
+  function buildKB(){
+    var kb=document.getElementById('kb');kb.innerHTML='';
+    var rows=['qwertyuiop','asdfghjkl','zxcvbnm'];
+    for(var ri=0;ri<rows.length;ri++){
+      if(ri===2){var db=document.createElement('button');db.className='key wide';db.textContent='⌫';db.addEventListener('click',delChar);kb.appendChild(db);}
+      for(var ci=0;ci<rows[ri].length;ci++){
+        var b=document.createElement('button');b.className='key';b.textContent=rows[ri][ci];
+        b.addEventListener('click',(function(ch){return function(){enterChar(ch);};})(rows[ri][ci]));
+        kb.appendChild(b);
+      }
+    }
+  }
+
+  function render(){
+    for(var r=0;r<5;r++){
+      for(var c=0;c<5;c++){
+        var cell=gridEl.children[r*5+c];
+        if(isBlack(r,c))continue;
+        cell.classList.remove('sel','hl','correct');
+        var spans=cell.querySelectorAll('span:not(.num)');
+        for(var s=0;s<spans.length;s++)spans[s].remove();
+        if(userGrid[r][c]){
+          var ls=document.createElement('span');ls.textContent=userGrid[r][c].toUpperCase();
+          cell.appendChild(ls);
+          if(userGrid[r][c].toUpperCase()===puzzle.grid[r][c])cell.classList.add('correct');
+        }
+        if(r===selR&&c===selC)cell.classList.add('sel');
+        else if(isInCurrentWord(r,c))cell.classList.add('hl');
+      }
+    }
+    var allClues=document.querySelectorAll('.clue');
+    for(var i=0;i<allClues.length;i++)allClues[i].classList.remove('sel');
+  }
+
+  function isInCurrentWord(r,c){
+    if(isBlack(r,c))return false;
+    if(selDir==='across'&&r===selR){
+      var start=selC;while(start>0&&!isBlack(selR,start-1))start--;
+      var end=selC;while(end<4&&!isBlack(selR,end+1))end++;
+      return c>=start&&c<=end;
+    }
+    if(selDir==='down'&&c===selC){
+      var start=selR;while(start>0&&!isBlack(start-1,selC))start--;
+      var end=selR;while(end<4&&!isBlack(end+1,selC))end++;
+      return r>=start&&r<=end;
+    }
+    return false;
+  }
+
+  function enterChar(ch){
+    if(over||selR<0||isBlack(selR,selC))return;
+    userGrid[selR][selC]=ch;
+    advance();render();checkWin();
+  }
+
+  function delChar(){
+    if(over||selR<0||isBlack(selR,selC))return;
+    if(userGrid[selR][selC]==='')retreat();
+    userGrid[selR][selC]='';
+    render();
+  }
+
+  function advance(){
+    if(selDir==='across'){
+      var nc=selC+1;while(nc<5&&isBlack(selR,nc))nc++;
+      if(nc<5)selC=nc;
+    }else{
+      var nr=selR+1;while(nr<5&&isBlack(nr,selC))nr++;
+      if(nr<5)selR=nr;
+    }
+  }
+
+  function retreat(){
+    if(selDir==='across'){
+      var nc=selC-1;while(nc>=0&&isBlack(selR,nc))nc--;
+      if(nc>=0)selC=nc;
+    }else{
+      var nr=selR-1;while(nr>=0&&isBlack(nr,selC))nr--;
+      if(nr>=0)selR=nr;
+    }
+  }
+
+  function checkWin(){
+    for(var r=0;r<5;r++)for(var c=0;c<5;c++){
+      if(isBlack(r,c))continue;
+      if(userGrid[r][c].toUpperCase()!==puzzle.grid[r][c])return;
+    }
+    over=true;clearInterval(tint);
+    var m=Math.floor(tsec/60),s=tsec%60;
+    ovM.textContent='Solved in '+m+'m '+(s<10?'0':'')+s+'s';
+    setTimeout(function(){ov.className='ov show';},300);
+  }
+
+  gridEl.addEventListener('click',function(e){
+    var t=e.target.closest('.cell');if(!t||over)return;
+    var r=parseInt(t.getAttribute('data-r')),c=parseInt(t.getAttribute('data-c'));
+    if(isBlack(r,c))return;
+    if(r===selR&&c===selC)selDir=selDir==='across'?'down':'across';
+    selR=r;selC=c;render();
+  });
+
+  document.querySelectorAll('#clues')[0].addEventListener('click',function(e){
+    var t=e.target.closest('.clue');if(!t)return;
+    selDir=t.getAttribute('data-dir');
+    var num=t.getAttribute('data-n');
+    var cell=gridEl.querySelector('[data-num="'+num+'"]');
+    if(cell){selR=parseInt(cell.getAttribute('data-r'));selC=parseInt(cell.getAttribute('data-c'));render();}
+  });
+
+  document.addEventListener('keydown',function(e){
+    if(over)return;
+    if(/^[a-zA-Z]$/.test(e.key)){enterChar(e.key.toLowerCase());return;}
+    if(e.key==='Backspace'){e.preventDefault();delChar();return;}
+    if(e.key==='ArrowRight'){selDir='across';var nc=selC+1;if(nc<5&&!isBlack(selR,nc))selC=nc;render();}
+    if(e.key==='ArrowLeft'){selDir='across';var nc=selC-1;if(nc>=0&&!isBlack(selR,nc))selC=nc;render();}
+    if(e.key==='ArrowDown'){selDir='down';var nr=selR+1;if(nr<5&&!isBlack(nr,selC))selR=nr;render();}
+    if(e.key==='ArrowUp'){selDir='down';var nr=selR-1;if(nr>=0&&!isBlack(nr,selC))selR=nr;render();}
+  });
+
+  document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+  document.getElementById('ovB').addEventListener('click',function(){newGame();});
+
+  // --- HINT BUTTON ---
+  var hintCount=0;
+  document.getElementById('hintBtn').addEventListener('click',function(){
+    if(over)return;
+    // Find all incorrect/empty cells; pick one randomly
+    var candidates=[];
+    for(var r=0;r<5;r++)for(var c=0;c<5;c++){
+      if(isBlack(r,c))continue;
+      if(userGrid[r][c].toUpperCase()!==puzzle.grid[r][c])candidates.push([r,c]);
+    }
+    if(candidates.length===0)return;
+    hintCount++;
+    // Pick one: prefer selected word cells, else random
+    var pick=null;
+    var wordCells=candidates.filter(function(rc){return isInCurrentWord(rc[0],rc[1]);});
+    var pool=wordCells.length?wordCells:candidates;
+    pick=pool[Math.floor(Math.random()*pool.length)];
+    userGrid[pick[0]][pick[1]]=puzzle.grid[pick[0]][pick[1]];
+    render();
+    // Flash the cell
+    var cellEl=gridEl.children[pick[0]*5+pick[1]];
+    cellEl.classList.add('hinted');
+    setTimeout(function(){cellEl.classList.remove('hinted');},700);
+    checkWin();
+  });
+
+  // --- CHEAT SHEET ---
+  var cheatOv=document.getElementById('cheatOv');
+  function buildCheatSheet(){
+    var cg=document.getElementById('cheatGrid');
+    var cac=document.getElementById('cheatAc');
+    var cdn=document.getElementById('cheatDn');
+    cg.innerHTML='';cac.innerHTML='';cdn.innerHTML='';
+    for(var r=0;r<5;r++){
+      for(var c=0;c<5;c++){
+        var d=document.createElement('div');
+        d.className='cheat-cell';
+        d.textContent=puzzle.grid[r][c];
+        cg.appendChild(d);
+      }
+    }
+    for(var k in puzzle.across){
+      var d=document.createElement('div');d.className='cc';
+      d.innerHTML='<b>'+k+'</b><span class="ca">'+getWordAt(k,'across')+'</span> — '+puzzle.across[k];
+      cac.appendChild(d);
+    }
+    for(var k in puzzle.down){
+      var d=document.createElement('div');d.className='cc';
+      d.innerHTML='<b>'+k+'</b><span class="ca">'+getWordAt(k,'down')+'</span> — '+puzzle.down[k];
+      cdn.appendChild(d);
+    }
+    cheatOv.className='cheat-ov show';
+  }
+  function getWordAt(num,dir){
+    // Find the numbered cell and read the word
+    var cell=gridEl.querySelector('[data-num="'+num+'"]');
+    if(!cell)return'?';
+    var r=parseInt(cell.getAttribute('data-r'));
+    var c=parseInt(cell.getAttribute('data-c'));
+    var word='';
+    if(dir==='across'){for(var cc=c;cc<5&&!isBlack(r,cc);cc++)word+=puzzle.grid[r][cc];}
+    else{for(var rr=r;rr<5&&!isBlack(rr,c);rr++)word+=puzzle.grid[rr][c];}
+    return word;
+  }
+  document.getElementById('cheatBtn').addEventListener('click',buildCheatSheet);
+  document.getElementById('cheatClose').addEventListener('click',function(){cheatOv.className='cheat-ov';});
+  newGame();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Target 24</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:8px;user-select:none}
+
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.sub{font-size:.7rem;color:#888;text-align:center}
+.stats{display:flex;gap:16px;align-items:center}
+.stats span{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
+.stats .score{color:#4fc3f7}
+
+/* Mode tabs */
+.mode-tabs{display:flex;gap:6px;background:#0f0f1e;border-radius:20px;padding:4px}
+.tab{font-size:.68rem;font-weight:700;letter-spacing:.08em;padding:5px 14px;border-radius:16px;cursor:pointer;color:#555;transition:all .2s;border:none;background:none;font-family:inherit}
+.tab.active{background:#e94560;color:#fff}
+
+/* Difficulty */
+.diff-row{display:flex;gap:6px;justify-content:center}
+.diff-btn{font-size:.62rem;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #2a2a4a;background:#16213e;color:#555;cursor:pointer;font-family:inherit;transition:all .2s}
+.diff-btn.active{color:#fff}
+.diff-btn.easy.active{border-color:#538d4e;background:rgba(83,141,78,.2);color:#538d4e}
+.diff-btn.medium.active{border-color:#4fc3f7;background:rgba(79,195,247,.15);color:#4fc3f7}
+.diff-btn.hard.active{border-color:#e94560;background:rgba(233,69,96,.15);color:#e94560}
+
+/* Cards */
+.cards{display:flex;gap:10px;justify-content:center}
+.card{
+  width:clamp(60px,18vw,80px);height:clamp(80px,24vw,110px);
+  background:#16213e;border:3px solid #2a2a4a;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1.4rem,6vw,2rem);font-weight:800;color:#e0e0e0;
+  cursor:pointer;transition:transform .1s,border-color .2s;position:relative;
+}
+.card:active{transform:scale(.95)}
+.card.sel{border-color:#e94560;background:rgba(233,69,96,.15)}
+.card.used{opacity:.2;cursor:default}
+.card.hint-glow{border-color:#fbbf24;background:rgba(251,191,36,.15);animation:hpulse .6s ease-in-out 3}
+@keyframes hpulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 16px rgba(251,191,36,.6)}}
+
+/* Operators */
+.ops{display:flex;gap:8px;justify-content:center}
+.op{
+  width:clamp(48px,14vw,60px);height:clamp(48px,14vw,60px);
+  background:#16213e;border:2px solid #2a2a4a;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1.2rem,5vw,1.6rem);font-weight:800;color:#e0e0e0;cursor:pointer;
+  transition:all .15s;
+}
+.op:active{background:#e94560}
+.op.sel{border-color:#e94560;background:rgba(233,69,96,.15)}
+.op.hint-glow{border-color:#fbbf24;background:rgba(251,191,36,.15);animation:hpulse .6s ease-in-out 3}
+
+/* Result */
+.result{font-size:1.1rem;color:#aaa;text-align:center;min-height:1.5em;font-weight:700}
+.result.win{color:#538d4e;font-size:1.3rem}
+.result.err{color:#e94560}
+.result.hint{color:#fbbf24;font-size:.85rem;line-height:1.5}
+
+/* Actions */
+.actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.actions button{font-family:inherit;font-size:.68rem;font-weight:700;padding:7px 13px;border:none;border-radius:14px;background:#16213e;color:#aaa;cursor:pointer;border:1px solid #2a2a4a;transition:all .2s}
+.actions button:hover{border-color:#555;color:#ddd}
+.actions button.primary{background:#e94560;color:#fff;border-color:#e94560}
+.actions button.hint-btn{border-color:#fbbf2455;color:#fbbf24}
+.actions button.hint-btn:hover{background:rgba(251,191,36,.1)}
+
+/* Practice steps */
+.practice-steps{display:none;flex-direction:column;gap:6px;width:100%;max-width:320px}
+.practice-steps.show{display:flex}
+.step{background:#16213e;border:1px solid #2a2a4a;border-radius:10px;padding:8px 14px;font-size:.78rem;display:flex;align-items:center;gap:10px;transition:all .3s}
+.step.done{border-color:#538d4e;background:rgba(83,141,78,.1);color:#538d4e}
+.step.current{border-color:#e94560;background:rgba(233,69,96,.08)}
+.step-num{width:20px;height:20px;border-radius:50%;background:#2a2a4a;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0}
+.step.done .step-num{background:#538d4e;color:#fff}
+.step.current .step-num{background:#e94560;color:#fff}
+
+/* ── OVERLAYS ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(10,10,20,.96);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:24px;z-index:100;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.overlay.show{opacity:1;pointer-events:all}
+
+/* How to play overlay */
+.how-box{background:#16213e;border:1px solid #2a2a4a;border-radius:18px;padding:20px;max-width:320px;width:100%;max-height:90vh;overflow-y:auto;}
+.how-box h2{font-size:1rem;color:#e94560;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;text-align:center}
+.how-step{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
+.how-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.how-text{font-size:.78rem;color:#aaa;line-height:1.5}
+.how-text strong{color:#e0e0e0}
+.how-example{background:#0f0f1e;border-radius:10px;padding:10px 14px;margin-top:10px;font-size:.75rem;color:#4fc3f7;line-height:1.6;font-family:monospace}
+
+/* Solution overlay */
+.sol-box{background:#16213e;border:1px solid #538d4e;border-radius:18px;padding:20px;max-width:320px;width:100%}
+.sol-box h2{font-size:.9rem;color:#538d4e;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;text-align:center}
+.sol-path{display:flex;flex-direction:column;gap:8px}
+.sol-step{background:#0f0f1e;border-radius:8px;padding:8px 12px;font-size:.82rem;font-family:monospace;color:#e0e0e0}
+.sol-step span{color:#fbbf24}
+
+/* Overlay buttons */
+.ov-btn{font-family:inherit;font-size:.78rem;font-weight:700;padding:10px 28px;border:none;border-radius:16px;cursor:pointer;transition:all .2s}
+.ov-btn.red{background:#e94560;color:#fff}
+.ov-btn.ghost{background:#16213e;color:#aaa;border:1px solid #2a2a4a}
+
+/* Practice progress bar */
+.progress-bar{width:100%;max-width:320px;height:4px;background:#2a2a4a;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#e94560,#4fc3f7);border-radius:2px;transition:width .4s ease}
+</style>
+</head>
+<body>
+
+<h1>Target 24</h1>
+<p class="sub" id="subtext">Use all 4 numbers with +, −, ×, ÷ to make 24</p>
+
+<div class="mode-tabs">
+  <button class="tab active" id="tab-play" onclick="setMode('play')">▶ Play</button>
+  <button class="tab" id="tab-practice" onclick="setMode('practice')">📚 Practice</button>
+  <button class="tab" id="tab-how" onclick="showHow()">? How</button>
+</div>
+
+<div class="diff-row" id="diff-row">
+  <button class="diff-btn easy active" onclick="setDiff('easy')">Easy</button>
+  <button class="diff-btn medium" onclick="setDiff('medium')">Medium</button>
+  <button class="diff-btn hard" onclick="setDiff('hard')">Hard</button>
+</div>
+
+<div class="stats">
+  <span class="score" id="score">Score: 0</span>
+  <span id="tmr">00:00</span>
+  <span id="hint-count" style="color:#fbbf24;font-size:.75rem">💡 3</span>
+</div>
+
+<div class="progress-bar" id="prog-bar" style="display:none">
+  <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="ops" id="ops">
+  <div class="op" data-op="+">+</div>
+  <div class="op" data-op="-">−</div>
+  <div class="op" data-op="*">×</div>
+  <div class="op" data-op="/">÷</div>
+</div>
+
+<div class="result" id="res"></div>
+
+<!-- Practice steps panel -->
+<div class="practice-steps" id="psteps"></div>
+
+<div class="actions" id="actions">
+  <button id="undoBtn">↩ Undo</button>
+  <button id="hintBtn" class="hint-btn">💡 Hint</button>
+  <button id="solBtn">👁 Solution</button>
+  <button id="skipBtn">⏭ Skip</button>
+  <button id="newBtn">↻ New</button>
+</div>
+
+<!-- ── HOW TO PLAY OVERLAY ── -->
+<div class="overlay" id="how-overlay">
+  <div class="how-box">
+    <h2>How to Play</h2>
+    <div class="how-step">
+      <div class="how-icon">1️⃣</div>
+      <div class="how-text"><strong>Tap a number card</strong> to select it (turns red)</div>
+    </div>
+    <div class="how-step">
+      <div class="how-icon">2️⃣</div>
+      <div class="how-text"><strong>Tap an operator</strong> (+, −, ×, ÷) to choose your operation</div>
+    </div>
+    <div class="how-step">
+      <div class="how-icon">3️⃣</div>
+      <div class="how-text"><strong>Tap a second number</strong> — the result replaces both cards</div>
+    </div>
+    <div class="how-step">
+      <div class="how-icon">4️⃣</div>
+      <div class="how-text"><strong>Repeat</strong> until one number remains — it must equal <strong style="color:#e94560">24</strong></div>
+    </div>
+    <div class="how-example">
+      Example: Cards 2, 3, 4, 6<br>
+      → 2 × 3 = 6<br>
+      → 6 × 4 = 24 ✓<br>
+      (the last 6 is unused — try again!)<br><br>
+      Better: 2 × 3 = 6 → 6 × 4 = 24<br>
+      Use all 4 cards!
+    </div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button class="ov-btn red" onclick="closeHow()">Got it!</button>
+  </div>
+</div>
+
+<!-- ── SOLUTION OVERLAY ── -->
+<div class="overlay" id="sol-overlay">
+  <div class="sol-box">
+    <h2>💡 One Solution</h2>
+    <div class="sol-path" id="sol-path"></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button class="ov-btn ghost" onclick="closeSol()">Close</button>
+    <button class="ov-btn red" onclick="closeSol();newRound()">Next Puzzle</button>
+  </div>
+</div>
+
+<script>
+(function(){
+
+// ══════════════════════════════════════════════════════
+// PUZZLE BANK — by difficulty
+// ══════════════════════════════════════════════════════
+var EASY_PUZZLES = [
+  // Solvable with simple multiplication / addition only
+  [1,2,3,4],[1,2,4,6],[2,3,4,5],[1,3,4,6],[2,2,6,6],
+  [1,4,6,6],[2,4,4,6],[1,2,6,8],[3,3,4,8],[2,3,4,6],
+  [1,6,8,9],[2,4,6,8],[1,2,4,8],[3,4,6,8],[4,4,4,6],
+  [2,2,4,8],[1,3,8,9],[2,6,6,8],[1,4,4,9],[3,3,6,9]
+];
+var MEDIUM_PUZZLES = [];
+var HARD_PUZZLES = [
+  // Require fractions or non-obvious paths
+  [1,5,5,5],[3,3,8,8],[1,3,5,7],[1,6,7,8],[1,2,7,9],
+  [2,5,7,8],[1,4,5,6],[3,5,7,9],[2,3,7,8],[1,5,8,9]
+];
+
+// ── Core solver ──────────────────────────────────────
+function canMake24(nums){
+  if(nums.length===1) return Math.abs(nums[0]-24)<0.001;
+  for(var i=0;i<nums.length;i++) for(var j=0;j<nums.length;j++){
+    if(i===j) continue;
+    var rest=[];
+    for(var k=0;k<nums.length;k++) if(k!==i&&k!==j) rest.push(nums[k]);
+    var a=nums[i],b=nums[j];
+    var results=[a+b,a-b,a*b];
+    if(b!==0) results.push(a/b);
+    for(var r=0;r<results.length;r++){
+      var next=rest.slice(); next.push(results[r]);
+      if(canMake24(next)) return true;
+    }
+  }
+  return false;
+}
+
+// ── Find a full solution path ────────────────────────
+function findSolution(nums, labels){
+  if(!labels) labels = nums.map(String);
+  if(nums.length===1) return Math.abs(nums[0]-24)<0.001 ? [] : null;
+  for(var i=0;i<nums.length;i++) for(var j=0;j<nums.length;j++){
+    if(i===j) continue;
+    var rest=[],rl=[];
+    for(var k=0;k<nums.length;k++) if(k!==i&&k!==j){rest.push(nums[k]);rl.push(labels[k]);}
+    var a=nums[i],b=nums[j],la=labels[i],lb=labels[j];
+    var ops2=[
+      {r:a+b,op:'+',expr:'('+la+' + '+lb+')'},
+      {r:a-b,op:'-',expr:'('+la+' − '+lb+')'},
+      {r:a*b,op:'*',expr:'('+la+' × '+lb+')'}
+    ];
+    if(b!==0) ops2.push({r:a/b,op:'/',expr:'('+la+' ÷ '+lb+')'});
+    for(var r=0;r<ops2.length;r++){
+      var rn=rest.slice(),rnl=rl.slice();
+      rn.push(ops2[r].r); rnl.push(ops2[r].expr);
+      var sub=findSolution(rn,rnl);
+      if(sub!==null){
+        var step = la+' '+({'+':'+','-':'−','*':'×','/':'÷'}[ops2[r].op])+' '+lb+' = '+
+          (Math.round(ops2[r].r*1000)/1000);
+        return [step].concat(sub);
+      }
+    }
+  }
+  return null;
+}
+
+// ── Find just the NEXT hint step ─────────────────────
+function getHintStep(nums, labels){
+  for(var i=0;i<nums.length;i++) for(var j=0;j<nums.length;j++){
+    if(i===j) continue;
+    var rest=[],rl=[];
+    for(var k=0;k<nums.length;k++) if(k!==i&&k!==j){rest.push(nums[k]);rl.push(labels[k]);}
+    var a=nums[i],b=nums[j];
+    var ops2=[
+      {r:a+b,op:'+',i1:i,i2:j},{r:a-b,op:'-',i1:i,i2:j},
+      {r:a*b,op:'*',i1:i,i2:j}
+    ];
+    if(b!==0) ops2.push({r:a/b,op:'/',i1:i,i2:j});
+    for(var r=0;r<ops2.length;r++){
+      var rn=rest.slice(); rn.push(ops2[r].r);
+      if(canMake24(rn)) return {i1:ops2[r].i1, i2:ops2[r].i2, op:ops2[r].op};
+    }
+  }
+  return null;
+}
+
+// ── Generate medium puzzles ───────────────────────────
+function genMedium(){
+  for(var a=1;a<=9;a++) for(var b=a;b<=9;b++) for(var c=b;c<=9;c++) for(var d=c;d<=9;d++){
+    if(canMake24([a,b,c,d])) MEDIUM_PUZZLES.push([a,b,c,d]);
+  }
+}
+genMedium();
+
+// ══════════════════════════════════════════════════════
+// PRACTICE CURRICULUM — 10 guided puzzles with steps
+// ══════════════════════════════════════════════════════
+var PRACTICE = [
+  {
+    label:'Lesson 1: Simple Addition',
+    nums:[6,6,6,6],
+    steps:['6 + 6 = 12','12 + 6 = 18','18 + 6 = 24'],
+    tip:'Sometimes just adding all numbers works!'
+  },
+  {
+    label:'Lesson 2: Multiplication',
+    nums:[2,3,4,1],
+    steps:['2 × 3 = 6','6 × 4 = 24','(1 is already accounted for via × 1 at any step)'],
+    tip:'Try: 1 × 2 = 2, then 2 × 3 = 6, then 6 × 4 = 24'
+  },
+  {
+    label:'Lesson 3: Mixed Operations',
+    nums:[1,2,3,8],
+    steps:['1 + 2 = 3','3 × 8 = 24','(the second 3 is unused — try again!)'],
+    tip:'Try: 1 + 2 = 3, then 3 × 8 = 24. But you must use all 4!'
+  },
+  {
+    label:'Lesson 4: Using Division',
+    nums:[4,4,8,8],
+    steps:['8 ÷ 4 = 2','8 − 4 = 4','2 × ... wait, try: 8 ÷ (8 − 4) × ... '],
+    tip:'Try: 8 ÷ (8−4) = 2, then no... Try: (8−4) × (8−4) = 16... Try: 4×(8−4−4)? \n Best: 8÷4 = 2, then 2×(8+4) = 24'
+  },
+  {
+    label:'Lesson 5: The Famous 3,3,8,8',
+    nums:[3,3,8,8],
+    steps:['8 ÷ 3 ≈ 2.67','3 − 8÷3 ≈ 0.33','8 ÷ 0.33 = 24'],
+    tip:'This is the hardest classic puzzle! Answer: 8 ÷ (3 − 8÷3) = 24. Fractions are allowed!'
+  },
+  {
+    label:'Lesson 6: Subtraction Strategy',
+    nums:[1,3,4,6],
+    steps:['6 − 1 = 5','5 × 4 = 20','20 + ... no. Try: 6 ÷ (1 − 3÷4)... '],
+    tip:'Try: 4 × (6 − 3 + 1) = 16? No. Best: 6 × (4 − 3 + 1) = 12? No. Try: (4−1)×(6+... = ?'
+  },
+  {
+    label:'Lesson 7: Think Backwards',
+    nums:[2,2,6,6],
+    steps:['What makes 24?','6 × 4 = 24 or 8 × 3 = 24','Can you make 4 from 2,2,6? 2+2=4 ✓','Then 6 × (2+2) = 24 ✓'],
+    tip:'Think: what two numbers multiply to 24? Then see if you can make those from your cards.'
+  },
+  {
+    label:'Lesson 8: Large Numbers',
+    nums:[3,3,6,9],
+    steps:['9 − 3 = 6','6 × 6 = 36?... No','3 × (9 − 3) = 18?... No','(9 + 3) × ... = ?'],
+    tip:'Try: (9+3) × ... = 24? 24÷12=2, can you make 2 from 3,6? 6÷3=2 ✓ So: (9+3) × 6÷3... order matters!'
+  },
+  {
+    label:'Lesson 9: Fractions Are Your Friend',
+    nums:[1,5,5,5],
+    steps:['5 × 5 = 25','25 − 1 = 24 ✓','But we used 3 fives and 1... check: 5×5−1×5? No'],
+    tip:'Actually: 5 × (5 − 1÷5)? No. Best: (5−1÷5)×5 = (5−0.2)×5 = 4.8×5 = 24 ✓'
+  },
+  {
+    label:'Lesson 10: Master Challenge',
+    nums:[1,6,7,8],
+    steps:['This needs creative thinking','Try: 8 × (7 − 6 + 1) = 8 × 2 = 16? No','Try: (8 − 7 + 6) × ... '],
+    tip:'Answer: (8−7+6) × ... = 7×... ? Try: 6 ÷ (1−7÷8) = 6 ÷ 0.125 = 48? No. Try: (6−1−7)×8? = -2×8? No. Best: 8×(7−6)×... check all combos!'
+  }
+];
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+var gameMode='play'; // 'play' or 'practice'
+var difficulty='easy';
+var slots,selSlot=-1,selOp='',score=0,tsec,tint,history=[];
+var hintsLeft=3;
+var practiceIdx=0;
+
+var cardsEl=document.getElementById('cards');
+var resEl=document.getElementById('res');
+var scoreEl=document.getElementById('score');
+var tmrEl=document.getElementById('tmr');
+var hintCountEl=document.getElementById('hint-count');
+var pstepsEl=document.getElementById('psteps');
+var progFill=document.getElementById('prog-fill');
+var progBar=document.getElementById('prog-bar');
+
+// ══════════════════════════════════════════════════════
+// MODE & DIFFICULTY
+// ══════════════════════════════════════════════════════
+window.setMode = function(m){
+  gameMode=m;
+  document.getElementById('tab-play').classList.toggle('active',m==='play');
+  document.getElementById('tab-practice').classList.toggle('active',m==='practice');
+  document.getElementById('diff-row').style.display = m==='play'?'flex':'none';
+  pstepsEl.classList.toggle('show', m==='practice');
+  progBar.style.display = m==='practice'?'block':'none';
+  document.getElementById('hint-count').style.display = m==='play'?'inline':'none';
+  document.getElementById('hintBtn').style.display = m==='play'?'':'none';
+  document.getElementById('solBtn').style.display = m==='play'?'':'none';
+  document.getElementById('newBtn').style.display = m==='play'?'':'none';
+  document.getElementById('skipBtn').textContent = m==='practice' ? '→ Next' : '⏭ Skip';
+  if(m==='play'){
+    document.getElementById('subtext').textContent='Use all 4 numbers with +, −, ×, ÷ to make 24';
+    newGame();
+  } else {
+    practiceIdx=0;
+    if(tint){clearInterval(tint);tint=null;}
+    tmrEl.textContent='';
+    score=0; scoreEl.textContent='Practice';
+    loadPractice();
+  }
+};
+
+window.setDiff = function(d){
+  difficulty=d;
+  document.querySelectorAll('.diff-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelector('.diff-btn.'+d).classList.add('active');
+  newGame();
+};
+
+// ══════════════════════════════════════════════════════
+// PLAY MODE
+// ══════════════════════════════════════════════════════
+function getPuzzlePool(){
+  if(difficulty==='easy') return EASY_PUZZLES;
+  if(difficulty==='hard') return HARD_PUZZLES;
+  return MEDIUM_PUZZLES;
+}
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+function newRound(){
+  var pool=getPuzzlePool();
+  var p=pool[Math.floor(Math.random()*pool.length)].slice();
+  shuffle(p);
+  slots=p.map(function(v){return{val:v,orig:v,used:false};});
+  selSlot=-1;selOp='';history=[];
+  resEl.textContent='';resEl.className='result';
+  render();
+}
+window.newRound=newRound;
+
+function newGame(){
+  score=0;scoreEl.textContent='Score: 0';
+  hintsLeft=3; hintCountEl.textContent='💡 '+hintsLeft;
+  if(tint)clearInterval(tint);tsec=0;updT();
+  tint=setInterval(function(){tsec++;updT();},1000);
+  newRound();
+}
+
+function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+
+// ══════════════════════════════════════════════════════
+// PRACTICE MODE
+// ══════════════════════════════════════════════════════
+function loadPractice(){
+  if(practiceIdx>=PRACTICE.length){
+    resEl.textContent='🎓 All lessons complete!';resEl.className='result win';
+    pstepsEl.innerHTML='<div style="color:#538d4e;font-size:.85rem;text-align:center">You\'ve mastered Target 24!</div>';
+    progFill.style.width='100%';
+    return;
+  }
+  var lesson=PRACTICE[practiceIdx];
+  document.getElementById('subtext').textContent=lesson.label;
+  progFill.style.width=(practiceIdx/PRACTICE.length*100)+'%';
+
+  var p=lesson.nums.slice(); shuffle(p);
+  slots=p.map(function(v){return{val:v,orig:v,used:false};});
+  selSlot=-1;selOp='';history=[];
+  resEl.textContent='💡 '+lesson.tip;resEl.className='result hint';
+
+  // Render step checklist
+  pstepsEl.innerHTML='';
+  lesson.steps.forEach(function(s,i){
+    var div=document.createElement('div');
+    div.className='step'+(i===0?' current':'');
+    div.innerHTML='<div class="step-num">'+(i+1)+'</div><div>'+s+'</div>';
+    pstepsEl.appendChild(div);
+  });
+  render();
+}
+
+function advancePracticeStep(){
+  var steps=pstepsEl.querySelectorAll('.step');
+  var cur=-1;
+  for(var i=0;i<steps.length;i++) if(steps[i].classList.contains('current')){cur=i;break;}
+  if(cur>=0) steps[cur].classList.remove('current');
+  if(cur>=0) steps[cur].classList.add('done');
+  if(cur+1<steps.length) steps[cur+1].classList.add('current');
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function render(){
+  cardsEl.innerHTML='';
+  for(var i=0;i<slots.length;i++){
+    var d=document.createElement('div');d.className='card';
+    if(slots[i].used){d.classList.add('used');}
+    else{
+      d.textContent=formatNum(slots[i].val);
+      if(i===selSlot) d.classList.add('sel');
+    }
+    d.setAttribute('data-i',i);
+    cardsEl.appendChild(d);
+  }
+  var ops=document.querySelectorAll('.op');
+  for(var i=0;i<ops.length;i++){
+    ops[i].classList.toggle('sel',ops[i].getAttribute('data-op')===selOp);
+    ops[i].classList.remove('hint-glow');
+  }
+}
+
+function formatNum(v){
+  var r=Math.round(v*1000)/1000;
+  // Show as fraction if close to simple fraction
+  return r%1===0?r:r.toFixed(2);
+}
+
+// ══════════════════════════════════════════════════════
+// COMPUTE
+// ══════════════════════════════════════════════════════
+function tryCompute(i){
+  if(slots[i].used) return;
+  if(selSlot<0){selSlot=i;render();return;}
+  if(i===selSlot){selSlot=-1;render();return;}
+  if(!selOp){selSlot=i;render();return;}
+
+  var a=slots[selSlot].val, b=slots[i].val, result;
+  switch(selOp){
+    case'+': result=a+b; break;
+    case'-': result=a-b; break;
+    case'*': result=a*b; break;
+    case'/':
+      if(Math.abs(b)<0.0001){resEl.textContent='Cannot divide by 0';resEl.className='result err';return;}
+      result=a/b; break;
+  }
+
+  history.push({s1:selSlot,v1:a,s2:i,v2:slots[i].val});
+  slots[selSlot].used=true;
+  slots[i].val=result; slots[i].used=false;
+  selSlot=-1; selOp='';
+
+  // Check active slots
+  var active=[];
+  for(var k=0;k<slots.length;k++) if(!slots[k].used) active.push(k);
+
+  if(active.length===1){
+    if(Math.abs(slots[active[0]].val-24)<0.001){
+      if(gameMode==='play'){
+        score++;scoreEl.textContent='Score: '+score;
+        resEl.textContent='🎉 = 24! Nice!';resEl.className='result win';
+        setTimeout(newRound,1200);
+      } else {
+        resEl.textContent='🎉 Solved! Great work!';resEl.className='result win';
+        // Mark all steps done
+        pstepsEl.querySelectorAll('.step').forEach(function(s){s.classList.remove('current');s.classList.add('done');});
+        practiceIdx++;
+        setTimeout(loadPractice,1800);
+      }
+    } else {
+      resEl.textContent='= '+formatNum(slots[active[0]].val)+' (not 24)';resEl.className='result err';
+      if(gameMode==='practice') advancePracticeStep();
+      setTimeout(function(){undo();},900);
+    }
+  } else {
+    resEl.textContent='= '+formatNum(result);resEl.className='result';
+    if(gameMode==='practice') advancePracticeStep();
+  }
+  render();
+}
+
+function undo(){
+  if(!history.length) return;
+  var h=history.pop();
+  slots[h.s1].used=false; slots[h.s1].val=h.v1;
+  slots[h.s2].val=h.v2;  slots[h.s2].used=false;
+  selSlot=-1; selOp='';
+  resEl.textContent=''; resEl.className='result';
+  render();
+}
+
+// ══════════════════════════════════════════════════════
+// HINT
+// ══════════════════════════════════════════════════════
+function showHint(){
+  if(hintsLeft<=0){resEl.textContent='No hints left!';resEl.className='result err';return;}
+  var active=[];
+  for(var k=0;k<slots.length;k++) if(!slots[k].used) active.push({idx:k,val:slots[k].val});
+  var vals=active.map(function(s){return s.val;});
+  var hint=getHintStep(vals,vals.map(String));
+  if(!hint){resEl.textContent='No hint available';resEl.className='result err';return;}
+
+  hintsLeft--;
+  hintCountEl.textContent='💡 '+hintsLeft;
+
+  // Map hint indices back to actual slot indices
+  var cards=cardsEl.querySelectorAll('.card:not(.used)');
+  var opSymbols={'+':'+','-':'−','*':'×','/':'÷'};
+
+  // Glow the two cards
+  if(cards[hint.i1]) cards[hint.i1].classList.add('hint-glow');
+  if(cards[hint.i2]) cards[hint.i2].classList.add('hint-glow');
+
+  // Glow the operator
+  var opEl=document.querySelector('.op[data-op="'+hint.op+'"]');
+  if(opEl) opEl.classList.add('hint-glow');
+
+  resEl.textContent='Hint: try combining those two glowing cards with '+opSymbols[hint.op];
+  resEl.className='result hint';
+
+  setTimeout(function(){
+    document.querySelectorAll('.hint-glow').forEach(function(e){e.classList.remove('hint-glow');});
+    if(resEl.className==='result hint') resEl.textContent='';
+  },2500);
+}
+
+// ══════════════════════════════════════════════════════
+// SOLUTION
+// ══════════════════════════════════════════════════════
+function showSolution(){
+  var active=[];
+  for(var k=0;k<slots.length;k++) if(!slots[k].used) active.push(slots[k].val);
+  // Reset to original if mid-game
+  var origVals=slots.map(function(s){return s.orig;});
+  var sol=findSolution(origVals.slice(), origVals.map(String));
+  var pathEl=document.getElementById('sol-path');
+  pathEl.innerHTML='';
+  if(!sol||sol.length===0){
+    pathEl.innerHTML='<div class="sol-step">Could not find solution path</div>';
+  } else {
+    sol.forEach(function(step,i){
+      var d=document.createElement('div');
+      d.className='sol-step';
+      d.innerHTML='Step '+(i+1)+': <span>'+step+'</span>';
+      pathEl.appendChild(d);
+    });
+    var final=document.createElement('div');
+    final.className='sol-step';
+    final.innerHTML='Result: <span style="color:#538d4e">= 24 ✓</span>';
+    pathEl.appendChild(final);
+  }
+  document.getElementById('sol-overlay').classList.add('show');
+}
+
+window.closeSol=function(){document.getElementById('sol-overlay').classList.remove('show');};
+
+// ══════════════════════════════════════════════════════
+// HOW TO PLAY
+// ══════════════════════════════════════════════════════
+window.showHow=function(){document.getElementById('how-overlay').classList.add('show');};
+window.closeHow=function(){document.getElementById('how-overlay').classList.remove('show');};
+
+// ══════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ══════════════════════════════════════════════════════
+cardsEl.addEventListener('click',function(e){
+  var t=e.target.closest('.card');
+  if(!t) return;
+  tryCompute(parseInt(t.getAttribute('data-i')));
+});
+
+document.getElementById('ops').addEventListener('click',function(e){
+  var t=e.target.closest('.op');
+  if(!t) return;
+  selOp=t.getAttribute('data-op');
+  render();
+});
+
+document.getElementById('undoBtn').addEventListener('click',undo);
+document.getElementById('hintBtn').addEventListener('click',showHint);
+document.getElementById('solBtn').addEventListener('click',showSolution);
+document.getElementById('newBtn').addEventListener('click',newGame);
+document.getElementById('skipBtn').addEventListener('click',function(){
+  if(gameMode==='practice'){practiceIdx++;loadPractice();}
+  else{newRound();}
+});
+
+// First launch — show how to play
+if(!localStorage.getItem('t24_seen')){
+  setTimeout(function(){
+    window.showHow();
+    localStorage.setItem('t24_seen','1');
+  },400);
+}
+
+newGame();
+})();
+</script>
+</body>
+</html>

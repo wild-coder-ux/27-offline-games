@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Reaction Time</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;height:100dvh;user-select:none}
+.screen{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;cursor:pointer;padding:20px;
+  transition:background .15s;
+}
+.screen.wait{background:#1a1a2e}
+.screen.ready{background:#e94560}
+.screen.go{background:#538d4e}
+.screen.result{background:#1a1a2e}
+.screen.early{background:#e94560}
+
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#fff}
+.icon{font-size:4rem}
+.main-text{font-size:clamp(1.2rem,5vw,1.8rem);font-weight:700;text-align:center;color:#fff}
+.sub-text{font-size:clamp(.8rem,3vw,1rem);color:rgba(255,255,255,.7);text-align:center}
+.time{font-size:clamp(3rem,12vw,5rem);font-weight:800;color:#4fc3f7;font-family:monospace}
+.time .unit{font-size:.4em;color:#aaa}
+.stats{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+.stat{text-align:center}
+.stat .val{font-size:1.2rem;font-weight:800;color:#4fc3f7;font-family:monospace}
+.stat .label{font-size:.6rem;color:#888;text-transform:uppercase}
+.rounds{display:flex;gap:6px;justify-content:center}
+.dot{width:10px;height:10px;border-radius:50%;background:#2a2a4a}
+.dot.done{background:#538d4e}.dot.cur{background:#e94560}
+.btn{font-family:inherit;font-size:.9rem;font-weight:700;padding:12px 28px;border:none;border-radius:30px;cursor:pointer;background:#16213e;color:#aaa}
+.btn:active{transform:scale(.95)}
+</style>
+</head>
+<body>
+<div class="screen wait" id="screen">
+  <h1>⚡ REACTION TIME</h1>
+  <div class="icon">🎯</div>
+  <div class="main-text">Test your reflexes!</div>
+  <div class="sub-text">5 rounds — tap when the screen turns GREEN</div>
+  <div class="rounds" id="rounds"></div>
+  <button class="btn" id="startBtn">START TEST</button>
+</div>
+<script>
+(function(){
+var screen=document.getElementById('screen');
+var TOTAL_ROUNDS=5;
+var round,times,phase,startTime,timeoutId;
+
+function dotsHTML(){
+  var h='<div class="rounds">';
+  for(var i=0;i<TOTAL_ROUNDS;i++){
+    var cls='dot';if(i<round)cls+=' done';if(i===round)cls+=' cur';
+    h+='<div class="'+cls+'"></div>';
+  }
+  return h+'</div>';
+}
+
+function newGame(){
+  round=0;times=[];phase='waiting';
+  startRound();
+}
+
+function startRound(){
+  phase='red';
+  screen.className='screen ready';
+  screen.innerHTML='<div class="icon">🔴</div><div class="main-text">Wait for GREEN...</div><div class="sub-text">Round '+(round+1)+'/'+TOTAL_ROUNDS+'</div>'+dotsHTML();
+
+  var delay=1500+Math.random()*3000;
+  timeoutId=setTimeout(function(){
+    phase='green';startTime=Date.now();
+    screen.className='screen go';
+    screen.innerHTML='<div class="icon">🟢</div><div class="main-text">TAP NOW!</div>';
+  },delay);
+}
+
+function handleTap(){
+  if(phase==='idle')return;
+
+  if(phase==='red'){
+    clearTimeout(timeoutId);phase='idle';
+    screen.className='screen early';
+    screen.innerHTML='<div class="icon">⚠️</div><div class="main-text">Too early!</div><div class="sub-text">Tap to try again</div>';
+    setTimeout(function(){phase='retry';},300);
+    return;
+  }
+
+  if(phase==='retry'){
+    startRound();return;
+  }
+
+  if(phase==='green'){
+    var time=Date.now()-startTime;
+    times.push(time);round++;phase='idle';
+
+    screen.className='screen result';
+    var html='<div class="time">'+time+'<span class="unit">ms</span></div>';
+    html+='<div class="sub-text">Round '+round+'/'+TOTAL_ROUNDS+'</div>';
+
+    if(round>=TOTAL_ROUNDS){
+      var avg=Math.round(times.reduce(function(a,b){return a+b;},0)/times.length);
+      var best=Math.min.apply(null,times);
+      var worst=Math.max.apply(null,times);
+      var rating=avg<200?'🏆 Incredible!':avg<250?'⚡ Great!':avg<300?'👍 Good':avg<400?'😐 Average':'🐌 Keep practicing!';
+
+      html='<h1>RESULTS</h1><div class="time">'+avg+'<span class="unit">ms avg</span></div>';
+      html+='<div class="main-text">'+rating+'</div>';
+      html+='<div class="stats">';
+      html+='<div class="stat"><div class="val">'+best+'ms</div><div class="label">Best</div></div>';
+      html+='<div class="stat"><div class="val">'+worst+'ms</div><div class="label">Worst</div></div>';
+      html+='<div class="stat"><div class="val">'+times.join(', ')+'</div><div class="label">All (ms)</div></div>';
+      html+='</div>';
+      html+='<button class="btn" id="againBtn">TRY AGAIN</button>';
+      screen.innerHTML=html;
+      document.getElementById('againBtn').addEventListener('click',function(e){e.stopPropagation();newGame();});
+      return;
+    }
+
+    html+='<div class="sub-text">Tap for next round</div>';
+    screen.innerHTML=html;
+    setTimeout(function(){phase='next';},200);
+    return;
+  }
+
+  if(phase==='next'){
+    startRound();return;
+  }
+
+  if(phase==='done'){
+    newGame();return;
+  }
+}
+
+screen.addEventListener('click',function(e){
+  if(e.target.id==='startBtn'){e.stopPropagation();newGame();return;}
+  if(e.target.id==='againBtn'){e.stopPropagation();newGame();return;}
+  handleTap();
+});
+
+// Keyboard
+document.addEventListener('keydown',function(e){if(e.key===' '){e.preventDefault();handleTap();}});
+})();
+</script>
+</body>
+</html>

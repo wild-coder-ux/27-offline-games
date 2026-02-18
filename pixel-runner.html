@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Runner</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+  width:100%;
+  height:100%;
+  background:#0f172a;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+}
+
+.wrap{
+  width:100%;
+  max-width:520px;
+  height:60vh;
+  max-height:360px;
+  position:relative;
+}
+
+canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  border-bottom:3px solid #38bdf8;
+  position:relative;
+  z-index:1;
+}
+
+/* ⭐ Visible neon score */
+.hud{
+  position:absolute;
+  top:15px;
+  width:100%;
+  text-align:center;
+  font-family:monospace;
+  font-weight:900;
+  font-size:1.6rem;
+  color:#38bdf8;
+  text-shadow:0 0 10px rgba(56,189,248,0.8);
+  z-index:10;
+}
+
+.msg{
+  position:absolute;
+  inset:0;
+  background:rgba(15,23,42,.95);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  z-index:20;
+  backdrop-filter: blur(5px);
+}
+
+.msg h2 {
+  color:#38bdf8;
+  text-shadow: 0 0 10px rgba(56,189,248, 0.5);
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.msg p {
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  text-align: center;
+  margin: 5px 0;
+}
+
+.msg .final-score {
+  color: #a5b4fc;
+  text-shadow: 0 0 8px rgba(165, 180, 252, 0.6);
+  font-weight: bold;
+  font-size: 1.3rem;
+}
+
+.medal-display {
+  font-size: 2.5rem;
+  margin: 10px 0;
+  text-shadow: 0 0 15px currentColor;
+}
+
+.msg button{
+  padding:12px 30px;
+  border:none;
+  border-radius:30px;
+  background:#38bdf8;
+  color:#000;
+  font-weight:700;
+  cursor:pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+}
+
+.msg button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
+}
+
+/* Medal-specific styles */
+.legend { color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.7); }
+.gold { color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.7); }
+.silver { color: #cbd5e1; text-shadow: 0 0 15px rgba(203, 213, 225, 0.7); }
+.bronze { color: #f97316; text-shadow: 0 0 15px rgba(249, 115, 22, 0.7); }
+.novice { color: #64748b; text-shadow: 0 0 10px rgba(100, 116, 139, 0.5); }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="wrap">
+  <canvas id="cvs"></canvas>
+
+  <!-- ✅ Only score system -->
+  <div class="hud" id="score">0</div>
+
+  <div class="msg" id="startMsg">
+    <h2>⚡ PIXEL RUNNER</h2>
+    <button id="startBtn">START</button>
+  </div>
+
+  <div class="msg" id="endMsg" style="display:none">
+    <h2 id="medal" class="medal-display"></h2>
+    <p id="finalScore" class="final-score"></p>
+    <button id="retryBtn">Retry</button>
+  </div>
+</div>
+
+<script>
+(function(){
+
+const cvs=document.getElementById("cvs");
+const ctx=cvs.getContext("2d");
+const wrap=document.getElementById("wrap");
+
+let W,H,GROUND;
+let runner,obstacles=[],stars=[];
+let score=0;
+let hiScore=parseInt(localStorage.getItem("pixelRunnerHS")||0);
+let state="ready",frame=0;
+
+/* -------- Resize -------- */
+function resize(){
+  const r=wrap.getBoundingClientRect();
+  W=cvs.width=r.width;
+  H=cvs.height=r.height;
+  GROUND=H*0.82;
+}
+window.addEventListener("resize",resize);
+
+/* -------- Sound -------- */
+const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+function beep(freq,dur){
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.frequency.value=freq;
+  gain.gain.value=0.05;
+  osc.start();
+  setTimeout(()=>osc.stop(),dur);
+}
+
+/* -------- Init -------- */
+function init(){
+  resize();
+
+  const size=H*0.08;
+
+  runner={
+    x:W*0.12,
+    y:GROUND-size,
+    w:size,
+    h:size,
+    vy:0,
+    jumping:false
+  };
+
+  obstacles=[];
+  stars=[];
+  for(let i=0;i<40;i++){
+    stars.push({
+      x:Math.random()*W,
+      y:Math.random()*H,
+      s:Math.random()*2+1
+    });
+  }
+
+  score=0;
+  frame=0;
+  state="ready";
+
+  document.getElementById("score").textContent="0";
+  document.getElementById("startMsg").style.display="flex";
+  document.getElementById("endMsg").style.display="none";
+
+  draw();
+}
+
+/* -------- Jump -------- */
+function jump(){
+  if(state==="ready"){
+    state="playing";
+    document.getElementById("startMsg").style.display="none";
+    loop();
+    return;
+  }
+  if(state==="playing" && !runner.jumping){
+    runner.vy=-H*0.035;
+    runner.jumping=true;
+    beep(400,80);
+  }
+}
+
+/* -------- Spawn Obstacle -------- */
+function spawnObstacle(){
+  const type=Math.floor(Math.random()*3);
+  const baseSize=H*0.06;
+
+  obstacles.push({
+    x:W,
+    type:type,
+    w:baseSize,
+    h: type===2 ? baseSize*1.8 : baseSize
+  });
+}
+
+/* -------- Update -------- */
+function update(){
+
+  frame++;
+  score=Math.floor(frame/8);
+  document.getElementById("score").textContent=score;
+
+  const baseSpeed=2.5;
+  const maxSpeed=6;
+  const ramp=Math.sqrt(score)*0.08;
+  const speed=Math.min(baseSpeed+ramp,maxSpeed);
+
+  runner.vy+=0.7;
+  runner.y+=runner.vy;
+
+  if(runner.y>=GROUND-runner.h){
+    runner.y=GROUND-runner.h;
+    runner.vy=0;
+    runner.jumping=false;
+  }
+
+  if(obstacles.length===0 ||
+     obstacles[obstacles.length-1].x < W*0.55){
+    if(Math.random()<0.02){
+      spawnObstacle();
+    }
+  }
+
+  for(let i=obstacles.length-1;i>=0;i--){
+    const o=obstacles[i];
+    o.x-=speed;
+
+    if(o.x+o.w<0){
+      obstacles.splice(i,1);
+      continue;
+    }
+
+    if(
+      runner.x+runner.w*0.75 > o.x &&
+      runner.x+runner.w*0.25 < o.x+o.w &&
+      runner.y+runner.h > GROUND-o.h+4
+    ){
+      gameOver();
+      return;
+    }
+  }
+
+  for(let s of stars){
+    s.x-=speed*0.3;
+    if(s.x<0)s.x=W;
+  }
+}
+
+/* -------- Draw -------- */
+function draw(){
+
+  ctx.fillStyle="#0f172a";
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle="#475569";
+  for(let s of stars){
+    ctx.fillRect(s.x,s.y,s.s,s.s);
+  }
+
+  ctx.fillStyle="#1e293b";
+  ctx.fillRect(0,GROUND,W,2);
+
+  ctx.fillStyle="#4ade80";
+  ctx.fillRect(runner.x,runner.y,runner.w,runner.h);
+
+  ctx.fillStyle="#f43f5e";
+  for(let o of obstacles){
+    if(o.type===0){
+      ctx.fillRect(o.x,GROUND-o.h,o.w,o.h);
+    }else if(o.type===1){
+      ctx.beginPath();
+      ctx.moveTo(o.x,GROUND);
+      ctx.lineTo(o.x+o.w/2,GROUND-o.h);
+      ctx.lineTo(o.x+o.w,GROUND);
+      ctx.closePath();
+      ctx.fill();
+    }else{
+      ctx.fillRect(o.x,GROUND-o.h,o.w,o.h);
+      ctx.fillRect(o.x+o.w*0.4,GROUND-o.h*1.4,o.w*0.6,o.h*0.4);
+    }
+  }
+}
+
+/* -------- Loop -------- */
+function loop(){
+  if(state!=="playing")return;
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* -------- Game Over -------- */
+function gameOver(){
+  state="gameover";
+  beep(120,200);
+
+  if(score>hiScore){
+    hiScore=score;
+    localStorage.setItem("pixelRunnerHS",hiScore);
+  }
+
+  let medalText="";
+  let medalClass = "";
+  if(score>=100) {
+    medalText="👑 LEGEND";
+    medalClass = "legend";
+  }
+  else if(score>=50) {
+    medalText="🥇 GOLD";
+    medalClass = "gold";
+  }
+  else if(score>=25) {
+    medalText="🥈 SILVER";
+    medalClass = "silver";
+  }
+  else if(score>=10) {
+    medalText="🥉 BRONZE";
+    medalClass = "bronze";
+  }
+  else {
+    medalText="Keep Running!";
+    medalClass = "novice";
+  }
+
+  const medalElement = document.getElementById("medal");
+  medalElement.textContent = medalText;
+  medalElement.className = `medal-display ${medalClass}`;
+
+  document.getElementById("finalScore").innerHTML =
+    `Score: <strong>${score}</strong> | Best: <strong>${hiScore}</strong>`;
+
+  document.getElementById("endMsg").style.display="flex";
+}
+
+/* -------- Input -------- */
+document.addEventListener("keydown",e=>{
+  if(e.key===" "||e.key==="ArrowUp")jump();
+});
+
+wrap.addEventListener("touchstart",e=>{
+  if(state!=="gameover"){
+    e.preventDefault();
+    jump();
+  }
+},{passive:false});
+
+wrap.addEventListener("mousedown",()=>{
+  if(state!=="gameover")jump();
+});
+
+document.getElementById("startBtn").onclick=jump;
+
+document.getElementById("retryBtn").onclick=()=>{
+  init();
+  state="playing";
+  document.getElementById("startMsg").style.display="none";
+  loop();
+};
+
+init();
+
+})();
+</script>
+</body>
+</html>

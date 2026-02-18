@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Follow me</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:12px;user-select:none}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.stats{display:flex;gap:16px;align-items:center}
+.stats span{font-family:monospace;font-size:.9rem;font-weight:700;color:#aaa}
+.sc{color:#4fc3f7!important}.best{color:#888!important}
+.msg{font-size:.85rem;font-weight:700;text-align:center;min-height:1.2em;color:#aaa}
+.msg.watch{color:#e94560}.msg.go{color:#538d4e}.msg.fail{color:#e94560}
+
+.board{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  width:clamp(220px,60vw,300px);
+}
+.pad{
+  aspect-ratio:1;border-radius:16px;cursor:pointer;
+  transition:filter .1s,transform .1s;
+  border:3px solid rgba(0,0,0,.2);
+}
+.pad:active{transform:scale(.95)}
+.pad.lit{filter:brightness(2);transform:scale(.95)}
+.p0{background:#e94560}.p1{background:#4fc3f7}.p2{background:#66bb6a}.p3{background:#ffca28}
+
+.actions button{font-family:inherit;font-size:.8rem;font-weight:700;padding:10px 24px;border:none;border-radius:20px;background:#e94560;color:#fff;cursor:pointer}
+.actions button:active{transform:scale(.95)}
+</style>
+</head>
+<body>
+<h1>FOLLOW ME</h1>
+<div class="stats"><span class="sc" id="sc">Score: 0</span><span class="best" id="best"></span></div>
+<div class="msg" id="msg">Press Start!</div>
+<div class="board" id="board">
+  <div class="pad p0" data-p="0"></div>
+  <div class="pad p1" data-p="1"></div>
+  <div class="pad p2" data-p="2"></div>
+  <div class="pad p3" data-p="3"></div>
+</div>
+<div class="actions"><button id="startBtn">START</button></div>
+<script>
+(function(){
+var sequence=[],playerIdx,score=0,bestScore=0,phase='idle',speed=500;
+var msgEl=document.getElementById('msg'),scEl=document.getElementById('sc');
+var bestEl=document.getElementById('best');
+var pads=document.querySelectorAll('.pad');
+
+// Audio context for tones
+var audioCtx;
+var FREQS=[261.63,329.63,392.00,523.25];
+
+function playTone(idx,duration){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    var osc=audioCtx.createOscillator();var gain=audioCtx.createGain();
+    osc.connect(gain);gain.connect(audioCtx.destination);
+    osc.frequency.value=FREQS[idx];osc.type='sine';
+    gain.gain.value=0.15;
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+(duration||0.3)/1000);
+    osc.stop(audioCtx.currentTime+(duration||0.3)/1000);
+  }catch(e){}
+}
+
+function lightPad(idx,duration){
+  pads[idx].classList.add('lit');
+  playTone(idx,duration);
+  setTimeout(function(){pads[idx].classList.remove('lit');},duration||300);
+}
+
+function newGame(){
+  sequence=[];score=0;speed=500;
+  scEl.textContent='Score: 0';
+  addToSequence();
+}
+
+function addToSequence(){
+  sequence.push(Math.floor(Math.random()*4));
+  phase='showing';
+  msgEl.textContent='Watch...';msgEl.className='msg watch';
+  playSequence();
+}
+
+function playSequence(){
+  var i=0;
+  var int=setInterval(function(){
+    if(i>=sequence.length){clearInterval(int);startPlayerTurn();return;}
+    lightPad(sequence[i],speed*0.6);
+    i++;
+  },speed);
+}
+
+function startPlayerTurn(){
+  playerIdx=0;phase='input';
+  msgEl.textContent='Your turn!';msgEl.className='msg go';
+}
+
+function playerPress(idx){
+  if(phase!=='input')return;
+  lightPad(idx,200);
+
+  if(idx===sequence[playerIdx]){
+    playerIdx++;
+    if(playerIdx>=sequence.length){
+      score++;scEl.textContent='Score: '+score;
+      if(score>bestScore){bestScore=score;bestEl.textContent='Best: '+bestScore;}
+      phase='idle';
+      speed=Math.max(200,500-score*20);
+      msgEl.textContent='✓ Nice!';msgEl.className='msg go';
+      setTimeout(addToSequence,800);
+    }
+  }else{
+    phase='idle';
+    msgEl.textContent='✕ Wrong! Score: '+score;msgEl.className='msg fail';
+    // Flash correct answer
+    setTimeout(function(){lightPad(sequence[playerIdx],400);},300);
+  }
+}
+
+// Pad clicks
+document.getElementById('board').addEventListener('click',function(e){
+  var p=e.target.closest('.pad');if(!p)return;
+  playerPress(parseInt(p.getAttribute('data-p')));
+});
+
+document.getElementById('startBtn').addEventListener('click',newGame);
+
+// Keyboard
+document.addEventListener('keydown',function(e){
+  if(e.key==='1')playerPress(0);if(e.key==='2')playerPress(1);
+  if(e.key==='3')playerPress(2);if(e.key==='4')playerPress(3);
+});
+})();
+</script>
+</body>
+</html>

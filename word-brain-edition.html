@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Builder — Brain Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#090e1a;
+  --surface:#101828;
+  --surface2:#1a2540;
+  --accent:#64f4d4;
+  --accent2:#f471b5;
+  --accent3:#facc15;
+  --text:#e8f0fe;
+  --muted:#5a7090;
+  --danger:#f87171;
+  --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'DM Mono',monospace;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  overflow:hidden;
+}
+
+/* starfield bg */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(100,244,212,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(244,113,181,.05) 0%, transparent 60%);
+  pointer-events:none;
+  z-index:0;
+}
+
+.container{
+  position:relative;z-index:1;
+  width:100%;max-width:480px;
+  padding:20px;
+  display:flex;flex-direction:column;
+  align-items:center;
+}
+
+/* ---- MENU ---- */
+#menu{
+  text-align:center;
+  animation:fadeIn .5s ease;
+}
+#menu h1{
+  font-family:'Syne',sans-serif;
+  font-size:2.6rem;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:6px;
+  letter-spacing:-1px;
+}
+#menu .tagline{
+  color:var(--muted);font-size:.85rem;margin-bottom:36px;
+}
+.mode-cards{display:flex;gap:12px;flex-wrap:nowrap;justify-content:center}
+.mode-card{
+  background:var(--surface);
+  border:1.5px solid var(--surface2);
+  border-radius:var(--radius);
+  padding:16px 18px;width:145px;
+  cursor:pointer;
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+  text-align:left;
+}
+.mode-card:hover{
+  transform:translateY(-4px);
+  border-color:var(--accent);
+  box-shadow:0 0 28px rgba(100,244,212,.2);
+}
+.mode-card .mode-icon{font-size:1.6rem;margin-bottom:8px}
+.mode-card .mode-name{
+  font-family:'Syne',sans-serif;
+  font-size:1rem;font-weight:700;margin-bottom:4px;
+}
+.mode-card .mode-desc{color:var(--muted);font-size:.72rem;line-height:1.45}
+.mode-card.focus .mode-name{color:var(--accent2)}
+.mode-card.relax .mode-name{color:var(--accent)}
+
+/* ---- GAME ---- */
+#game{display:none;width:100%;animation:fadeIn .4s ease}
+
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:18px;
+  background:var(--surface);
+  border-radius:12px;
+  padding:10px 18px;
+  border:1px solid var(--surface2);
+}
+.stat{display:flex;align-items:center;gap:7px;font-size:.85rem}
+.stat-icon{font-size:1.1rem}
+.stat-val{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--accent)}
+#timer.urgent .stat-val{color:var(--danger);animation:pulse 1s infinite}
+
+/* progress bar */
+.progress-bar{
+  width:100%;height:3px;
+  background:var(--surface2);
+  border-radius:3px;
+  margin-bottom:20px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:3px;
+  transition:width .4s ease;
+}
+
+/* SET LABEL */
+.set-label{
+  font-size:.72rem;color:var(--muted);
+  margin-bottom:14px;letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+/* ---- CURRENT WORD DISPLAY ---- */
+.current-wrap{
+  min-height:58px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:18px;
+}
+.current{
+  font-family:'Syne',sans-serif;
+  font-size:2rem;font-weight:800;
+  letter-spacing:5px;
+  color:var(--accent);
+  min-width:40px;
+  text-align:center;
+  position:relative;
+  transition:color .2s;
+}
+.current.invalid{color:var(--danger);animation:shake .3s ease}
+.current.valid{color:var(--accent3);animation:pop .25s ease}
+.current.duplicate{color:var(--accent2)}
+
+/* ---- LETTERS ---- */
+.letters{
+  display:flex;flex-wrap:wrap;
+  justify-content:center;
+  gap:13px;
+  margin-bottom:22px;
+}
+.letter{
+  width:58px;height:58px;
+  border-radius:50%;
+  background:var(--surface);
+  border:2px solid var(--surface2);
+  display:flex;justify-content:center;align-items:center;
+  font-family:'Syne',sans-serif;
+  font-size:1.45rem;font-weight:700;
+  cursor:pointer;
+  user-select:none;
+  transition:transform .15s, border-color .15s, background .15s, opacity .2s, box-shadow .15s;
+  position:relative;
+}
+.letter:hover:not(.used){
+  border-color:var(--accent);
+  transform:scale(1.12);
+  box-shadow:0 0 20px rgba(100,244,212,.3);
+}
+.letter.selected{
+  border-color:var(--accent);
+  background:rgba(100,244,212,.15);
+  box-shadow:0 0 18px rgba(100,244,212,.35);
+}
+.letter.used{
+  opacity:.22;
+  pointer-events:none;
+  transform:scale(.9);
+}
+/* order badge */
+.letter .order{
+  position:absolute;
+  top:-4px;right:-4px;
+  width:18px;height:18px;
+  border-radius:50%;
+  background:var(--accent);
+  color:#000;
+  font-size:.6rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;
+}
+.letter.selected .order{opacity:1}
+
+/* ---- ACTIONS ---- */
+.actions{
+  display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:20px;
+}
+button{
+  padding:10px 20px;
+  border:none;border-radius:22px;
+  font-family:'DM Mono',monospace;
+  font-weight:500;font-size:.85rem;
+  cursor:pointer;
+  transition:transform .15s,opacity .15s,box-shadow .15s;
+}
+button:hover{transform:translateY(-2px)}
+button:active{transform:scale(.96)}
+.btn-submit{
+  background:var(--accent);color:#000;font-weight:700;
+  box-shadow:0 0 18px rgba(100,244,212,.3);
+}
+.btn-submit:hover{box-shadow:0 0 28px rgba(100,244,212,.5)}
+.btn-clear{background:var(--surface2);color:var(--text)}
+.btn-shuffle{background:var(--surface2);color:var(--text)}
+.btn-skip{background:transparent;border:1.5px solid var(--surface2);color:var(--muted)}
+.btn-skip:hover{border-color:var(--accent2);color:var(--accent2)}
+
+/* ---- FOUND WORDS ---- */
+.found-section{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--surface2);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  max-height:110px;overflow-y:auto;
+}
+.found-section::-webkit-scrollbar{width:4px}
+.found-section::-webkit-scrollbar-track{background:transparent}
+.found-section::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:4px}
+.found-header{
+  font-size:.68rem;color:var(--muted);letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:8px;
+}
+.found-words{
+  display:flex;flex-wrap:wrap;gap:7px;
+}
+.found-chip{
+  background:rgba(100,244,212,.12);
+  border:1px solid rgba(100,244,212,.3);
+  color:var(--accent);
+  border-radius:20px;
+  padding:3px 11px;font-size:.78rem;
+  animation:chipPop .25s ease;
+}
+
+/* ---- OVERLAY / SUMMARY ---- */
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(9,14,26,.97);
+  display:none;flex-direction:column;
+  justify-content:center;align-items:center;
+  padding:28px;overflow-y:auto;
+  z-index:100;
+  animation:fadeIn .3s ease;
+}
+.overlay.show{display:flex}
+.result-card{
+  background:var(--surface);
+  border:1.5px solid var(--surface2);
+  border-radius:20px;
+  padding:30px;
+  max-width:440px;width:100%;
+  max-height:85vh;overflow-y:auto;
+}
+.result-card::-webkit-scrollbar{width:4px}
+.result-card::-webkit-scrollbar-track{background:transparent}
+.result-card::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:4px}
+.result-score{
+  font-family:'Syne',sans-serif;
+  font-size:2.5rem;font-weight:800;
+  color:var(--accent3);
+  text-align:center;margin-bottom:4px;
+}
+.result-sub{
+  text-align:center;color:var(--muted);
+  font-size:.82rem;margin-bottom:22px;
+}
+.def-list{
+  display:flex;flex-direction:column;gap:10px;
+  margin-bottom:24px;
+}
+.def-item{
+  background:var(--surface2);
+  border-radius:10px;
+  padding:10px 14px;
+  display:flex;gap:10px;align-items:baseline;
+}
+.def-item.found-item{
+  border-left:3px solid var(--accent);
+}
+.def-item.missed-item{
+  border-left:3px solid var(--surface2);
+  opacity:.55;
+}
+.def-word{
+  font-family:'Syne',sans-serif;
+  font-weight:700;font-size:.95rem;
+  min-width:72px;
+  color:var(--text);
+}
+.def-found .def-word{color:var(--accent)}
+.def-text{color:var(--muted);font-size:.78rem;line-height:1.5}
+.overlay-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn-next{
+  background:var(--accent);color:#000;font-weight:700;
+  padding:12px 28px;border-radius:22px;
+  box-shadow:0 0 18px rgba(100,244,212,.3);
+}
+.btn-menu{
+  background:var(--surface2);color:var(--text);
+  padding:12px 22px;border-radius:22px;
+}
+
+/* FEEDBACK TOAST */
+.toast{
+  position:fixed;
+  bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface2);
+  color:var(--text);
+  border-radius:22px;
+  padding:10px 22px;
+  font-size:.82rem;
+  opacity:0;
+  transition:opacity .25s,transform .25s;
+  pointer-events:none;
+  z-index:200;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.good{background:rgba(100,244,212,.2);border:1px solid var(--accent);color:var(--accent)}
+.toast.bad{background:rgba(248,113,113,.15);border:1px solid var(--danger);color:var(--danger)}
+.toast.dup{background:rgba(244,113,181,.15);border:1px solid var(--accent2);color:var(--accent2)}
+
+/* KEYBOARD HINT */
+.kb-hint{
+  font-size:.68rem;color:var(--muted);
+  margin-top:12px;letter-spacing:.03em;
+}
+
+/* ---- ANIMATIONS ---- */
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes chipPop{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- MENU -->
+  <div id="menu">
+    <h1>Word Builder</h1>
+    <p class="tagline">Build words. Train your brain.</p>
+    <div class="mode-cards">
+      <div class="mode-card relax" onclick="startGame('relax')">
+        <div class="mode-icon">🌿</div>
+        <div class="mode-name">Relax</div>
+        <div class="mode-desc">No timer. Think freely, go at your own pace.</div>
+      </div>
+      <div class="mode-card focus" onclick="startGame('focus')">
+        <div class="mode-icon">⚡</div>
+        <div class="mode-name">Focus</div>
+        <div class="mode-desc">3-minute countdown. How many can you find?</div>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:.72rem;margin-top:22px;">💡 Tap the letter, Tap to submit, Tap Clear to revert</p>
+  </div>
+
+  <!-- GAME -->
+  <div id="game">
+    <div class="topbar">
+      <div class="stat">
+        <span class="stat-icon">⏱</span>
+        <div id="timer"><span class="stat-val" id="timerVal">∞</span></div>
+      </div>
+      <div class="stat" style="flex-direction:column;align-items:center;gap:0">
+        <div class="set-label" id="setLabel" style="margin:0;font-size:.65rem">SET 1</div>
+      </div>
+      <div class="stat">
+        <span class="stat-icon">⭐</span>
+        <span class="stat-val" id="score">0</span>
+      </div>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div class="letters" id="lettersEl"></div>
+
+    <div class="current-wrap">
+      <div class="current" id="currentWord"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-submit" onclick="submitWord()">Submit ↵</button>
+      <button class="btn-clear" onclick="clearWord()">Clear ⌫</button>
+      <button class="btn-shuffle" onclick="shuffleAndRender()">Shuffle ⇄</button>
+      <button class="btn-skip" onclick="skipSet()">Skip →</button>
+    </div>
+
+    <div class="found-section">
+      <div class="found-header">Found words <span id="foundCount">0</span> / <span id="totalCount">0</span></div>
+      <div class="found-words" id="foundWords"></div>
+    </div>
+
+    <p class="kb-hint">Tip: Tap letters • Tap submit • Select clear if required</p>
+  </div>
+
+</div>
+
+<!-- SUMMARY OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="result-card">
+    <div class="result-score" id="resultScore"></div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="def-list" id="defList"></div>
+    <div class="overlay-actions">
+      <button class="btn-next" onclick="nextSet()">Next Set →</button>
+      <button class="btn-menu" onclick="backToMenu()">Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* =============================================
+   WORD SETS — 50 sets, 3000+ valid words total
+   ============================================= */
+const SETS = [
+{l:["p","l","a","n","e"],a:[
+  {w:"plane",d:"flat surface or aircraft"},
+  {w:"plan",d:"a detailed proposal"},
+  {w:"pane",d:"a sheet of glass"},
+  {w:"lean",d:"thin or without excess"},
+  {w:"lane",d:"narrow road"},
+  {w:"pale",d:"light in color"},
+  {w:"peal",d:"a loud ringing of bells"},
+  {w:"plea",d:"an urgent request"},
+  {w:"leap",d:"to jump over"},
+  {w:"pal",d:"a close friend"},
+  {w:"pan",d:"flat cooking vessel"},
+  {w:"pen",d:"writing instrument"},
+  {w:"ale",d:"type of beer"},
+  {w:"ape",d:"large primate"},
+  {w:"lap",d:"one circuit or round"},
+  {w:"nap",d:"short sleep"},
+  {w:"pea",d:"small round vegetable"},
+  {w:"lep",d:"to leap (dialect)"},
+  {w:"elan",d:"enthusiastic style"}
+]},
+{l:["b","r","a","i","n"],a:[
+  {w:"brain",d:"organ of thought"},
+  {w:"rain",d:"water from clouds"},
+  {w:"barn",d:"farm building"},
+  {w:"braid",d:"intertwined strands (alt set)"},
+  {w:"rani",d:"Indian queen"},
+  {w:"rabi",d:"spring harvest crop"},
+  {w:"naib",d:"deputy (historical)"},
+  {w:"ran",d:"past tense of run"},
+  {w:"ban",d:"officially prohibit"},
+  {w:"bin",d:"container for waste"},
+  {w:"nab",d:"to catch someone"},
+  {w:"rib",d:"curved chest bone"},
+  {w:"bar",d:"rod or drinking venue"},
+  {w:"bra",d:"undergarment"},
+  {w:"air",d:"gaseous atmosphere"},
+  {w:"ani",d:"tropical bird"},
+  {w:"nib",d:"pen writing tip"}
+]},
+{l:["s","t","o","n","e"],a:[
+  {w:"stone",d:"hard solid mineral matter"},
+  {w:"tones",d:"shades of color"},
+  {w:"notes",d:"written messages"},
+  {w:"onset",d:"beginning of something"},
+  {w:"tone",d:"sound quality"},
+  {w:"note",d:"written message"},
+  {w:"nose",d:"organ of smell"},
+  {w:"ones",d:"plural of one"},
+  {w:"eons",d:"very long time periods"},
+  {w:"nets",d:"meshed fabric traps"},
+  {w:"nest",d:"bird's home"},
+  {w:"sent",d:"past tense of send"},
+  {w:"tens",d:"groups of ten"},
+  {w:"one",d:"the number 1"},
+  {w:"ten",d:"the number 10"},
+  {w:"son",d:"male child"},
+  {w:"ton",d:"unit of weight"},
+  {w:"net",d:"meshed material"},
+  {w:"set",d:"collection of items"},
+  {w:"not",d:"negation word"},
+  {w:"eon",d:"a very long period"}
+]},
+{l:["c","a","r","e"],a:[
+  {w:"care",d:"concern or attention"},
+  {w:"race",d:"speed competition"},
+  {w:"acre",d:"unit of land"},
+  {w:"arce",d:"variant spelling of arc"},
+  {w:"ear",d:"hearing organ"},
+  {w:"are",d:"plural form of be"},
+  {w:"car",d:"motor vehicle"},
+  {w:"arc",d:"curved line"},
+  {w:"ace",d:"expert or top card"},
+  {w:"era",d:"long historical period"}
+]},
+{l:["l","i","g","h","t"],a:[
+  {w:"light",d:"visible illumination"},
+  {w:"high",d:"tall or elevated"},
+  {w:"thig",d:"to squeeze (Scottish)"},
+  {w:"gilt",d:"covered in gold"},
+  {w:"glit",d:"glitter (archaic)"},
+  {w:"hit",d:"to strike something"},
+  {w:"lit",d:"past tense of light"},
+  {w:"til",d:"sesame plant"},
+  {w:"it",d:"third person singular pronoun"}
+]},
+{l:["w","a","t","e","r"],a:[
+  {w:"water",d:"clear essential liquid"},
+  {w:"irate",d:"feeling great anger"},
+  {w:"trawl",d:"fish with a net"},
+  {w:"tare",d:"allowance for container weight"},
+  {w:"ware",d:"manufactured articles"},
+  {w:"rate",d:"speed or frequency"},
+  {w:"tear",d:"drop from eye"},
+  {w:"wear",d:"have clothing on"},
+  {w:"rare",d:"not common"},
+  {w:"ware",d:"goods for sale"},
+  {w:"war",d:"armed conflict"},
+  {w:"raw",d:"uncooked"},
+  {w:"art",d:"creative expression"},
+  {w:"tar",d:"dark sticky substance"},
+  {w:"eat",d:"consume food"},
+  {w:"ear",d:"hearing organ"},
+  {w:"are",d:"plural of be"},
+  {w:"era",d:"long period of history"},
+  {w:"awe",d:"feeling of reverence"}
+]},
+{l:["s","m","a","r","t"],a:[
+  {w:"smart",d:"intelligent or clever"},
+  {w:"trams",d:"city rail vehicles"},
+  {w:"mast",d:"tall ship pole"},
+  {w:"mart",d:"a market or store"},
+  {w:"star",d:"bright space object"},
+  {w:"tsar",d:"Russian emperor"},
+  {w:"rats",d:"plural of rat"},
+  {w:"arts",d:"creative disciplines"},
+  {w:"mats",d:"flat floor coverings"},
+  {w:"arms",d:"upper limbs or weapons"},
+  {w:"rams",d:"male sheep"},
+  {w:"mars",d:"to damage or spoil"},
+  {w:"art",d:"creative expression"},
+  {w:"ram",d:"male sheep"},
+  {w:"arm",d:"upper limb"},
+  {w:"tar",d:"dark sticky substance"},
+  {w:"rat",d:"small rodent"},
+  {w:"mat",d:"flat floor covering"},
+  {w:"sat",d:"past tense of sit"},
+  {w:"tram",d:"city rail vehicle"}
+]},
+{l:["g","r","o","w"],a:[
+  {w:"grow",d:"increase in size"},
+  {w:"row",d:"line of items"},
+  {w:"ow",d:"expression of pain"},
+  {w:"go",d:"to move or travel"},
+  {w:"or",d:"linking word for choices"}
+]},
+{l:["f","l","o","w","e","r"],a:[
+  {w:"flower",d:"blooming plant"},
+  {w:"lower",d:"to move down"},
+  {w:"fowler",d:"person who hunts birds"},
+  {w:"flore",d:"flora (archaic)"},
+  {w:"rowel",d:"spiked wheel of spur"},
+  {w:"owler",d:"smuggler of wool (archaic)"},
+  {w:"owner",d:"person who owns something"},
+  {w:"lower",d:"reduce in height"},
+  {w:"rower",d:"person who rows a boat"},
+  {w:"lore",d:"traditional knowledge"},
+  {w:"wore",d:"past of wear"},
+  {w:"fore",d:"at the front"},
+  {w:"flew",d:"past of fly"},
+  {w:"fowl",d:"domestic bird"},
+  {w:"flow",d:"move steadily"},
+  {w:"role",d:"part played by someone"},
+  {w:"lore",d:"body of traditions"},
+  {w:"wolf",d:"wild canine predator"},
+  {w:"woe",d:"great sorrow"},
+  {w:"orb",d:"spherical object"},
+  {w:"low",d:"not high"},
+  {w:"row",d:"propel with oars"},
+  {w:"owe",d:"be in debt"},
+  {w:"ore",d:"mineral-bearing rock"},
+  {w:"few",d:"not many"},
+  {w:"elf",d:"mythical small being"},
+  {w:"fer",d:"an archaic word for far"}
+]},
+{l:["c","h","a","r","t"],a:[
+  {w:"chart",d:"a visual data display"},
+  {w:"catch",d:"seize in motion"},
+  {w:"ranch",d:"large farm for livestock"},
+  {w:"chard",d:"leafy green vegetable"},
+  {w:"arch",d:"curved structure"},
+  {w:"cart",d:"wheeled vehicle"},
+  {w:"char",d:"to scorch or blacken"},
+  {w:"chat",d:"informal conversation"},
+  {w:"tach",d:"tachometer gauge"},
+  {w:"hat",d:"head covering"},
+  {w:"rat",d:"small rodent"},
+  {w:"cat",d:"domestic feline"},
+  {w:"tar",d:"dark sticky substance"},
+  {w:"car",d:"motor vehicle"},
+  {w:"arc",d:"curved line"},
+  {w:"act",d:"to do something"},
+  {w:"art",d:"creative expression"}
+]},
+{l:["p","r","i","n","t"],a:[
+  {w:"print",d:"produce text on paper"},
+  {w:"pint",d:"unit of liquid measure"},
+  {w:"rind",d:"tough outer skin"},
+  {w:"trip",d:"a journey or stumble"},
+  {w:"trim",d:"cut neatly"},
+  {w:"pin",d:"thin pointed fastener"},
+  {w:"pit",d:"deep hole in ground"},
+  {w:"rip",d:"tear roughly"},
+  {w:"rit",d:"to scratch (dialect)"},
+  {w:"nip",d:"a small bite or pinch"},
+  {w:"tin",d:"metal container"},
+  {w:"tip",d:"pointed end or gratuity"},
+  {w:"nit",d:"louse egg or nitwit"}
+]},
+{l:["s","p","e","a","k"],a:[
+  {w:"speak",d:"utter words"},
+  {w:"peaks",d:"mountain tops"},
+  {w:"spake",d:"archaic past of speak"},
+  {w:"skeap",d:"old word for a beehive"},
+  {w:"peak",d:"highest point"},
+  {w:"sake",d:"purpose or benefit"},
+  {w:"cake",d:"baked sweet food"},
+  {w:"spa",d:"health resort"},
+  {w:"ask",d:"put a question"},
+  {w:"sea",d:"large salt water body"},
+  {w:"ape",d:"large primate"},
+  {w:"pea",d:"small round vegetable"},
+  {w:"sap",d:"plant juice"},
+  {w:"asp",d:"small venomous snake"},
+  {w:"eke",d:"supplement with effort"},
+  {w:"ska",d:"Jamaican music genre"}
+]},
+{l:["b","l","o","c","k"],a:[
+  {w:"block",d:"solid piece or obstacle"},
+  {w:"lock",d:"fastening device"},
+  {w:"cock",d:"male bird"},
+  {w:"clob",d:"to hit hard (informal)"},
+  {w:"lob",d:"throw in a high arc"},
+  {w:"col",d:"mountain pass"}
+]},
+{l:["s","h","a","r","p"],a:[
+  {w:"sharp",d:"having a keen edge"},
+  {w:"harps",d:"stringed instruments"},
+  {w:"harp",d:"large stringed instrument"},
+  {w:"rash",d:"skin irritation or reckless"},
+  {w:"rasp",d:"coarse file or harsh sound"},
+  {w:"hasp",d:"clasp for a door"},
+  {w:"haps",d:"good fortunes (archaic)"},
+  {w:"spar",d:"fight with words or fists"},
+  {w:"spa",d:"health resort"},
+  {w:"rap",d:"knock or music style"},
+  {w:"has",d:"possesses"},
+  {w:"ash",d:"residue of burning"},
+  {w:"sap",d:"plant juice"},
+  {w:"par",d:"normal level"}
+]},
+{l:["c","l","o","u","d"],a:[
+  {w:"cloud",d:"mass of water vapour"},
+  {w:"could",d:"past tense of can"},
+  {w:"clod",d:"lump of earth"},
+  {w:"loud",d:"making much noise"},
+  {w:"cold",d:"low temperature"},
+  {w:"dol",d:"unit of pain intensity"},
+  {w:"cod",d:"type of fish"},
+  {w:"cud",d:"food returned for chewing"},
+  {w:"old",d:"having lived many years"},
+  {w:"duo",d:"pair of performers"},
+  {w:"oud",d:"stringed musical instrument"},
+  {w:"lud",d:"form of address to a judge (UK)"}
+]},
+{l:["t","h","u","n","d","e","r"],a:[
+  {w:"thunder",d:"loud rumbling storm sound"},
+  {w:"turned",d:"rotated direction"},
+  {w:"hunter",d:"one who hunts"},
+  {w:"hurtle",d:"move rapidly"},
+  {w:"under",d:"below something"},
+  {w:"trend",d:"general direction"},
+  {w:"deter",d:"discourage from acting"},
+  {w:"there",d:"in that place"},
+  {w:"three",d:"the number 3"},
+  {w:"rune",d:"mysterious carved symbol"},
+  {w:"rend",d:"tear apart"},
+  {w:"rent",d:"payment for use"},
+  {w:"dune",d:"sand hill"},
+  {w:"tune",d:"musical melody"},
+  {w:"herd",d:"group of animals"},
+  {w:"hure",d:"a wig (archaic)"},
+  {w:"then",d:"at that time"},
+  {w:"then",d:"subsequently"},
+  {w:"true",d:"in accordance with facts"},
+  {w:"hurt",d:"cause pain"},
+  {w:"dure",d:"to last (archaic)"},
+  {w:"nude",d:"without clothing"},
+  {w:"rude",d:"offensively impolite"},
+  {w:"dune",d:"mound of sand"},
+  {w:"rhud",d:"archaic term"}
+]},
+{l:["s","i","l","v","e","r"],a:[
+  {w:"silver",d:"shiny grey precious metal"},
+  {w:"silvers",d:"things made of silver"},
+  {w:"livers",d:"organs of the body"},
+  {w:"sliver",d:"thin narrow piece"},
+  {w:"relish",d:"enjoy greatly"},
+  {w:"liver",d:"vital body organ"},
+  {w:"lures",d:"tempting attractions"},
+  {w:"rules",d:"regulations"},
+  {w:"riles",d:"makes angry"},
+  {w:"rivel",d:"archaic form of wrinkle"},
+  {w:"live",d:"be alive"},
+  {w:"vile",d:"extremely unpleasant"},
+  {w:"evil",d:"deeply immoral"},
+  {w:"veil",d:"piece of fine fabric"},
+  {w:"lire",d:"former Italian currency"},
+  {w:"rile",d:"to irritate someone"},
+  {w:"lie",d:"to tell an untruth"},
+  {w:"vie",d:"to compete eagerly"},
+  {w:"rev",d:"engine revolution"},
+  {w:"sir",d:"respectful address"},
+  {w:"ire",d:"intense anger"},
+  {w:"lure",d:"enticing attraction"}
+]},
+{l:["c","r","e","a","t","e"],a:[
+  {w:"create",d:"bring into existence"},
+  {w:"cerate",d:"wax-based ointment"},
+  {w:"recoat",d:"apply another coat"},
+  {w:"career",d:"professional life path"},
+  {w:"cater",d:"provide food for events"},
+  {w:"trace",d:"follow or copy outline"},
+  {w:"grace",d:"elegance and refinement"},
+  {w:"erect",d:"build upright"},
+  {w:"terce",d:"canonical hour prayer"},
+  {w:"react",d:"respond to a stimulus"},
+  {w:"crate",d:"wooden storage box"},
+  {w:"carte",d:"menu or map (French)"},
+  {w:"trace",d:"mark or track"},
+  {w:"care",d:"concern for others"},
+  {w:"race",d:"speed competition"},
+  {w:"acre",d:"unit of land"},
+  {w:"rate",d:"speed or frequency"},
+  {w:"tree",d:"large woody plant"},
+  {w:"cart",d:"wheeled vehicle"},
+  {w:"tear",d:"rip or eye drop"},
+  {w:"rare",d:"not frequently seen"},
+  {w:"tare",d:"weight of container"},
+  {w:"eat",d:"consume food"},
+  {w:"arc",d:"curved line"},
+  {w:"ace",d:"expert or top card"},
+  {w:"car",d:"motor vehicle"},
+  {w:"tea",d:"hot drink from leaves"},
+  {w:"cat",d:"domestic feline"},
+  {w:"act",d:"do something"},
+  {w:"tar",d:"dark sticky substance"}
+]},
+{l:["b","r","i","d","g","e"],a:[
+  {w:"bridge",d:"structure spanning a gap"},
+  {w:"birdie",d:"golf score one under par"},
+  {w:"gibed",d:"past of gibe"},
+  {w:"bride",d:"woman on her wedding day"},
+  {w:"gride",d:"make harsh scraping sound"},
+  {w:"gripe",d:"complain persistently"},
+  {w:"ridge",d:"narrow raised strip"},
+  {w:"dirge",d:"slow mournful song"},
+  {w:"bird",d:"feathered flying animal"},
+  {w:"bide",d:"wait or stay"},
+  {w:"ride",d:"travel on a vehicle"},
+  {w:"dire",d:"extremely serious"},
+  {w:"gird",d:"encircle or prepare"},
+  {w:"bred",d:"past tense of breed"},
+  {w:"grid",d:"network of lines"},
+  {w:"ire",d:"intense anger"},
+  {w:"bid",d:"offer a price"},
+  {w:"rid",d:"free from something"},
+  {w:"rig",d:"equipment setup"},
+  {w:"big",d:"large in size"},
+  {w:"dig",d:"break up earth"},
+  {w:"bed",d:"furniture for sleeping"},
+  {w:"red",d:"the color red"},
+  {w:"reb",d:"Confederate soldier (informal)"},
+  {w:"brig",d:"ship's prison"}
+]},
+{l:["s","p","r","i","n","g"],a:[
+  {w:"spring",d:"season after winter or coil"},
+  {w:"prings",d:"variant plural of pring"},
+  {w:"grins",d:"wide smiles"},
+  {w:"rings",d:"circular bands"},
+  {w:"pings",d:"makes brief high sounds"},
+  {w:"sprig",d:"small stem with leaves"},
+  {w:"gipsy",d:"old term for Romani people"},
+  {w:"rips",d:"tears roughly"},
+  {w:"grip",d:"firm hold"},
+  {w:"grin",d:"wide smile"},
+  {w:"ring",d:"circular band"},
+  {w:"sing",d:"produce musical sounds"},
+  {w:"ping",d:"brief high sound"},
+  {w:"pin",d:"thin fastener"},
+  {w:"rip",d:"tear roughly"},
+  {w:"sir",d:"respectful address"},
+  {w:"gin",d:"alcoholic spirit"},
+  {w:"nip",d:"small bite"},
+  {w:"rig",d:"equipment setup"},
+  {w:"spin",d:"rotate quickly"},
+  {w:"snip",d:"cut with scissors"},
+  {w:"prig",d:"self-righteously moral person"},
+  {w:"gris",d:"grey (heraldry)"}
+]},
+{l:["s","w","e","e","t"],a:[
+  {w:"sweet",d:"pleasing taste or kind"},
+  {w:"steep",d:"sharply inclined"},
+  {w:"tweet",d:"bird call or social post"},
+  {w:"tewes",d:"plural form of tewe"},
+  {w:"weets",d:"dialect for knows"},
+  {w:"stew",d:"slow cooked dish"},
+  {w:"west",d:"direction of sunset"},
+  {w:"ewes",d:"female sheep"},
+  {w:"wee",d:"very small"},
+  {w:"set",d:"place or collection"},
+  {w:"sew",d:"stitch with needle"},
+  {w:"see",d:"perceive with eyes"},
+  {w:"tee",d:"golf starting platform"},
+  {w:"ewe",d:"female sheep"},
+  {w:"wet",d:"covered with water"},
+  {w:"wee",d:"very small"},
+  {w:"tew",d:"to work hard (dialect)"}
+]},
+{l:["b","r","e","a","d"],a:[
+  {w:"bread",d:"baked flour food"},
+  {w:"beard",d:"facial hair"},
+  {w:"bared",d:"uncovered or exposed"},
+  {w:"debar",d:"officially exclude from"},
+  {w:"bared",d:"made bare"},
+  {w:"dare",d:"have courage to do"},
+  {w:"bare",d:"uncovered surface"},
+  {w:"bead",d:"small decorative ball"},
+  {w:"read",d:"look at written words"},
+  {w:"dear",d:"beloved or expensive"},
+  {w:"bear",d:"large furry animal"},
+  {w:"dead",d:"no longer alive"},
+  {w:"bred",d:"raised or cultivated"},
+  {w:"drab",d:"dull and lacking color"},
+  {w:"brad",d:"type of nail"},
+  {w:"rad",d:"unit of radiation"},
+  {w:"bar",d:"rod or drinking venue"},
+  {w:"bad",d:"of poor quality"},
+  {w:"ear",d:"hearing organ"},
+  {w:"red",d:"the color red"},
+  {w:"bra",d:"undergarment"},
+  {w:"are",d:"plural form of be"},
+  {w:"era",d:"long historical period"},
+  {w:"bed",d:"furniture for sleeping"},
+  {w:"dab",d:"press gently"},
+  {w:"add",d:"combine or include"}
+]},
+{l:["f","r","o","s","t"],a:[
+  {w:"frost",d:"ice crystals on surfaces"},
+  {w:"forts",d:"defensive military buildings"},
+  {w:"forte",d:"one's strong point"},
+  {w:"strop",d:"sharpen on leather"},
+  {w:"sport",d:"athletic activity"},
+  {w:"rots",d:"decays"},
+  {w:"tors",d:"high rocky hills"},
+  {w:"sort",d:"arrange by type"},
+  {w:"fort",d:"defensive structure"},
+  {w:"for",d:"in favor of"},
+  {w:"rot",d:"decay or nonsense"},
+  {w:"tor",d:"high rocky hill"},
+  {w:"oft",d:"frequently (poetic)"},
+  {w:"ors",d:"plural of or"}
+]},
+{l:["s","c","h","o","o","l"],a:[
+  {w:"school",d:"place of learning"},
+  {w:"shoal",d:"shallow water or fish group"},
+  {w:"close",d:"near or to shut"},
+  {w:"slash",d:"cut with sweeping blow"},
+  {w:"cools",d:"becomes less warm"},
+  {w:"stools",d:"seats without backs"},
+  {w:"lochs",d:"Scottish lakes"},
+  {w:"cool",d:"moderately cold"},
+  {w:"loch",d:"Scottish lake"},
+  {w:"loos",d:"toilets (British)"},
+  {w:"hols",d:"holidays (informal)"},
+  {w:"loo",d:"toilet (British)"},
+  {w:"solo",d:"performed alone"},
+  {w:"holo",d:"prefix meaning whole"},
+  {w:"cols",d:"mountain passes"}
+]},
+{l:["p","l","a","n","e","t"],a:[
+  {w:"planet",d:"celestial body orbiting star"},
+  {w:"platen",d:"plate in printing press"},
+  {w:"leapt",d:"past tense of leap"},
+  {w:"panel",d:"flat section or group"},
+  {w:"atone",d:"make amends"},
+  {w:"latent",d:"hidden but potential"},
+  {w:"plane",d:"flat surface or aircraft"},
+  {w:"plant",d:"living green organism"},
+  {w:"panel",d:"flat rectangular section"},
+  {w:"leant",d:"past tense of lean"},
+  {w:"petal",d:"flower's colored part"},
+  {w:"penal",d:"relating to punishment"},
+  {w:"plan",d:"a proposal"},
+  {w:"tape",d:"adhesive strip"},
+  {w:"pant",d:"breathe rapidly"},
+  {w:"tale",d:"a story"},
+  {w:"pale",d:"light in color"},
+  {w:"plate",d:"flat dish"},
+  {w:"pleat",d:"fold in fabric"},
+  {w:"late",d:"after expected time"},
+  {w:"lane",d:"narrow road"},
+  {w:"lean",d:"thin or incline"},
+  {w:"pal",d:"friend"},
+  {w:"pan",d:"cooking vessel"},
+  {w:"pen",d:"writing instrument"},
+  {w:"pea",d:"small round vegetable"},
+  {w:"ten",d:"the number 10"},
+  {w:"net",d:"meshed material"},
+  {w:"ant",d:"small insect"},
+  {w:"tan",d:"light brown color"},
+  {w:"eat",d:"consume food"},
+  {w:"ate",d:"past tense of eat"},
+  {w:"nap",d:"short sleep"},
+  {w:"lap",d:"one circuit"},
+  {w:"ale",d:"type of beer"},
+  {w:"ape",d:"large primate"},
+  {w:"let",d:"allow or permit"},
+  {w:"pet",d:"domesticated animal"},
+  {w:"pant",d:"breathe hard"},
+  {w:"apt",d:"suitable or relevant"},
+  {w:"pat",d:"light friendly touch"},
+  {w:"tap",d:"gentle blow or faucet"},
+  {w:"nip",d:"small bite"}
+]},
+{l:["m","u","s","i","c"],a:[
+  {w:"music",d:"vocal or instrumental sound"},
+  {w:"scum",d:"layer of impurities"},
+  {w:"icum",d:"suffix form"},
+  {w:"ism",d:"distinctive practice or system"},
+  {w:"sum",d:"total of numbers"},
+  {w:"sim",d:"simulation"},
+  {w:"sic",d:"thus written in original"},
+  {w:"cum",d:"Latin for with"},
+  {w:"cis",d:"on this side"},
+  {w:"mic",d:"microphone"},
+  {w:"mus",d:"plural of mu"}
+]},
+{l:["f","a","m","i","l","y"],a:[
+  {w:"family",d:"group of related people"},
+  {w:"flamy",d:"resembling flame"},
+  {w:"aimy",d:"having aims"},
+  {w:"film",d:"thin layer or movie"},
+  {w:"fail",d:"not succeed"},
+  {w:"mail",d:"postal letters"},
+  {w:"maim",d:"wound seriously"},
+  {w:"alif",d:"first Arabic letter"},
+  {w:"flay",d:"strip the skin off"},
+  {w:"flam",d:"deceptive trick"},
+  {w:"yam",d:"starchy root vegetable"},
+  {w:"lam",d:"flee hastily"},
+  {w:"may",d:"possibility modal"},
+  {w:"lay",d:"put down flat"},
+  {w:"ail",d:"be ill"},
+  {w:"aim",d:"point toward target"},
+  {w:"fly",d:"move through air"},
+  {w:"elf",d:"mythical small being"},
+  {w:"elm",d:"type of tree"},
+  {w:"mil",d:"unit of thickness"},
+  {w:"ami",d:"friend (French)"},
+  {w:"yam",d:"sweet potato"}
+]},
+{l:["s","t","o","r","m"],a:[
+  {w:"storm",d:"violent weather event"},
+  {w:"tors",d:"rocky hill tops"},
+  {w:"mots",d:"witty sayings"},
+  {w:"mort",d:"death or hunting call"},
+  {w:"sort",d:"arrange by category"},
+  {w:"roms",d:"plural of rom"},
+  {w:"tor",d:"rocky hill"},
+  {w:"ors",d:"plural of or"},
+  {w:"rot",d:"decay"},
+  {w:"rom",d:"gypsy man"},
+  {w:"mot",d:"witty remark"},
+  {w:"most",d:"greatest amount"}
+]},
+{l:["d","r","e","a","m"],a:[
+  {w:"dream",d:"images during sleep"},
+  {w:"madr",d:"variant of madre"},
+  {w:"armed",d:"carrying weapons"},
+  {w:"dram",d:"small amount of whisky"},
+  {w:"mare",d:"female horse"},
+  {w:"dare",d:"have courage to"},
+  {w:"made",d:"past tense of make"},
+  {w:"read",d:"look at written words"},
+  {w:"dear",d:"beloved or expensive"},
+  {w:"dead",d:"no longer alive"},
+  {w:"mead",d:"alcoholic honey drink"},
+  {w:"dram",d:"unit of liquid measure"},
+  {w:"dame",d:"older respected woman"},
+  {w:"ramp",d:"sloped surface"},
+  {w:"ram",d:"male sheep"},
+  {w:"mad",d:"mentally ill or angry"},
+  {w:"red",d:"the color red"},
+  {w:"arm",d:"upper limb"},
+  {w:"are",d:"plural of be"},
+  {w:"era",d:"historical period"},
+  {w:"ear",d:"hearing organ"},
+  {w:"dam",d:"barrier across river"},
+  {w:"mar",d:"spoil or damage"},
+  {w:"rad",d:"unit of radiation"},
+  {w:"rem",d:"unit of radiation dose"},
+  {w:"med",d:"medicine (informal)"}
+]},
+{l:["j","u","m","p"],a:[
+  {w:"jump",d:"propel oneself upward"},
+  {w:"puma",d:"large wild cat"},
+  {w:"ump",d:"bump or judge"},
+  {w:"pup",d:"young dog"},
+  {w:"jum",d:"archaic variant of jump"},
+  {w:"mup",d:"dialect for a fool"}
+]},
+{l:["t","r","a","v","e","l"],a:[
+  {w:"travel",d:"journey from place to place"},
+  {w:"varlet",d:"archaic for rogue or scoundrel"},
+  {w:"laver",d:"large basin for washing"},
+  {w:"ravel",d:"untangle or confuse"},
+  {w:"trave",d:"crossbeam or stall"},
+  {w:"alter",d:"change or modify"},
+  {w:"alert",d:"watchful and ready"},
+  {w:"later",d:"at a subsequent time"},
+  {w:"rate",d:"measure of speed"},
+  {w:"vale",d:"valley"},
+  {w:"late",d:"after the expected time"},
+  {w:"rave",d:"talk wildly"},
+  {w:"lave",d:"wash"},
+  {w:"ravel",d:"separate into strands"},
+  {w:"tale",d:"a narrative"},
+  {w:"tale",d:"story"},
+  {w:"veal",d:"calf meat"},
+  {w:"real",d:"actually existing"},
+  {w:"lure",d:"entice with reward"},
+  {w:"avid",d:"enthusiastic"},
+  {w:"tare",d:"container weight"},
+  {w:"vat",d:"large tank or container"},
+  {w:"tar",d:"dark sticky liquid"},
+  {w:"vet",d:"animal doctor"},
+  {w:"let",d:"allow"},
+  {w:"art",d:"creative work"},
+  {w:"ate",d:"past tense of eat"},
+  {w:"eat",d:"consume"},
+  {w:"era",d:"historical period"},
+  {w:"ear",d:"hearing organ"},
+  {w:"are",d:"plural of be"},
+  {w:"rev",d:"engine revolution"},
+  {w:"lav",d:"lavatory (informal)"},
+  {w:"lave",d:"to wash"},
+  {w:"ale",d:"type of beer"},
+  {w:"lot",d:"a large amount"},
+  {w:"rot",d:"decay"}
+]},
+{l:["p","h","o","n","e"],a:[
+  {w:"phone",d:"device for communication"},
+  {w:"hone",d:"sharpen or refine"},
+  {w:"open",d:"not shut"},
+  {w:"peon",d:"unskilled laborer"},
+  {w:"nope",d:"informal for no"},
+  {w:"hope",d:"feeling of desire"},
+  {w:"poem",d:"literary verse composition"},
+  {w:"pone",d:"corn bread"},
+  {w:"cope",d:"deal with difficulties"},
+  {w:"ebon",d:"black (poetic)"},
+  {w:"hop",d:"jump on one leg"},
+  {w:"hen",d:"female chicken"},
+  {w:"pen",d:"writing instrument"},
+  {w:"hoe",d:"garden tool"},
+  {w:"pho",d:"Vietnamese noodle soup"},
+  {w:"nob",d:"person of wealth"},
+  {w:"eon",d:"very long period"},
+  {w:"one",d:"the number 1"},
+  {w:"hon",d:"term of endearment"}
+]},
+{l:["w","o","r","l","d"],a:[
+  {w:"world",d:"the earth and all life"},
+  {w:"dowry",d:"property a bride brings"},
+  {w:"rowdy",d:"noisy and disorderly"},
+  {w:"droit",d:"legal right"},
+  {w:"word",d:"unit of language"},
+  {w:"lord",d:"master or noble"},
+  {w:"told",d:"past tense of tell"},
+  {w:"drow",d:"spirit in folklore"},
+  {w:"flow",d:"move smoothly"},
+  {w:"lore",d:"body of knowledge"},
+  {w:"wold",d:"open hilly land"},
+  {w:"rod",d:"thin stick"},
+  {w:"low",d:"not high"},
+  {w:"row",d:"line of items"},
+  {w:"owl",d:"nocturnal bird"},
+  {w:"old",d:"having lived long"},
+  {w:"dol",d:"unit of pain"},
+  {w:"dow",d:"variant of dough"}
+]},
+{l:["c","o","m","p","u","t","e"],a:[
+  {w:"compute",d:"calculate mathematically"},
+  {w:"commute",d:"travel regularly to work"},
+  {w:"costume",d:"outfit for a character"},
+  {w:"compost",d:"organic garden fertilizer"},
+  {w:"output",d:"result of a process"},
+  {w:"upcome",d:"come upward"},
+  {w:"tempo",d:"speed of music"},
+  {w:"comet",d:"icy space body with tail"},
+  {w:"emote",d:"express emotion dramatically"},
+  {w:"coupé",d:"type of car body"},
+  {w:"mop",d:"floor cleaning tool"},
+  {w:"cup",d:"drinking vessel"},
+  {w:"cop",d:"a police officer"},
+  {w:"cot",d:"small portable bed"},
+  {w:"cut",d:"divide with blade"},
+  {w:"pom",d:"British person (informal)"},
+  {w:"pot",d:"cooking vessel"},
+  {w:"put",d:"place something"},
+  {w:"top",d:"highest point"},
+  {w:"mote",d:"tiny speck of dust"},
+  {w:"tome",d:"large heavy book"},
+  {w:"poem",d:"literary verse"},
+  {w:"cope",d:"deal with difficulty"},
+  {w:"come",d:"move toward"},
+  {w:"cute",d:"attractive and appealing"},
+  {w:"mute",d:"silent or unable to speak"},
+  {w:"tope",d:"type of shark"},
+  {w:"cupe",d:"variant of cup"}
+]},
+{l:["s","u","m","m","e","r"],a:[
+  {w:"summer",d:"warmest season of year"},
+  {w:"simmer",d:"cook just below boiling"},
+  {w:"rummer",d:"large drinking glass"},
+  {w:"mures",d:"plural of mure"},
+  {w:"ruse",d:"clever trick or scheme"},
+  {w:"sure",d:"certain or confident"},
+  {w:"muse",d:"think deeply or deity"},
+  {w:"rues",d:"regrets bitterly"},
+  {w:"emur",d:"variant of emu"},
+  {w:"rum",d:"alcoholic spirit"},
+  {w:"sue",d:"take legal action"},
+  {w:"sum",d:"total of numbers"},
+  {w:"use",d:"employ for purpose"},
+  {w:"emu",d:"large flightless bird"},
+  {w:"rue",d:"feel regret for"},
+  {w:"rem",d:"unit of radiation"},
+  {w:"mes",d:"musical note"},
+  {w:"muse",d:"source of inspiration"}
+]},
+{l:["b","o","t","t","l","e"],a:[
+  {w:"bottle",d:"glass container for liquids"},
+  {w:"bolted",d:"fastened with a bolt"},
+  {w:"toeble",d:"step gently"},
+  {w:"tobble",d:"stumble (dialect)"},
+  {w:"belt",d:"strap worn around waist"},
+  {w:"bolt",d:"metal fastening pin"},
+  {w:"lobe",d:"rounded projecting part"},
+  {w:"lobe",d:"rounded division of an organ"},
+  {w:"robe",d:"long loose garment"},
+  {w:"tole",d:"painted metalwork"},
+  {w:"blot",d:"mark of ink"},
+  {w:"oboe",d:"woodwind instrument"},
+  {w:"tell",d:"communicate information"},
+  {w:"bell",d:"hollow metal instrument"},
+  {w:"bot",d:"type of larva"},
+  {w:"lot",d:"large amount"},
+  {w:"let",d:"allow"},
+  {w:"toe",d:"digit on foot"},
+  {w:"obe",d:"honor (abbreviation)"},
+  {w:"ole",d:"exclamation of approval"},
+  {w:"bet",d:"wager or gamble"},
+  {w:"lob",d:"throw in high arc"},
+  {w:"tob",d:"tub (dialect)"},
+  {w:"elt",d:"archaic past of go"}
+]},
+{l:["f","r","i","e","n","d"],a:[
+  {w:"friend",d:"person you know and like"},
+  {w:"finder",d:"one who finds something"},
+  {w:"refined",d:"elegant and cultured"},
+  {w:"fined",d:"required to pay a fine"},
+  {w:"fiend",d:"very wicked person"},
+  {w:"fined",d:"penalized"},
+  {w:"diner",d:"person eating or restaurant"},
+  {w:"fired",d:"dismissed from job"},
+  {w:"rind",d:"outer skin of fruit"},
+  {w:"ride",d:"travel on a vehicle"},
+  {w:"rife",d:"widespread"},
+  {w:"find",d:"discover something"},
+  {w:"fire",d:"burning combustion"},
+  {w:"fide",d:"in good faith"},
+  {w:"fine",d:"of high quality"},
+  {w:"dine",d:"eat dinner"},
+  {w:"dine",d:"have a meal"},
+  {w:"fern",d:"leafy plant without seeds"},
+  {w:"rein",d:"strap to control horse"},
+  {w:"nerd",d:"studious intellectual"},
+  {w:"rife",d:"full of something bad"},
+  {w:"fir",d:"type of evergreen tree"},
+  {w:"den",d:"small private room"},
+  {w:"din",d:"loud confusing noise"},
+  {w:"end",d:"final point"},
+  {w:"fen",d:"low marshy ground"},
+  {w:"ire",d:"intense anger"},
+  {w:"red",d:"the color red"},
+  {w:"rid",d:"free from something"},
+  {w:"ref",d:"referee"}
+]},
+{l:["v","o","i","c","e"],a:[
+  {w:"voice",d:"sound produced by speaking"},
+  {w:"voile",d:"thin semi-transparent fabric"},
+  {w:"evict",d:"expel from property"},
+  {w:"ovice",d:"new to something"},
+  {w:"ovic",d:"relating to eggs"},
+  {w:"vice",d:"immoral behavior"},
+  {w:"vole",d:"small rodent"},
+  {w:"cove",d:"small bay or nook"},
+  {w:"coin",d:"metal money piece"},
+  {w:"coif",d:"hairstyle"},
+  {w:"ovic",d:"egg-related"},
+  {w:"evo",d:"evolution (informal)"},
+  {w:"ice",d:"frozen water"},
+  {w:"voe",d:"small bay"},
+  {w:"oci",d:"plural of oculus"}
+]},
+{l:["m","o","u","n","t","a","i","n"],a:[
+  {w:"mountain",d:"large natural elevation"},
+  {w:"mutation",d:"change in genetic code"},
+  {w:"munition",d:"military weapon supply"},
+  {w:"moaning",d:"making mournful sounds"},
+  {w:"amount",d:"quantity of something"},
+  {w:"motion",d:"movement or proposal"},
+  {w:"nation",d:"large group of people"},
+  {w:"mania",d:"extreme enthusiasm"},
+  {w:"among",d:"in the middle of"},
+  {w:"amino",d:"relating to amino acids"},
+  {w:"mount",d:"climb up or horse"},
+  {w:"moat",d:"water-filled ditch"},
+  {w:"month",d:"one of twelve divisions"},
+  {w:"moan",d:"make low sound of pain"},
+  {w:"mint",d:"aromatic herb or fresh"},
+  {w:"main",d:"most important"},
+  {w:"anti",d:"opposed to something"},
+  {w:"anum",d:"per year (Latin)"},
+  {w:"atom",d:"smallest unit of element"},
+  {w:"iota",d:"very small amount"},
+  {w:"into",d:"to the inside of"},
+  {w:"moan",d:"expression of pain"},
+  {w:"mini",d:"very small"},
+  {w:"noun",d:"person place or thing"},
+  {w:"aunt",d:"parent's sister"},
+  {w:"unit",d:"single thing"},
+  {w:"tuna",d:"large ocean fish"},
+  {w:"nut",d:"hard-shelled seed"},
+  {w:"out",d:"away from inside"},
+  {w:"aim",d:"point at a target"},
+  {w:"tin",d:"metal container"},
+  {w:"ion",d:"charged atom"},
+  {w:"tan",d:"light brown"},
+  {w:"man",d:"adult male human"},
+  {w:"nit",d:"louse egg"},
+  {w:"ani",d:"tropical bird"},
+  {w:"mat",d:"flat floor covering"}
+]},
+{l:["s","h","i","n","e"],a:[
+  {w:"shine",d:"emit bright light"},
+  {w:"hines",d:"plural of hine (servant)"},
+  {w:"heist",d:"a robbery"},
+  {w:"shone",d:"past tense of shine"},
+  {w:"snide",d:"derogatory and indirect"},
+  {w:"dines",d:"eats dinner"},
+  {w:"hins",d:"unit of liquid measure"},
+  {w:"shin",d:"front of lower leg"},
+  {w:"sins",d:"immoral acts"},
+  {w:"sine",d:"trigonometric function"},
+  {w:"nice",d:"pleasant or agreeable"},
+  {w:"hens",d:"female chickens"},
+  {w:"nosh",d:"snack food"},
+  {w:"she",d:"female pronoun"},
+  {w:"his",d:"belonging to him"},
+  {w:"hen",d:"female chicken"},
+  {w:"ish",d:"somewhat (informal)"},
+  {w:"sin",d:"immoral act"},
+  {w:"ins",d:"positions of influence"},
+  {w:"hin",d:"unit of liquid measure"}
+]},
+{l:["c","l","e","v","e","r"],a:[
+  {w:"clever",d:"skilled and quick to learn"},
+  {w:"cleve",d:"to cleave (archaic)"},
+  {w:"revel",d:"enjoy oneself boisterously"},
+  {w:"lever",d:"rigid bar for lifting"},
+  {w:"excel",d:"be very good at"},
+  {w:"creel",d:"basket for fish"},
+  {w:"level",d:"flat and horizontal"},
+  {w:"velvet",d:"soft woven fabric"},
+  {w:"ever",d:"at any time"},
+  {w:"even",d:"flat or equal"},
+  {w:"leer",d:"look unpleasantly"},
+  {w:"heel",d:"back of foot"},
+  {w:"reel",d:"spool or dance"},
+  {w:"lee",d:"shelter from wind"},
+  {w:"rev",d:"engine revolution"},
+  {w:"eel",d:"snake-like fish"},
+  {w:"eve",d:"day before"},
+  {w:"eel",d:"slippery fish"}
+]},
+{l:["a","b","c","d","e","f","g"],a:[
+  {w:"badge",d:"identifying marker or emblem"},
+  {w:"faded",d:"lost brightness"},
+  {w:"faced",d:"confronted directly"},
+  {w:"caged",d:"confined in a cage"},
+  {w:"bead",d:"small decorative ball"},
+  {w:"beg",d:"ask humbly"},
+  {w:"bed",d:"furniture for sleeping"},
+  {w:"bad",d:"of poor quality"},
+  {w:"cab",d:"taxi vehicle"},
+  {w:"dab",d:"press gently"},
+  {w:"fad",d:"temporary fashion"},
+  {w:"gab",d:"idle chatter"},
+  {w:"age",d:"length of life"},
+  {w:"ace",d:"expert or top card"},
+  {w:"aced",d:"passed easily"},
+  {w:"cage",d:"enclosure with bars"},
+  {w:"bade",d:"past of bid"},
+  {w:"fade",d:"lose color gradually"},
+  {w:"face",d:"front of head"},
+  {w:"café",d:"small restaurant"},
+  {w:"dace",d:"small freshwater fish"},
+  {w:"abode",d:"place where one lives"},
+  {w:"deaf",d:"unable to hear"}
+]},
+{l:["q","u","i","c","k"],a:[
+  {w:"quick",d:"fast and prompt"},
+  {w:"quik",d:"variant spelling"},
+  {w:"kick",d:"strike with foot"},
+  {w:"wick",d:"cord in a candle"},
+  {w:"sick",d:"physically ill"},
+  {w:"ick",d:"expression of disgust"},
+  {w:"qui",d:"Latin for who"}
+]},
+{l:["h","a","p","p","y"],a:[
+  {w:"happy",d:"feeling pleasure or joy"},
+  {w:"hypha",d:"thread of fungal growth"},
+  {w:"yap",d:"bark shrilly"},
+  {w:"pah",d:"exclamation of contempt"},
+  {w:"pay",d:"give money for"},
+  {w:"hay",d:"dried grass"},
+  {w:"yah",d:"informal yes"},
+  {w:"app",d:"software application"},
+  {w:"hap",d:"luck or fortune"},
+  {w:"apt",d:"appropriate and suitable"},
+  {w:"yap",d:"high-pitched bark"},
+  {w:"aph",d:"aphid (abbreviation)"}
+]},
+{l:["s","l","e","e","p"],a:[
+  {w:"sleep",d:"state of rest"},
+  {w:"seep",d:"ooze slowly through"},
+  {w:"peel",d:"remove outer layer"},
+  {w:"pees",d:"urinates"},
+  {w:"else",d:"in addition or otherwise"},
+  {w:"eels",d:"snake-like fish"},
+  {w:"lees",d:"sediment at bottom"},
+  {w:"eel",d:"snake-like fish"},
+  {w:"see",d:"perceive visually"},
+  {w:"pee",d:"urinate"},
+  {w:"lee",d:"shelter from wind"},
+  {w:"seep",d:"flow through slowly"},
+  {w:"peel",d:"strip outer layer"},
+  {w:"eel",d:"slippery elongated fish"},
+  {w:"les",d:"the (French)"},
+  {w:"els",d:"plural of el"},
+  {w:"see",d:"use eyes to perceive"}
+]},
+{l:["r","a","i","n","b","o","w"],a:[
+  {w:"rainbow",d:"arc of spectrum colors"},
+  {w:"brawn",d:"physical strength"},
+  {w:"brownie",d:"small chocolate cake"},
+  {w:"brownie",d:"helpful sprite"},
+  {w:"baron",d:"nobleman or powerful person"},
+  {w:"brain",d:"organ of thought"},
+  {w:"brawn",d:"muscular strength"},
+  {w:"noir",d:"dark crime genre"},
+  {w:"born",d:"come into existence"},
+  {w:"worn",d:"used extensively"},
+  {w:"brow",d:"forehead"},
+  {w:"rain",d:"water falling from clouds"},
+  {w:"roan",d:"red-brown horse"},
+  {w:"boar",d:"male pig"},
+  {w:"barn",d:"farm building"},
+  {w:"wabi",d:"Japanese aesthetic"},
+  {w:"wand",d:"slender magic stick"},
+  {w:"war",d:"armed conflict"},
+  {w:"row",d:"line of things"},
+  {w:"raw",d:"uncooked"},
+  {w:"ran",d:"past of run"},
+  {w:"rib",d:"chest bone"},
+  {w:"rob",d:"take by force"},
+  {w:"bow",d:"weapon or bend forward"},
+  {w:"own",d:"possess"},
+  {w:"now",d:"at this moment"},
+  {w:"nor",d:"and not"},
+  {w:"ion",d:"charged particle"},
+  {w:"oar",d:"rowing paddle"},
+  {w:"nob",d:"person of wealth"},
+  {w:"bin",d:"container for waste"},
+  {w:"ban",d:"officially prohibit"}
+]},
+{l:["e","m","p","t","y"],a:[
+  {w:"empty",d:"containing nothing"},
+  {w:"tempy",d:"temporary worker (informal)"},
+  {w:"met",d:"past tense of meet"},
+  {w:"yet",d:"still or up to now"},
+  {w:"yep",d:"informal yes"},
+  {w:"pet",d:"domesticated animal"},
+  {w:"mete",d:"allot or distribute"},
+  {w:"tyme",d:"old spelling of time"},
+  {w:"type",d:"category or keyboard"},
+  {w:"tymp",d:"part of a furnace"},
+  {w:"temp",d:"temporary worker"},
+  {w:"my",d:"belonging to me"},
+  {w:"me",d:"objective case of I"},
+  {w:"ye",d:"you (archaic)"}
+]},
+{l:["g","l","o","b","a","l"],a:[
+  {w:"global",d:"relating to the whole world"},
+  {w:"gloab",d:"archaic variant"},
+  {w:"lobal",d:"relating to lobes"},
+  {w:"bloat",d:"swell with gas or liquid"},
+  {w:"log",d:"record or wood chunk"},
+  {w:"lab",d:"laboratory"},
+  {w:"gab",d:"idle talk"},
+  {w:"lob",d:"throw in high arc"},
+  {w:"gal",d:"informal for girl"},
+  {w:"bog",d:"wet spongy ground"},
+  {w:"bag",d:"flexible container"},
+  {w:"lag",d:"fall behind"},
+  {w:"alb",d:"white liturgical robe"},
+  {w:"boa",d:"large snake"},
+  {w:"old",d:"having lived long"},
+  {w:"gob",d:"lump or mouth"},
+  {w:"lob",d:"throw gently"},
+  {w:"ago",d:"in the past"},
+  {w:"ogle",d:"stare at rudely"},
+  {w:"glob",d:"small round mass"},
+  {w:"goal",d:"aim or scoring point"},
+  {w:"gaol",d:"jail (British)"}
+]},
+{l:["d","a","n","c","e"],a:[
+  {w:"dance",d:"move rhythmically to music"},
+  {w:"acned",d:"having acne"},
+  {w:"lanced",d:"cut with a lance"},
+  {w:"caned",d:"hit with a cane"},
+  {w:"cadence",d:"rhythm of sound"},
+  {w:"caned",d:"woven with strips"},
+  {w:"dace",d:"small freshwater fish"},
+  {w:"cane",d:"walking stick or plant"},
+  {w:"acne",d:"skin condition"},
+  {w:"dean",d:"head of faculty"},
+  {w:"den",d:"small private room"},
+  {w:"and",d:"also or plus"},
+  {w:"can",d:"metal container"},
+  {w:"end",d:"final point"},
+  {w:"ace",d:"expert or top card"},
+  {w:"aced",d:"performed excellently"},
+  {w:"cad",d:"dishonorable man"},
+  {w:"nod",d:"move head down and up"},
+  {w:"den",d:"animal lair"},
+  {w:"ane",d:"one (dialect)"},
+  {w:"cade",d:"type of juniper"},
+  {w:"an",d:"indefinite article"}
+]},
+{l:["r","o","c","k","e","t"],a:[
+  {w:"rocket",d:"vehicle propelled by thrust"},
+  {w:"corset",d:"tight undergarment"},
+  {w:"stork",d:"long-legged wading bird"},
+  {w:"stocke",d:"archaic form of stock"},
+  {w:"locker",d:"secure storage compartment"},
+  {w:"trock",d:"barter (dialect)"},
+  {w:"token",d:"symbol or voucher"},
+  {w:"comet",d:"icy space body"},
+  {w:"treck",d:"variant of trek"},
+  {w:"tore",d:"past tense of tear"},
+  {w:"core",d:"central part"},
+  {w:"cork",d:"tree bark stopper"},
+  {w:"tock",d:"clock sound"},
+  {w:"rock",d:"hard mineral matter"},
+  {w:"reck",d:"have care for (archaic)"},
+  {w:"coke",d:"type of fuel or drink"},
+  {w:"toe",d:"digit on foot"},
+  {w:"roe",d:"fish eggs"},
+  {w:"ore",d:"mineral-bearing rock"},
+  {w:"rot",d:"decay"},
+  {w:"cot",d:"small bed"},
+  {w:"ork",d:"type of whale"},
+  {w:"oke",d:"exclamation (dialect)"},
+  {w:"trek",d:"long arduous journey"}
+]},
+{l:["p","u","z","z","l","e"],a:[
+  {w:"puzzle",d:"something hard to understand"},
+  {w:"lepuz",d:"hare (archaic Latin)"},
+  {w:"lez",d:"informal form"},
+  {w:"lop",d:"cut branches from"},
+  {w:"pul",d:"Afghan coin"},
+  {w:"zep",d:"zeppelin (informal)"},
+  {w:"pep",d:"vigor and energy"},
+  {w:"lue",d:"variant of lieu"},
+  {w:"ule",d:"suffix for small"},
+  {w:"pal",d:"close friend"},
+  {w:"pup",d:"young dog"},
+  {w:"el",d:"elevated railway"},
+  {w:"up",d:"toward higher place"},
+  {w:"le",d:"the (French)"},
+  {w:"pule",d:"whine feebly"}
+]},
+{l:["h","e","a","r","t"],a:[
+  {w:"heart",d:"organ that pumps blood"},
+  {w:"earth",d:"our planet"},
+  {w:"hater",d:"one who hates"},
+  {w:"rathe",d:"early (archaic)"},
+  {w:"share",d:"portion given to others"},
+  {w:"shear",d:"cut or force apart"},
+  {w:"hater",d:"person full of hate"},
+  {w:"hate",d:"feel intense dislike"},
+  {w:"heat",d:"high temperature"},
+  {w:"hear",d:"perceive sound"},
+  {w:"hare",d:"fast running animal"},
+  {w:"tear",d:"rip apart or eye drop"},
+  {w:"rate",d:"measure of speed"},
+  {w:"rare",d:"not often found"},
+  {w:"tare",d:"container weight"},
+  {w:"hard",d:"solid or difficult"},
+  {w:"herd",d:"group of animals"},
+  {w:"hair",d:"thread growing from skin"},
+  {w:"heir",d:"person to inherit"},
+  {w:"hire",d:"pay for services"},
+  {w:"here",d:"in this place"},
+  {w:"hare",d:"fast rabbit-like animal"},
+  {w:"art",d:"creative expression"},
+  {w:"eat",d:"consume food"},
+  {w:"ear",d:"hearing organ"},
+  {w:"tar",d:"dark sticky substance"},
+  {w:"hat",d:"head covering"},
+  {w:"rat",d:"small rodent"},
+  {w:"are",d:"plural of be"},
+  {w:"era",d:"historical period"},
+  {w:"her",d:"belonging to a female"},
+  {w:"the",d:"definite article"},
+  {w:"tea",d:"hot drink"},
+  {w:"set",d:"collection"},
+  {w:"hark",d:"listen carefully"}
+]},
+{l:["s","n","o","w","f","l","a","k","e"],a:[
+  {w:"snowflake",d:"unique ice crystal"},
+  {w:"snakewolf",d:"mythical creature"},
+  {w:"wokeness",d:"social awareness"},
+  {w:"slakone",d:"variant"},
+  {w:"wolfish",d:"resembling a wolf"},
+  {w:"flakes",d:"thin flat pieces"},
+  {w:"snakes",d:"legless reptiles"},
+  {w:"woken",d:"past participle of wake"},
+  {w:"flesh",d:"soft tissue of body"},
+  {w:"flask",d:"flat container for liquid"},
+  {w:"flake",d:"thin flat piece"},
+  {w:"snake",d:"legless reptile"},
+  {w:"awoke",d:"past tense of awake"},
+  {w:"swank",d:"stylishly smart"},
+  {w:"salon",d:"beauty or hair shop"},
+  {w:"alone",d:"without others"},
+  {w:"novel",d:"new and unusual"},
+  {w:"woken",d:"roused from sleep"},
+  {w:"kneel",d:"rest on knees"},
+  {w:"novel",d:"book-length fiction"},
+  {w:"flows",d:"moves smoothly"},
+  {w:"knows",d:"has knowledge of"},
+  {w:"slew",d:"large number"},
+  {w:"flew",d:"past of fly"},
+  {w:"flown",d:"past participle of fly"},
+  {w:"wolf",d:"wild canine predator"},
+  {w:"folk",d:"people in general"},
+  {w:"sole",d:"only or bottom of foot"},
+  {w:"lake",d:"large body of water"},
+  {w:"lane",d:"narrow road"},
+  {w:"lemon",d:"sour yellow fruit"},
+  {w:"lean",d:"thin or incline"},
+  {w:"oak",d:"type of tree"},
+  {w:"oaf",d:"clumsy stupid person"},
+  {w:"elf",d:"small magical being"},
+  {w:"elk",d:"large deer"},
+  {w:"woe",d:"great sorrow"},
+  {w:"woke",d:"aware of social issues"},
+  {w:"knew",d:"past of know"},
+  {w:"kneel",d:"go down on knees"},
+  {w:"fowl",d:"domestic bird"},
+  {w:"fawn",d:"young deer or pale yellow"},
+  {w:"foe",d:"enemy"},
+  {w:"fan",d:"device for cooling"},
+  {w:"fake",d:"not genuine"},
+  {w:"floe",d:"floating sheet of ice"},
+  {w:"flow",d:"move steadily"},
+  {w:"low",d:"not high"},
+  {w:"ale",d:"type of beer"},
+  {w:"elf",d:"small magical being"},
+  {w:"son",d:"male child"},
+  {w:"sow",d:"female pig"},
+  {w:"now",d:"at present"},
+  {w:"new",d:"recently made"},
+  {w:"oak",d:"hardwood tree"},
+  {w:"owe",d:"be in debt"},
+  {w:"own",d:"possess"},
+  {w:"one",d:"single unit"},
+  {w:"sea",d:"large body of salt water"},
+  {w:"saw",d:"past of see or cutting tool"},
+  {w:"snow",d:"frozen precipitation"},
+  {w:"sole",d:"only or underside of foot"},
+  {w:"self",d:"one's own identity"},
+  {w:"else",d:"in addition"},
+  {w:"eels",d:"snake-like fish"},
+  {w:"eon",d:"very long time period"},
+  {w:"ken",d:"range of knowledge"},
+  {w:"naked",d:"without clothes"},
+  {w:"knave",d:"dishonest person"}
+]},
+{l:["b","r","i","g","h","t"],a:[
+  {w:"bright",d:"shining with strong light"},
+  {w:"girth",d:"measurement around waist"},
+  {w:"grith",d:"sanctuary or peace (archaic)"},
+  {w:"right",d:"correct or direction"},
+  {w:"bight",d:"curve in a coastline"},
+  {w:"might",d:"past of may or great power"},
+  {w:"birth",d:"coming into existence"},
+  {w:"grit",d:"fine sand or determination"},
+  {w:"brit",d:"British person (informal)"},
+  {w:"girt",d:"past of gird"},
+  {w:"girth",d:"circumference"},
+  {w:"rig",d:"equipment setup"},
+  {w:"bit",d:"small amount or binary unit"},
+  {w:"hit",d:"strike forcefully"},
+  {w:"big",d:"large in size"}
+]},
+{l:["s","o","u","n","d"],a:[
+  {w:"sound",d:"vibrations perceived by ear"},
+  {w:"donus",d:"variant of donas"},
+  {w:"modus",d:"mode or manner"},
+  {w:"pounds",d:"weight units or strikes"},
+  {w:"dunos",d:"variant plural"},
+  {w:"nods",d:"moves head up and down"},
+  {w:"undo",d:"reverse an action"},
+  {w:"don",d:"put on or university teacher"},
+  {w:"dun",d:"dull greyish brown"},
+  {w:"dons",d:"puts on or university lecturers"},
+  {w:"snod",d:"smooth and trim (dialect)"},
+  {w:"sous",d:"plural of sou"},
+  {w:"oud",d:"stringed instrument"},
+  {w:"sun",d:"our star"},
+  {w:"son",d:"male child"},
+  {w:"sod",d:"surface of grassy soil"},
+  {w:"nod",d:"move head down and up"},
+  {w:"nos",d:"plural of no"},
+  {w:"duo",d:"pair of performers"},
+  {w:"nus",d:"plural of nu"},
+  {w:"ods",d:"exclamation (archaic)"},
+  {w:"uns",d:"ones (dialect)"},
+  {w:"ous",d:"plural suffix"}
+]}
+];
+
+/* ---- STATE ---- */
+let currentSetIdx  = 0;
+let lastSetIdx = -1;
+let letters        = [];
+let validWords     = [];
+let found          = [];
+let currentWord    = "";
+let usedIndexes    = [];
+let score          = 0;
+let timerCount     = 0;
+let timerInterval  = null;
+let mode           = "relax";
+let feedbackTimeout = null;
+let toastTimeout   = null;
+
+/* ---- DOM REFS ---- */
+const gameEl      = document.getElementById("game");
+const menuEl      = document.getElementById("menu");
+const lettersEl   = document.getElementById("lettersEl");
+const currentEl   = document.getElementById("currentWord");
+const foundWordsEl= document.getElementById("foundWords");
+const foundCountEl= document.getElementById("foundCount");
+const totalCountEl= document.getElementById("totalCount");
+const scoreEl     = document.getElementById("score");
+const timerEl     = document.getElementById("timer");
+const timerValEl  = document.getElementById("timerVal");
+const progressEl  = document.getElementById("progressFill");
+const overlayEl   = document.getElementById("overlay");
+const setLabelEl  = document.getElementById("setLabel");
+
+/* =====================
+   START
+   ===================== */
+function startGame(selectedMode) {
+  mode = selectedMode;
+  menuEl.style.display = "none";
+  gameEl.style.display = "block";
+  score = 0;
+  scoreEl.textContent = score;
+
+  // Pick a random set (not same as last one)
+  let newIdx;
+  do {
+    newIdx = Math.floor(Math.random() * SETS.length);
+  } while (newIdx === lastSetIdx);
+
+  lastSetIdx = newIdx;
+  currentSetIdx = newIdx;
+
+  if (mode === "focus") {
+    timerCount = 180;
+    timerValEl.textContent = timerCount;
+    startTimer();
+  } else {
+    timerValEl.textContent = "∞";
+  }
+
+  loadSet();
+}
+
+/* =====================
+   LOAD SET
+   ===================== */
+function loadSet() {
+  const set = SETS[currentSetIdx % SETS.length];
+  letters = [...set.l];
+  validWords = set.a;
+  found = [];
+  currentWord = "";
+  usedIndexes = [];
+
+  setLabelEl.textContent = "SET " + (currentSetIdx + 1);
+  totalCountEl.textContent = validWords.length;
+  foundCountEl.textContent = 0;
+  foundWordsEl.innerHTML = "";
+  updateProgress();
+  shuffleInPlace();
+  renderLetters();
+}
+
+/* =====================
+   LETTERS UI
+   ===================== */
+function renderLetters() {
+  lettersEl.innerHTML = "";
+  currentWord = "";
+  usedIndexes = [];
+  letters.forEach((l, i) => {
+    const d = document.createElement("div");
+    d.className = "letter";
+    d.textContent = l.toUpperCase();
+    d.dataset.idx = i;
+
+    // order badge
+    const badge = document.createElement("span");
+    badge.className = "order";
+    badge.textContent = "";
+    d.appendChild(badge);
+
+    d.addEventListener("click", () => selectLetter(i));
+    lettersEl.appendChild(d);
+  });
+  updateCurrentDisplay();
+}
+
+function selectLetter(i) {
+  if (usedIndexes.includes(i)) return;
+  usedIndexes.push(i);
+  currentWord += letters[i];
+  updateCurrentDisplay();
+  updateLetterUI();
+}
+
+function updateCurrentDisplay() {
+  currentEl.textContent = currentWord.toUpperCase() || "";
+  currentEl.className = "current";
+}
+
+function updateLetterUI() {
+  const allLetters = lettersEl.querySelectorAll(".letter");
+  allLetters.forEach((el, i) => {
+    const pos = usedIndexes.indexOf(i);
+    if (pos >= 0) {
+      el.classList.add("selected");
+      el.classList.remove("used");
+      el.querySelector(".order").textContent = pos + 1;
+    } else {
+      el.classList.remove("selected");
+      el.classList.remove("used");
+      el.querySelector(".order").textContent = "";
+    }
+  });
+}
+
+function clearWord() {
+  currentWord = "";
+  usedIndexes = [];
+  updateCurrentDisplay();
+  updateLetterUI();
+}
+
+/* =====================
+   SUBMIT
+   ===================== */
+function submitWord() {
+  const word = currentWord.toLowerCase().trim();
+  if (!word) return;
+
+  const match = validWords.find(w => w.w === word);
+  if (match) {
+    if (found.includes(word)) {
+      // already found
+      currentEl.className = "current duplicate";
+      showToast("Already found: " + word.toUpperCase(), "dup");
+    } else {
+      // valid new word!
+      found.push(word);
+      score += word.length;
+      scoreEl.textContent = score;
+      foundCountEl.textContent = found.length;
+      updateProgress();
+      addFoundChip(word);
+      currentEl.className = "current valid";
+      showToast("+" + word.length + " pts — " + match.d, "good");
+
+      // auto-advance if all found
+      if (found.length === validWords.length) {
+        setTimeout(showSummary, 700);
+      }
+    }
+  } else {
+    // invalid
+    currentEl.className = "current invalid";
+    showToast("Not in list", "bad");
+  }
+
+  setTimeout(clearWord, 350);
+}
+
+function addFoundChip(word) {
+  const chip = document.createElement("span");
+  chip.className = "found-chip";
+  chip.textContent = word;
+  foundWordsEl.appendChild(chip);
+  foundWordsEl.parentElement.scrollTop = foundWordsEl.parentElement.scrollHeight;
+}
+
+function updateProgress() {
+  const pct = validWords.length ? (found.length / validWords.length) * 100 : 0;
+  progressEl.style.width = pct + "%";
+}
+
+/* =====================
+   SHUFFLE
+   ===================== */
+function shuffleInPlace() {
+  for (let i = letters.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+}
+
+function shuffleAndRender() {
+  shuffleInPlace();
+  renderLetters();
+}
+
+/* =====================
+   SKIP
+   ===================== */
+function skipSet() {
+  showSummary();
+}
+
+/* =====================
+   TIMER
+   ===================== */
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timerCount--;
+    timerValEl.textContent = timerCount;
+    if (timerCount <= 20) {
+      timerEl.classList.add("urgent");
+    }
+    if (timerCount <= 0) {
+      clearInterval(timerInterval);
+      showSummary();
+    }
+  }, 1000);
+}
+
+/* =====================
+   SUMMARY
+   ===================== */
+function showSummary() {
+  if (mode === "focus") {
+    clearInterval(timerInterval);
+  }
+
+  document.getElementById("resultScore").textContent = "Score: " + score;
+  document.getElementById("resultSub").textContent =
+    found.length + " / " + validWords.length + " words found";
+
+  const defList = document.getElementById("defList");
+  defList.innerHTML = "";
+
+  validWords.forEach(obj => {
+    const wasFound = found.includes(obj.w);
+    const item = document.createElement("div");
+    item.className = "def-item " + (wasFound ? "found-item def-found" : "missed-item");
+    item.innerHTML =
+      `<span class="def-word">${obj.w}</span>` +
+      `<span class="def-text">${wasFound ? "✓ " : ""}${obj.d}</span>`;
+    defList.appendChild(item);
+  });
+
+  overlayEl.classList.add("show");
+}
+
+/* =====================
+   NEXT / MENU
+   ===================== */
+function nextSet() {
+  overlayEl.classList.remove("show");
+  currentSetIdx++;
+  if (currentSetIdx >= SETS.length) currentSetIdx = 0;
+
+  // Reset timer for focus mode
+  if (mode === "focus") {
+    clearInterval(timerInterval);
+    timerCount = 180;
+    timerValEl.textContent = timerCount;
+    timerEl.classList.remove("urgent");
+    startTimer();
+  }
+
+  loadSet();
+}
+
+function backToMenu() {
+  clearInterval(timerInterval);
+  location.reload();
+}
+
+/* =====================
+   TOAST
+   ===================== */
+function showToast(msg, type) {
+  const t = document.getElementById("toast");
+  clearTimeout(toastTimeout);
+  t.textContent = msg;
+  t.className = "toast show " + type;
+  toastTimeout = setTimeout(() => { t.className = "toast"; }, 2000);
+}
+
+/* =====================
+   KEYBOARD INPUT
+   ===================== */
+document.addEventListener("keydown", (e) => {
+  if (menuEl.style.display !== "none") return;
+
+  const key = e.key;
+  if (key === "Enter") {
+    submitWord();
+    return;
+  }
+  if (key === "Backspace") {
+    if (currentWord.length > 0) {
+      // remove last selected
+      usedIndexes.pop();
+      currentWord = currentWord.slice(0, -1);
+      updateCurrentDisplay();
+      updateLetterUI();
+    }
+    return;
+  }
+  if (key === "Escape" || key === " ") {
+    clearWord();
+    return;
+  }
+
+  // letter key
+  if (/^[a-zA-Z]$/.test(key)) {
+    const lk = key.toLowerCase();
+    // find first unused index with that letter
+    const idx = letters.findIndex((l, i) => l === lk && !usedIndexes.includes(i));
+    if (idx !== -1) {
+      selectLetter(idx);
+    }
+  }
+});
+</script>
+</body>
+</html>

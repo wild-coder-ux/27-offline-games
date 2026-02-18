@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Memory Match</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100vh;height:100dvh;padding:6px 8px;user-select:none}
+h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.dbtn{display:flex;gap:5px}
+.dbtn button{font-family:inherit;font-size:.6rem;font-weight:700;padding:4px 8px;border:none;border-radius:20px;background:#16213e;color:#888;cursor:pointer}
+.dbtn button.on{background:#e94560;color:#fff}
+.stats{display:flex;gap:10px}
+.stats span{font-family:monospace;font-size:.85rem;font-weight:700;color:#aaa}
+
+.board{display:grid;gap:6px;width:100%;max-width:380px;touch-action:manipulation}
+.card{
+  aspect-ratio:1;border-radius:10px;cursor:pointer;
+  perspective:400px;position:relative;
+}
+.card-inner{
+  width:100%;height:100%;position:relative;
+  transition:transform .4s;transform-style:preserve-3d;
+}
+.card.flipped .card-inner{transform:rotateY(180deg)}
+.card.matched .card-inner{transform:rotateY(180deg)}
+.card-front,.card-back{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  backface-visibility:hidden;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+}
+.card-back{
+  background:linear-gradient(135deg,#16213e,#1a2744);
+  border:2px solid #2a2a4a;
+  font-size:clamp(.8rem,3vw,1.2rem);color:#e94560;
+}
+.card-front{
+  background:#16213e;border:2px solid #4fc3f7;
+  transform:rotateY(180deg);
+  font-size:clamp(1.2rem,5vw,2rem);
+}
+.card.matched .card-front{border-color:#538d4e;background:rgba(83,141,78,.15)}
+.card.wrong .card-front{border-color:#e94560;background:rgba(233,69,96,.1)}
+
+.actions button{font-family:inherit;font-size:.7rem;font-weight:700;padding:6px 14px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
+
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
+.ov.show{visibility:visible;opacity:1}
+.ov h2{font-size:1.6rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem}
+.ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>MEMORY MATCH</h1>
+<div class="topbar">
+  <div class="dbtn" id="db">
+    <button data-d="4">4×3</button>
+    <button data-d="6" class="on">4×4</button>
+    <button data-d="10">5×4</button>
+  </div>
+  <div class="stats"><span id="mv">Moves: 0</span><span id="tmr">00:00</span></div>
+</div>
+<div class="board" id="brd"></div>
+<div class="actions"><button id="newBtn">↻ New</button></div>
+<div class="ov" id="ov"><h2>🎉 All Matched!</h2><p id="ovM"></p><button id="ovB">Play Again</button></div>
+<script>
+(function(){
+var EMOJIS=['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐸','🐵','🐔','🐧','🐦','🦋','🐌','🐝','🐙','🦀','🐡','🎲'];
+var CONFIGS={4:{pairs:6,cols:4,rows:3},6:{pairs:8,cols:4,rows:4},10:{pairs:10,cols:5,rows:4}};
+var size=6,cards,flipped,matched,moves,locked,tsec,tint,pairs;
+var brdEl=document.getElementById('brd'),mvEl=document.getElementById('mv'),tmrEl=document.getElementById('tmr');
+var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+function newGame(s){
+  if(s)size=s;
+  var cfg=CONFIGS[size];pairs=cfg.pairs;
+  var emojis=shuffle(EMOJIS.slice()).slice(0,pairs);
+  cards=shuffle(emojis.concat(emojis).map(function(e,i){return{emoji:e,id:i};}));
+  flipped=[];matched=new Set();moves=0;locked=false;
+  if(tint)clearInterval(tint);tsec=0;updT();
+  tint=setInterval(function(){tsec++;updT();},1000);
+  ov.className='ov';updD();render();
+}
+
+function updD(){var bs=document.getElementById('db').children;for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-d'))===size?'on':'';}
+function updT(){var m=Math.floor(tsec/60),s=tsec%60;tmrEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;}
+
+function render(){
+  var cfg=CONFIGS[size];
+  brdEl.innerHTML='';
+  brdEl.style.gridTemplateColumns='repeat('+cfg.cols+',1fr)';
+  for(var i=0;i<cards.length;i++){
+    var c=document.createElement('div');c.className='card';
+    if(matched.has(cards[i].emoji))c.classList.add('matched');
+    if(flipped.indexOf(i)>=0)c.classList.add('flipped');
+    c.setAttribute('data-i',i);
+    var inner=document.createElement('div');inner.className='card-inner';
+    var back=document.createElement('div');back.className='card-back';back.textContent='?';
+    var front=document.createElement('div');front.className='card-front';front.textContent=cards[i].emoji;
+    inner.appendChild(back);inner.appendChild(front);c.appendChild(inner);
+    brdEl.appendChild(c);
+  }
+  mvEl.textContent='Moves: '+moves;
+}
+
+function flip(idx){
+  if(locked||flipped.indexOf(idx)>=0||matched.has(cards[idx].emoji))return;
+  flipped.push(idx);
+  var el=brdEl.children[idx];el.classList.add('flipped');
+
+  if(flipped.length===2){
+    moves++;mvEl.textContent='Moves: '+moves;
+    locked=true;
+    var a=flipped[0],b=flipped[1];
+    if(cards[a].emoji===cards[b].emoji){
+      matched.add(cards[a].emoji);
+      setTimeout(function(){
+        brdEl.children[a].classList.add('matched');
+        brdEl.children[b].classList.add('matched');
+        flipped=[];locked=false;
+        if(matched.size===pairs){
+          clearInterval(tint);
+          var m=Math.floor(tsec/60),s=tsec%60;
+          ovM.textContent='Matched in '+moves+' moves, '+m+'m '+(s<10?'0':'')+s+'s';
+          setTimeout(function(){ov.className='ov show';},300);
+        }
+      },400);
+    }else{
+      setTimeout(function(){
+        brdEl.children[a].classList.add('wrong');
+        brdEl.children[b].classList.add('wrong');
+      },400);
+      setTimeout(function(){
+        brdEl.children[a].classList.remove('flipped','wrong');
+        brdEl.children[b].classList.remove('flipped','wrong');
+        flipped=[];locked=false;
+      },900);
+    }
+  }
+}
+
+brdEl.addEventListener('click',function(e){var t=e.target.closest('.card');if(!t)return;flip(parseInt(t.getAttribute('data-i')));});
+
+var dbs=document.getElementById('db').children;
+for(var i=0;i<dbs.length;i++){dbs[i].addEventListener('click',(function(b){return function(){newGame(parseInt(b.getAttribute('data-d')));};})(dbs[i]));}
+document.getElementById('newBtn').addEventListener('click',function(){newGame();});
+document.getElementById('ovB').addEventListener('click',function(){newGame();});
+newGame();
+})();
+</script>
+</body>
+</html>
