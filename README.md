@@ -1,84 +1,37 @@
+# 27 Offline Games
 
-No installation. No server required.
+A lightweight collection of 27 browser-based games.
 
-Everything runs fully offline.
-
----
-
-## 📱 Android Version
-
-This project also powers an Android WebView app version:
-
-**31 Offline Games – No Ads**
-
-The mobile app follows the same philosophy:
+Designed for:
+- Android WebView apps
+- Offline use
 - No ads
 - No tracking
-- Offline play
 
 ---
 
-## 🛠 Tech Stack
+## Features
 
-- HTML5
-- CSS3
-- Vanilla JavaScript
-- HTML5 Canvas
-- LocalStorage (for scores only)
-
-No frameworks.  
-No external dependencies.  
+✔ 100% Offline  
+✔ No Installation Required  
+✔ No Ads  
+✔ No Data Collection  
+✔ Works in Any Modern Browser  
 
 ---
 
-## 🔒 Privacy
+## How to Use
 
-This project:
-
-- Does not collect personal data
-- Does not use analytics
-- Does not communicate with any server
-- Stores scores locally on your device only
-
-See: `privacy-policy.html`
+1. Download the repository
+2. Open `index.html` in your browser
+3. Play instantly
 
 ---
 
-## 🤝 Open Source
+## Privacy Policy
 
-This project is open source and transparent.
-
-You are free to:
-- Learn from it
-- Modify it
-- Improve it
-- Share it
-
-If you build something better, that’s great.
+See `privacy.html` for full details.
 
 ---
 
-## 💡 Future Plans
-
-- Optional donation support (no ads ever)
-- UI refinements
-- More games
-- Performance improvements
-
----
-
-## 👨‍💻 Author
-
-Wild Coder UX
-
----
-
-## ⭐ Support
-
-If you enjoy this project:
-
-- Star the repository
-- Share it
-- Suggest improvements
-
-No ads will ever be added.
+Built with pure HTML, CSS, and JavaScript.
