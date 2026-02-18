@@ -4,252 +4,779 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-
-<title>31 Offline Games – No Ads</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>27 Offline Games – No Ads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-:root{
-  --bg:#0f172a;
-  --card:#1e293b;
-  --card-hover:#263548;
-  --accent:#38bdf8;
-  --accent-soft:#0ea5e9;
-  --text:#e2e8f0;
-  --muted:#94a3b8;
-  --border:#334155;
+/* ─── NEON SCROLL INDICATOR ─── */
+.scroll-indicator {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  opacity: 1;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-*{margin:0;padding:0;box-sizing:border-box;}
-
-body{
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  line-height:1.5;
+.scroll-indicator.hidden {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
 }
 
-/* HERO */
-.hero{
-  text-align:center;
-  padding:70px 20px 50px;
-  background:linear-gradient(180deg,#0f172a 0%, #111827 100%);
-  border-bottom:1px solid var(--border);
+
+.scroll-arrow {
+  font-size: 0.6rem;
+  color: var(--accent);
+  animation: neonFloat 2s ease-in-out infinite;
+  text-shadow:
+    0 0 6px rgba(34,211,238,0.8),
+    0 0 14px rgba(34,211,238,0.6),
+    0 0 28px rgba(34,211,238,0.4);
 }
 
-.hero-eyebrow{
-  display:inline-block;
-  padding:8px 18px;
-  border:1px solid var(--accent);
-  border-radius:30px;
-  color:var(--accent);
-  font-size:.75rem;
-  letter-spacing:.1em;
-  margin-bottom:25px;
+@keyframes neonFloat {
+  0%,100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
 }
 
-.hero h1{
-  font-size:2.6rem;
-  font-weight:800;
+.scroll-text {
+  letter-spacing: 0.25em;
+  font-size: 0.55rem; /* 0.3 was too tiny */
+  opacity: 0.7;
 }
 
-.hero-highlight{
-  font-size:1.6rem;
-  font-weight:800;
-  color:var(--accent);
-  margin-top:12px;
+:root {
+  --bg: #080c14;
+  --surface: #0e1620;
+  --surface2: #141e2e;
+  --card: #111827;
+  --card-h: #162033;
+  --accent: #22d3ee;
+  --accent2: #f472b6;
+  --accent3: #a78bfa;
+  --gold: #fbbf24;
+  --text: #e8edf5;
+  --muted: #64748b;
+  --border: rgba(255,255,255,0.07);
+  --glow: rgba(34,211,238,0.15);
 }
 
-.hero p{
-  margin-top:16px;
-  color:var(--muted);
-  font-size:1rem;
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-.hero-links{
-  margin-top:25px;
+/* ─── ANIMATED BACKGROUND ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(34,211,238,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(167,139,250,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(244,114,182,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.hero-links a{
-  display:inline-block;
-  padding:8px 20px;
-  border:1px solid var(--accent);
-  border-radius:20px;
-  color:var(--accent);
-  text-decoration:none;
-  font-size:.85rem;
-  font-weight:600;
-  transition:.2s ease;
+/* ─── HERO ─── */
+.hero {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 30px 24px 52px;
+  border-bottom: 1px solid var(--border);
 }
 
-.hero-links a:hover{
-  background:var(--accent);
-  color:#000;
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(34,211,238,0.08);
+  border: 1px solid rgba(34,211,238,0.2);
+  padding: 6px 14px;
+  border-radius: 100px;
+  margin-bottom: 24px;
 }
 
-/* SECTION */
-.section{
-  max-width:1100px;
-  margin:50px auto 0;
-  padding:0 20px;
+.hero-eyebrow span { width:6px; height:6px; border-radius:50%; background:var(--accent); display:inline-block; animation: pulse 2s infinite; }
+
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.4; transform:scale(0.7); }
 }
 
-.section h2{
-  font-size:1.1rem;
-  margin-bottom:18px;
-  color:var(--accent);
-  letter-spacing:.08em;
-  text-transform:uppercase;
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #e8edf5 30%, var(--accent) 70%, var(--accent3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-  gap:18px;
+.hero-sub {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 400;
+  max-width: 400px;
+  margin-inline: auto;
 }
 
-/* CARD */
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:22px 10px;
-  text-align:center;
-  text-decoration:none;
-  color:inherit;
-  transition:.2s ease;
+.hero-pills {
+  margin-top: 24px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.card:hover{
-  background:var(--card-hover);
-  transform:translateY(-4px);
-  border-color:var(--accent-soft);
+.pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface);
 }
 
-.card .icon{
-  font-size:2rem;
+
+
+/* ─── SECTIONS ─── */
+.sections {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 52px;
 }
 
-.card .name{
-  margin-top:10px;
-  font-size:.85rem;
-  font-weight:600;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-/* FOOTER */
-.footer{
-  margin-top:80px;
-  padding:40px 20px;
-  text-align:center;
-  font-size:.8rem;
-  color:var(--muted);
-  border-top:1px solid var(--border);
+.section-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
-.footer a{
-  color:var(--accent);
-  text-decoration:none;
+.section-icon.puzzle  { background: rgba(34,211,238,0.12); }
+.section-icon.math    { background: rgba(251,191,36,0.12); }
+.section-icon.ai      { background: rgba(167,139,250,0.12); }
+.section-icon.cards   { background: rgba(244,114,182,0.12); }
+.section-icon.arcade  { background: rgba(52,211,153,0.12); }
+.section-icon.quick   { background: rgba(251,191,36,0.12); }
+
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
 }
+
+.section-title.puzzle  { color: var(--accent); }
+.section-title.math    { color: var(--gold); }
+.section-title.ai      { color: var(--accent3); }
+.section-title.cards   { color: var(--accent2); }
+.section-title.arcade  { color: #34d399; }
+.section-title.quick   { color: var(--gold); }
+
+.section-count {
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 100px;
+  margin-left: auto;
+}
+
+/* ─── GRID ─── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+/* ─── CARD ─── */
+.card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px 12px 20px;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
+              border-color 0.22s ease,
+              background 0.22s ease,
+              box-shadow 0.22s ease;
+  overflow: hidden;
+  cursor: pointer;
+  animation: cardIn 0.4s both;
+}
+
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* Stagger delay via nth-child */
+.card:nth-child(1){animation-delay:.03s}
+.card:nth-child(2){animation-delay:.06s}
+.card:nth-child(3){animation-delay:.09s}
+.card:nth-child(4){animation-delay:.12s}
+.card:nth-child(5){animation-delay:.15s}
+.card:nth-child(6){animation-delay:.18s}
+.card:nth-child(7){animation-delay:.21s}
+.card:nth-child(8){animation-delay:.24s}
+.card:nth-child(9){animation-delay:.27s}
+.card:nth-child(10){animation-delay:.30s}
+.card:nth-child(11){animation-delay:.33s}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.06), transparent 70%);
+}
+
+.card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(255,255,255,0.14);
+  background: var(--card-h);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06);
+}
+
+.card:hover::before { opacity:1; }
+
+/* Colored top accent stripe per section */
+.section.puzzle  .card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 -2px 0 var(--accent) inset; }
+.section.math    .card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 -2px 0 var(--gold) inset; }
+.section.ai      .card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 -2px 0 var(--accent3) inset; }
+.section.cards   .card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 -2px 0 var(--accent2) inset; }
+.section.arcade  .card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 -2px 0 #34d399 inset; }
+.section.quick   .card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 -2px 0 var(--gold) inset; }
+
+.card-emoji {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.card:hover .card-emoji { transform: scale(1.18) translateY(-2px); }
+
+.card-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.card-tag {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* Hidden cards (search filter) */
+.card.hidden { display: none; }
+
+/* No results msg */
+.no-results {
+  display: none;
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 0;
+  padding: 32px 20px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer a { color: var(--accent); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+.footer-dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--muted);
+  display: inline-block;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 480px) {
+  .hero { padding: 48px 20px 36px; }
+  .hero h1 { font-size: 2.2rem; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+  .card { padding: 18px 8px 16px; border-radius: 14px; }
+  .card-emoji { font-size: 1.7rem; }
+}
+
+/* ─── SCROLL REVEAL ─── */
+.section { opacity: 0; transform: translateY(24px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.section.visible { opacity: 1; transform: none; }
+
+  #exit-toast {
+    position: fixed; bottom: 40px; left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: rgba(0,0,0,0.9);
+    border: 1px solid rgba(34,211,238,0.5);
+    color: #22d3ee;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 10px 24px; border-radius: 100px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    white-space: nowrap; z-index: 9999;
+    text-shadow: 0 0 12px rgba(34,211,238,0.5);
+    box-shadow: 0 0 20px rgba(34,211,238,0.15), 0 4px 20px rgba(0,0,0,0.5);
+  }
+  #exit-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
-
 <body>
 
+<div id="exit-toast">Press back again to exit</div>
+
+
+<!-- HERO -->
 <div class="hero">
-  <div class="hero-eyebrow">ZERO INTERRUPTIONS</div>
+  <div class="hero-eyebrow"><span></span>ZERO INTERRUPTIONS</div>
+  <h1>27 Offline Games</h1>
+  <h2 class="hero-highlight">No Ads. Ever.</h2>
+  <p>Play freely. No tracking.<br>
+    Works completely offline.</p>
 
-  <h1>31 Offline Games</h1>
-  <div class="hero-highlight">No Ads. Ever.</div>
-
-  <p>
-    Play freely. No tracking.<br>
-    Works completely offline.
-  </p>
-
-  <div class="hero-links">
-    <a href="https://github.com/wild-coder-ux/freeplay" target="_blank">
-      View Source Code
+  <div class="hero-pills">
+    <span class="pill">🧩 Puzzle</span>
+    <span class="pill">🔢 Math</span>
+    <span class="pill">🧠 AI</span>
+    <span class="pill">🃏 Cards</span>
+    <span class="pill">🕹 Arcade</span>
+    <span class="pill">⚡ Quick</span>
+  </div>
+  <div style="margin-top:22px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap;">
+    <a href="tutorials.html"
+       style="color:#22d3ee;font-size:0.85rem;text-decoration:none;font-weight:600;">
+      📘 Game Tutorials
+    </a>
+    <a href="credits.html"
+       style="color:#64748b;font-size:0.85rem;text-decoration:none;font-weight:600;">
+      ⚖️ Credits &amp; Licenses
     </a>
   </div>
 </div>
-
-<!-- PUZZLE -->
-<div class="section">
-  <h2>🧩 Puzzle</h2>
-  <div class="grid">
-    <a class="card" href="games/puzzle/sudoku.html"><div class="icon">🔢</div><div class="name">Sudoku</div></a>
-    <a class="card" href="games/puzzle/word-guess.html"><div class="icon">📝</div><div class="name">Word Guess</div></a>
-    <a class="card" href="games/puzzle/minesweeper.html"><div class="icon">💣</div><div class="name">Minesweeper</div></a>
-    <a class="card" href="games/puzzle/2048.html"><div class="icon">🔢</div><div class="name">2048</div></a>
-    <a class="card" href="games/puzzle/nonogram.html"><div class="icon">🖼</div><div class="name">Nonogram</div></a>
-    <a class="card" href="games/puzzle/sliding-puzzle.html"><div class="icon">🧊</div><div class="name">Sliding Puzzle</div></a>
-    <a class="card" href="games/puzzle/lights-out.html"><div class="icon">💡</div><div class="name">Lights Out</div></a>
-    <a class="card" href="games/puzzle/mastermind.html"><div class="icon">🎨</div><div class="name">Mastermind</div></a>
-    <a class="card" href="games/puzzle/hangman.html"><div class="icon">☠️</div><div class="name">Hangman</div></a>
-    <a class="card" href="games/puzzle/word-search.html"><div class="icon">🔍</div><div class="name">Word Search</div></a>
-    <a class="card" href="games/puzzle/mini-crossword.html"><div class="icon">✏️</div><div class="name">Crossword</div></a>
-  </div>
+<div class="scroll-indicator" id="scrollIndicator">
+  <div class="scroll-arrow">⌄</div>
+  <div class="scroll-text">Scroll to explore</div>
 </div>
 
-<!-- MATH -->
-<div class="section">
-  <h2>🔢 Math & Logic</h2>
-  <div class="grid">
-    <a class="card" href="games/math/kenken.html"><div class="icon">➗</div><div class="name">KenKen</div></a>
-    <a class="card" href="games/math/24-game.html"><div class="icon">🎯</div><div class="name">24 Game</div></a>
-    <a class="card" href="games/math/math-sprint.html"><div class="icon">⚡</div><div class="name">Math Sprint</div></a>
-    <a class="card" href="games/math/number-sequence.html"><div class="icon">🔮</div><div class="name">Number Sequence</div></a>
-    <a class="card" href="games/math/binary-puzzle.html"><div class="icon">🤖</div><div class="name">Binary Puzzle</div></a>
-  </div>
-</div>
+<!-- SEARCH -->
 
-<!-- AI -->
-<div class="section">
-  <h2>🧠 AI Inspired</h2>
-  <div class="grid">
-    <a class="card" href="games/ai/ai-guesser.html"><div class="icon">🧠</div><div class="name">AI Guesser</div></a>
-    <a class="card" href="games/ai/pattern-classifier.html"><div class="icon">🔬</div><div class="name">Pattern Classifier</div></a>
-    <a class="card" href="games/ai/chatbot-maze.html"><div class="icon">🤖</div><div class="name">Chatbot Maze</div></a>
-  </div>
-</div>
 
-<!-- CARDS -->
-<div class="section">
-  <h2>🃏 Card Games</h2>
-  <div class="grid">
-    <a class="card" href="games/cards/solitaire.html"><div class="icon">🃏</div><div class="name">Solitaire</div></a>
-    <a class="card" href="games/cards/blackjack.html"><div class="icon">🎰</div><div class="name">Blackjack</div></a>
-    <a class="card" href="games/cards/memory-match.html"><div class="icon">🧠</div><div class="name">Memory Match</div></a>
-    <a class="card" href="games/cards/video-poker.html"><div class="icon">🎲</div><div class="name">Video Poker</div></a>
-  </div>
-</div>
+<div class="sections">
 
-<!-- ARCADE -->
-<div class="section">
-  <h2>🕹 Arcade</h2>
-  <div class="grid">
-    <a class="card" href="games/arcade/snake.html"><div class="icon">🐍</div><div class="name">Snake</div></a>
-    <a class="card" href="games/arcade/block-stack.html"><div class="icon">🧱</div><div class="name">Block Stack</div></a>
-    <a class="card" href="games/arcade/tap-bird.html"><div class="icon">🐦</div><div class="name">Tap Bird</div></a>
-    <a class="card" href="games/arcade/brick-breaker.html"><div class="icon">🧱</div><div class="name">Brick Breaker</div></a>
-    <a class="card" href="games/arcade/paddle-ball.html"><div class="icon">🏓</div><div class="name">Paddle Ball</div></a>
-    <a class="card" href="games/arcade/pixel-runner.html"><div class="icon">🟩</div><div class="name">Pixel Runner</div></a>
+  <!-- PUZZLE -->
+  <div class="section puzzle" id="sec-puzzle">
+    <div class="section-header">
+      <div class="section-icon puzzle">🧩</div>
+      <span class="section-title puzzle">Puzzle</span>
+      <span class="section-count">10 games</span>
+    </div>
+    <div class="grid" id="grid-puzzle">
+      <a class="card" href="sudoku.html">
+        <div class="card-emoji">🔢</div>
+        <div class="card-name">Sudoku</div>
+        <div class="card-tag">NUMBERS</div>
+      </a>
+      <a class="card" href="word-guess.html">
+        <div class="card-emoji">📝</div>
+        <div class="card-name">Word Guess</div>
+        <div class="card-tag">WORDS</div>
+      </a>
+      <a class="card" href="minesweeper.html">
+        <div class="card-emoji">💣</div>
+        <div class="card-name">Minesweeper</div>
+        <div class="card-tag">LOGIC</div>
+      </a>
+      <a class="card" href="2048.html">
+        <div class="card-emoji">⬛</div>
+        <div class="card-name">2048</div>
+        <div class="card-tag">NUMBERS</div>
+      </a>
+      <a class="card" href="sliding-puzzle.html">
+        <div class="card-emoji">🧊</div>
+        <div class="card-name">Sliding Puzzle</div>
+        <div class="card-tag">TILES</div>
+      </a>
+      <a class="card" href="lights-out.html">
+        <div class="card-emoji">💡</div>
+        <div class="card-name">Toggle Lights</div>
+        <div class="card-tag">LOGIC</div>
+      </a>
+      <a class="card" href="hangman.html">
+        <div class="card-emoji">☠️</div>
+        <div class="card-name">Hangman</div>
+        <div class="card-tag">WORDS</div>
+      </a>
+      <a class="card" href="word-search.html">
+        <div class="card-emoji">🔍</div>
+        <div class="card-name">Word Search</div>
+        <div class="card-tag">WORDS</div>
+      </a>
+      <a class="card" href="mini-crossword.html">
+        <div class="card-emoji">✏️</div>
+        <div class="card-name">Crossword</div>
+        <div class="card-tag">WORDS</div>
+      </a>
+      <a class="card" href="word-brain-edition.html">
+        <div class="card-emoji">🧠</div>
+        <div class="card-name">Word Builder</div>
+        <div class="card-tag">WORDS</div>
+      </a>
+    </div>
   </div>
-</div>
 
-<!-- QUICK -->
-<div class="section">
-  <h2>⚡ Quick Fun</h2>
-  <div class="grid">
-    <a class="card" href="games/quick/simon-says.html"><div class="icon">🎵</div><div class="name">Simon Says</div></a>
-    <a class="card" href="games/quick/reaction-time.html"><div class="icon">⚡</div><div class="name">Reaction Time</div></a>
+  <!-- MATH -->
+  <div class="section math" id="sec-math">
+    <div class="section-header">
+      <div class="section-icon math">🔢</div>
+      <span class="section-title math">Math &amp; Logic</span>
+      <span class="section-count">4 games</span>
+    </div>
+    <div class="grid" id="grid-math">
+      <a class="card" href="24-game.html">
+        <div class="card-emoji">🎯</div>
+        <div class="card-name">Target 24</div>
+        <div class="card-tag">ARITHMETIC</div>
+      </a>
+      <a class="card" href="math-sprint.html">
+        <div class="card-emoji">⚡</div>
+        <div class="card-name">Math Sprint</div>
+        <div class="card-tag">SPEED</div>
+      </a>
+      <a class="card" href="number-sequence.html">
+        <div class="card-emoji">🔮</div>
+        <div class="card-name">Number Sequence</div>
+        <div class="card-tag">PATTERNS</div>
+      </a>
+      <a class="card" href="binary-puzzle.html">
+        <div class="card-emoji">🤖</div>
+        <div class="card-name">Binary Puzzle</div>
+        <div class="card-tag">BINARY</div>
+      </a>
+    </div>
   </div>
-</div>
 
+  <!-- AI -->
+  <div class="section ai" id="sec-ai">
+    <div class="section-header">
+      <div class="section-icon ai">🧠</div>
+      <span class="section-title ai">AI Inspired</span>
+      <span class="section-count">3 games</span>
+    </div>
+    <div class="grid" id="grid-ai">
+      <a class="card" href="ai-guesser.html">
+        <div class="card-emoji">🧠</div>
+        <div class="card-name">AI Guesser</div>
+        <div class="card-tag">NEURAL</div>
+      </a>
+      <a class="card" href="pattern-classifier.html">
+        <div class="card-emoji">🔬</div>
+        <div class="card-name">Pattern Classifier</div>
+        <div class="card-tag">ML</div>
+      </a>
+      <a class="card" href="chatbot-maze.html">
+        <div class="card-emoji">🤖</div>
+        <div class="card-name">Chatbot Maze</div>
+        <div class="card-tag">CHAT</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- CARDS -->
+  <div class="section cards" id="sec-cards">
+    <div class="section-header">
+      <div class="section-icon cards">🃏</div>
+      <span class="section-title cards">Card Games</span>
+      <span class="section-count">1 game</span>
+    </div>
+    <div class="grid" id="grid-cards">
+      <a class="card" href="memory-match.html">
+        <div class="card-emoji">🧠</div>
+        <div class="card-name">Memory Match</div>
+        <div class="card-tag">MEMORY</div>
+      </a>
+      </div>
+  </div>
+
+  <!-- ARCADE -->
+  <div class="section arcade" id="sec-arcade">
+    <div class="section-header">
+      <div class="section-icon arcade">🕹</div>
+      <span class="section-title arcade">Arcade</span>
+      <span class="section-count">7 games</span>
+    </div>
+    <div class="grid" id="grid-arcade">
+      <a class="card" href="neon-logic-runner.html">
+  <div class="card-emoji">
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='48' height='48'>
+      <defs>
+        <linearGradient id='shipGrad' x1='0' y1='0' x2='0' y2='1'>
+          <stop offset='0' stop-color='#00ffff'/>
+          <stop offset='1' stop-color='#00ffff' stop-opacity='0.4'/>
+        </linearGradient>
+        <filter id='shipGlow'>
+          <feGaussianBlur stdDeviation='3' result='blur'/>
+          <feMerge><feMergeNode in='blur'/><feMergeNode in='SourceGraphic'/></feMerge>
+        </filter>
+      </defs>
+      <g filter='url(#shipGlow)'>
+        <polygon points='50,5 18,90 50,72 82,90' fill='url(#shipGrad)'/>
+        <polygon points='50,8 34,44 66,44' fill='white' opacity='0.55'/>
+      </g>
+    </svg>
+  </div>
+  <div class="card-name">Neon Logic Runner</div>
+  <div class="card-tag">BRAIN TRAINER</div>
+</a>
+      <a class="card" href="snake.html">
+        <div class="card-emoji">🐍</div>
+        <div class="card-name">Snake</div>
+        <div class="card-tag">CLASSIC</div>
+      </a>
+      <a class="card" href="block-stack.html">
+        <div class="card-emoji">🧱</div>
+        <div class="card-name">Block Stack</div>
+        <div class="card-tag">STACKING</div>
+      </a>
+      <a class="card" href="tap-bird.html">
+        <div class="card-emoji">🦜</div>
+        <div class="card-name">Tap Bird</div>
+        <div class="card-tag">TAP</div>
+      </a>
+      <a class="card" href="brick-breaker.html">
+        <div class="card-emoji">🟦</div>
+        <div class="card-name">Brick Breaker</div>
+        <div class="card-tag">PADDLE</div>
+      </a>
+      <a class="card" href="paddle-ball.html">
+        <div class="card-emoji">🏓</div>
+        <div class="card-name">Paddle Ball</div>
+        <div class="card-tag">REFLEX</div>
+      </a>
+      <a class="card" href="pixel-runner.html">
+        <div class="card-emoji">🟩</div>
+        <div class="card-name">Pixel Runner</div>
+        <div class="card-tag">RUNNER</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- QUICK -->
+  <div class="section quick" id="sec-quick">
+    <div class="section-header">
+      <div class="section-icon quick">⚡</div>
+      <span class="section-title quick">Quick Fun</span>
+      <span class="section-count">2 games</span>
+    </div>
+    <div class="grid" id="grid-quick">
+      <a class="card" href="simon-says.html">
+        <div class="card-emoji">🎵</div>
+        <div class="card-name">Follow Me</div>
+        <div class="card-tag">MEMORY</div>
+      </a>
+      <a class="card" href="reaction-time.html">
+        <div class="card-emoji">⚡</div>
+        <div class="card-name">Reaction Time</div>
+        <div class="card-tag">REFLEX</div>
+      </a>
+    </div>
+  </div>
+
+</div><!-- /sections -->
+
+<!-- FOOTER -->
 <div class="footer">
-  31 Offline Games v1.0 · 100% Ad-Free · Open Source<br>
-  <a href="privacy-policy.html">Privacy Policy</a>
+  <div class="footer-row">
+    <span>27 Offline Games v2.0</span>
+    <span class="footer-dot"></span>
+    <span>27 Games</span>
+    <span class="footer-dot"></span>
+    <span>100% Offline</span>
+    <span class="footer-dot"></span>
+    <span>No Tracking</span>
+  </div>
+
 </div>
 
+<script>
+
+// Hide scroll indicator after 20px scroll
+window.addEventListener("scroll", function() {
+  const indicator = document.getElementById("scrollIndicator");
+  if (window.scrollY > 5) {
+    indicator.classList.add("hidden");
+  } else {
+    indicator.classList.remove("hidden");
+  }
+});
+
+// ─── SCROLL REVEAL ────────────────────────────────────────
+
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+
+document.querySelectorAll('.section').forEach((sec, i) => {
+  sec.style.transitionDelay = (i * 0.06) + 's';
+  observer.observe(sec);
+});
+
+// ─── HIDE SCROLL INDICATOR WHEN FIRST SECTION APPEARS ───
+
+const scrollIndicator = document.getElementById("scrollIndicator");
+const firstSection = document.querySelector(".section");
+
+const sectionObserver = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting) {
+    scrollIndicator.classList.add("hidden");
+    sectionObserver.disconnect(); // stop observing forever
+  }
+}, { threshold: 0.2 });
+
+if (firstSection) {
+  sectionObserver.observe(firstSection);
+}
+
+
+// ─── CARD RIPPLE ──────────────────────────────────────────
+const allCards = document.querySelectorAll('.card');
+allCards.forEach(card => {
+  card.addEventListener('click', function(e) {
+    const ripple = document.createElement('span');
+    const rect = card.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 1.5;
+    ripple.style.cssText = `
+      position:absolute;width:${size}px;height:${size}px;
+      border-radius:50%;background:rgba(255,255,255,0.06);
+      left:${e.clientX - rect.left - size/2}px;
+      top:${e.clientY - rect.top - size/2}px;
+      transform:scale(0);animation:ripple .5s ease-out;
+      pointer-events:none;
+    `;
+    card.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+  });
+});
+
+const style = document.createElement('style');
+style.textContent = `@keyframes ripple{to{transform:scale(1);opacity:0;}}`;
+document.head.appendChild(style);
+// ── Double-back to exit (Plain Android WebView) ──────────────────────────────
+var _exitOnce = false;
+var _exitTimer = null;
+
+function handleAndroidBack() {
+  var toast = document.getElementById("exit-toast");
+  if (_exitOnce) {
+    // Second back press — close the app via Android finish()
+    if (window.AndroidBridge && window.AndroidBridge.exitApp) {
+      window.AndroidBridge.exitApp();
+    } else {
+      // Fallback: navigate to a blank page then finish triggers itself
+      window.location.href = "about:blank";
+    }
+  } else {
+    _exitOnce = true;
+    toast.classList.add("show");
+    clearTimeout(_exitTimer);
+    _exitTimer = setTimeout(function() {
+      toast.classList.remove("show");
+      _exitOnce = false;
+    }, 2000);
+  }
+}
+
+</script>
 </body>
 </html>
