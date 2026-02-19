@@ -262,6 +262,7 @@
                         selectedCell.textContent = '';
                         puzzle[row][col] = 0;
                         selectedCell.classList.remove('error', 'correct');
+                        revalidateSiblings(row, col); // re-check siblings after clearing
                     } else {
                         selectedCell.textContent = num;
                         puzzle[row][col] = parseInt(num);
@@ -404,15 +405,72 @@
             });
         }
 
+        function hasDuplicateInBoard(board, row, col, num) {
+            for (let x = 0; x < 9; x++) {
+                if (x !== col && board[row][x] === num) return true;
+            }
+            for (let x = 0; x < 9; x++) {
+                if (x !== row && board[x][col] === num) return true;
+            }
+            let startRow = row - row % 3, startCol = col - col % 3;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    let r = i + startRow, c = j + startCol;
+                    if ((r !== row || c !== col) && board[r][c] === num) return true;
+                }
+            }
+            return false;
+        }
+
+        function revalidateSiblings(row, col) {
+            document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                if (cell.classList.contains('given')) return;
+                const r = parseInt(cell.dataset.row);
+                const c = parseInt(cell.dataset.col);
+                if (r === row && c === col) return;
+                if (puzzle[r][c] === 0) return;
+                const inSameRow = r === row;
+                const inSameCol = c === col;
+                const inSameBox = Math.floor(r/3) === Math.floor(row/3) && Math.floor(c/3) === Math.floor(col/3);
+                if (inSameRow || inSameCol || inSameBox) {
+                    const val = puzzle[r][c];
+                    if (!hasDuplicateInBoard(puzzle, r, c, val) && val === solution[r][c]) {
+                        cell.classList.remove('error');
+                        cell.classList.add('correct');
+                    } else {
+                        cell.classList.remove('correct');
+                        cell.classList.add('error');
+                    }
+                }
+            });
+        }
+
         function checkCell(row, col) {
             const cell = document.querySelector(`.sudoku-cell[data-row="${row}"][data-col="${col}"]`);
             const value = puzzle[row][col];
-            
             if (value === 0) return;
-            
-            if (value === solution[row][col]) {
+
+            if (hasDuplicateInBoard(puzzle, row, col, value)) {
+                cell.classList.remove('correct');
+                cell.classList.add('error');
+                // Flag conflicting siblings
+                document.querySelectorAll('.sudoku-cell').forEach(other => {
+                    if (other.classList.contains('given')) return;
+                    const r = parseInt(other.dataset.row);
+                    const c = parseInt(other.dataset.col);
+                    if (r === row && c === col) return;
+                    const inSameRow = r === row;
+                    const inSameCol = c === col;
+                    const inSameBox = Math.floor(r/3) === Math.floor(row/3) && Math.floor(c/3) === Math.floor(col/3);
+                    if ((inSameRow || inSameCol || inSameBox) && puzzle[r][c] === value) {
+                        other.classList.remove('correct');
+                        other.classList.add('error');
+                    }
+                });
+            } else if (value === solution[row][col]) {
                 cell.classList.remove('error');
                 cell.classList.add('correct');
+                revalidateSiblings(row, col);
             } else {
                 cell.classList.remove('correct');
                 cell.classList.add('error');
