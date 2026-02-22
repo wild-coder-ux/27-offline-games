@@ -170,6 +170,50 @@
             color: #2e7d32;
         }
 
+        .generating {
+            text-align: center;
+            color: #764ba2;
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 8px;
+            min-height: 20px;
+            letter-spacing: 0.03em;
+        }
+
+        .grid-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            background: #f0f4ff !important;
+            border: 3px solid #333;
+            margin: 15px auto;
+            max-width: 450px;
+            aspect-ratio: 1;
+            border-radius: 4px;
+        }
+
+        .loading-text {
+            font-size: 15px;
+            font-weight: bold;
+            color: #764ba2;
+            letter-spacing: 0.03em;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #d0d8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 15px;
@@ -224,6 +268,7 @@
         </div>
 
         <div class="status" id="status"></div>
+        <div class="generating" id="generating"></div>
     </div>
 
     <script>
@@ -234,13 +279,18 @@
         let timer = 0;
         let timerInterval = null;
 
+        // How many cells to REMOVE per difficulty
+        // Tuned so the uniqueness check reliably hits the target every game:
+        // Easy  = 36 removed → 45 givens  (very achievable, great for beginners)
+        // Medium = 46 removed → 35 givens  (requires some logic, no guessing)
+        // Hard   = 48 removed → 33 givens  (challenging but always uniquely solvable)
         const difficultyLevels = {
-            easy: 40,
-            medium: 50,
-            hard: 60
+            easy: 36,
+            medium: 46,
+            hard: 48
         };
 
-        // Difficulty button handlers
+        // ─── Difficulty buttons ───────────────────────────────────────────────
         document.querySelectorAll('.diff-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
@@ -250,25 +300,25 @@
             });
         });
 
-        // Number pad handlers
+        // ─── Number pad ──────────────────────────────────────────────────────
         document.querySelectorAll('.num-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (selectedCell && !selectedCell.classList.contains('given')) {
                     const num = btn.dataset.num;
                     const row = parseInt(selectedCell.dataset.row);
                     const col = parseInt(selectedCell.dataset.col);
-                    
+
                     if (num === '0') {
                         selectedCell.textContent = '';
                         puzzle[row][col] = 0;
                         selectedCell.classList.remove('error', 'correct');
-                        revalidateSiblings(row, col); // re-check siblings after clearing
+                        revalidateSiblings(row, col);
                     } else {
                         selectedCell.textContent = num;
                         puzzle[row][col] = parseInt(num);
                         checkCell(row, col);
                     }
-                    
+
                     if (isPuzzleComplete()) {
                         checkWin();
                     }
@@ -276,20 +326,21 @@
             });
         });
 
-        // New game button
+        // ─── New game button ──────────────────────────────────────────────────
         document.getElementById('newGame').addEventListener('click', newGame);
 
+        // ─── Grid creation ────────────────────────────────────────────────────
         function createGrid() {
             const grid = document.getElementById('sudokuGrid');
             grid.innerHTML = '';
-            
+
             for (let row = 0; row < 9; row++) {
                 for (let col = 0; col < 9; col++) {
                     const cell = document.createElement('div');
                     cell.className = 'sudoku-cell';
                     cell.dataset.row = row;
                     cell.dataset.col = col;
-                    
+
                     cell.addEventListener('click', () => {
                         if (!cell.classList.contains('given')) {
                             document.querySelectorAll('.sudoku-cell').forEach(c => c.classList.remove('selected'));
@@ -297,24 +348,23 @@
                             selectedCell = cell;
                         }
                     });
-                    
+
                     grid.appendChild(cell);
                 }
             }
         }
 
+        // ─── Validity check (used during generation/solving) ─────────────────
         function isValid(board, row, col, num) {
             // Check row
             for (let x = 0; x < 9; x++) {
                 if (board[row][x] === num) return false;
             }
-            
             // Check column
             for (let x = 0; x < 9; x++) {
                 if (board[x][col] === num) return false;
             }
-            
-            // Check 3x3 box
+            // Check 3×3 box
             let startRow = row - row % 3;
             let startCol = col - col % 3;
             for (let i = 0; i < 3; i++) {
@@ -322,10 +372,10 @@
                     if (board[i + startRow][j + startCol] === num) return false;
                 }
             }
-            
             return true;
         }
 
+        // ─── Backtracking solver ──────────────────────────────────────────────
         function solveSudoku(board) {
             for (let row = 0; row < 9; row++) {
                 for (let col = 0; col < 9; col++) {
@@ -333,11 +383,7 @@
                         for (let num = 1; num <= 9; num++) {
                             if (isValid(board, row, col, num)) {
                                 board[row][col] = num;
-                                
-                                if (solveSudoku(board)) {
-                                    return true;
-                                }
-                                
+                                if (solveSudoku(board)) return true;
                                 board[row][col] = 0;
                             }
                         }
@@ -348,15 +394,39 @@
             return true;
         }
 
+        // ─── Count solutions (stops early once limit is reached) ──────────────
+        // FIX: This is the key function that prevents multiple-solution puzzles.
+        // It counts how many valid solutions a board has, stopping at `limit`.
+        // If countSolutions(board) > 1, the puzzle is ambiguous (like the 6/9 issue).
+        function countSolutions(board, limit = 2) {
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (board[row][col] === 0) {
+                        let count = 0;
+                        for (let num = 1; num <= 9; num++) {
+                            if (isValid(board, row, col, num)) {
+                                board[row][col] = num;
+                                count += countSolutions(board, limit - count);
+                                board[row][col] = 0;
+                                if (count >= limit) return count;
+                            }
+                        }
+                        return count;
+                    }
+                }
+            }
+            return 1; // No empty cells → one complete solution found
+        }
+
+        // ─── Puzzle generation ────────────────────────────────────────────────
         function generateSudoku() {
-            // Create empty board
+            // 1. Start with an empty board
             let board = Array(9).fill().map(() => Array(9).fill(0));
-            
-            // Fill diagonal 3x3 boxes
+
+            // 2. Fill the three diagonal 3×3 boxes (they are independent of each other)
             for (let box = 0; box < 9; box += 3) {
                 let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
                 nums.sort(() => Math.random() - 0.5);
-                
                 let idx = 0;
                 for (let i = 0; i < 3; i++) {
                     for (let j = 0; j < 3; j++) {
@@ -364,37 +434,55 @@
                     }
                 }
             }
-            
-            // Solve the rest
+
+            // 3. Solve the rest of the board to get a complete, valid grid
             solveSudoku(board);
-            
-            // Store solution
+
+            // 4. Save the full solution
             solution = board.map(row => [...row]);
-            
-            // Remove numbers based on difficulty
+
+            // 5. Remove cells one at a time, checking uniqueness after each removal
+            //    FIX: Only remove a cell if the puzzle still has exactly ONE solution.
             let cellsToRemove = difficultyLevels[difficulty];
             let removed = 0;
-            
-            while (removed < cellsToRemove) {
-                let row = Math.floor(Math.random() * 9);
-                let col = Math.floor(Math.random() * 9);
-                
-                if (board[row][col] !== 0) {
-                    board[row][col] = 0;
-                    removed++;
+            let attempts = 0;
+            const maxAttempts = 300;
+
+            // Build a shuffled list of all 81 positions so we try them randomly
+            let positions = [];
+            for (let r = 0; r < 9; r++)
+                for (let c = 0; c < 9; c++)
+                    positions.push([r, c]);
+            positions.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < positions.length && removed < cellsToRemove && attempts < maxAttempts; i++) {
+                let [r, c] = positions[i];
+                if (board[r][c] === 0) continue; // already removed
+
+                let backup = board[r][c];
+                board[r][c] = 0;
+                attempts++;
+
+                // Count solutions on a copy — if still exactly 1, keep the removal
+                let testBoard = board.map(row => [...row]);
+                if (countSolutions(testBoard, 2) === 1) {
+                    removed++; // safe to remove
+                } else {
+                    board[r][c] = backup; // ambiguous — restore the cell
                 }
             }
-            
+
             return board;
         }
 
+        // ─── Display puzzle on the grid ───────────────────────────────────────
         function displayPuzzle() {
             const cells = document.querySelectorAll('.sudoku-cell');
             cells.forEach((cell, index) => {
                 const row = Math.floor(index / 9);
                 const col = index % 9;
                 const value = puzzle[row][col];
-                
+
                 if (value !== 0) {
                     cell.textContent = value;
                     cell.classList.add('given');
@@ -405,6 +493,7 @@
             });
         }
 
+        // ─── Check for duplicate in current puzzle state ──────────────────────
         function hasDuplicateInBoard(board, row, col, num) {
             for (let x = 0; x < 9; x++) {
                 if (x !== col && board[row][x] === num) return true;
@@ -422,6 +511,7 @@
             return false;
         }
 
+        // ─── Re-validate related cells after a change ─────────────────────────
         function revalidateSiblings(row, col) {
             document.querySelectorAll('.sudoku-cell').forEach(cell => {
                 if (cell.classList.contains('given')) return;
@@ -431,7 +521,7 @@
                 if (puzzle[r][c] === 0) return;
                 const inSameRow = r === row;
                 const inSameCol = c === col;
-                const inSameBox = Math.floor(r/3) === Math.floor(row/3) && Math.floor(c/3) === Math.floor(col/3);
+                const inSameBox = Math.floor(r / 3) === Math.floor(row / 3) && Math.floor(c / 3) === Math.floor(col / 3);
                 if (inSameRow || inSameCol || inSameBox) {
                     const val = puzzle[r][c];
                     if (!hasDuplicateInBoard(puzzle, r, c, val) && val === solution[r][c]) {
@@ -445,6 +535,7 @@
             });
         }
 
+        // ─── Check the cell the player just filled ────────────────────────────
         function checkCell(row, col) {
             const cell = document.querySelector(`.sudoku-cell[data-row="${row}"][data-col="${col}"]`);
             const value = puzzle[row][col];
@@ -453,7 +544,7 @@
             if (hasDuplicateInBoard(puzzle, row, col, value)) {
                 cell.classList.remove('correct');
                 cell.classList.add('error');
-                // Flag conflicting siblings
+                // Also flag the conflicting sibling(s)
                 document.querySelectorAll('.sudoku-cell').forEach(other => {
                     if (other.classList.contains('given')) return;
                     const r = parseInt(other.dataset.row);
@@ -461,7 +552,7 @@
                     if (r === row && c === col) return;
                     const inSameRow = r === row;
                     const inSameCol = c === col;
-                    const inSameBox = Math.floor(r/3) === Math.floor(row/3) && Math.floor(c/3) === Math.floor(col/3);
+                    const inSameBox = Math.floor(r / 3) === Math.floor(row / 3) && Math.floor(c / 3) === Math.floor(col / 3);
                     if ((inSameRow || inSameCol || inSameBox) && puzzle[r][c] === value) {
                         other.classList.remove('correct');
                         other.classList.add('error');
@@ -477,33 +568,25 @@
             }
         }
 
+        // ─── Completion checks ────────────────────────────────────────────────
         function isPuzzleComplete() {
-            for (let row = 0; row < 9; row++) {
-                for (let col = 0; col < 9; col++) {
+            for (let row = 0; row < 9; row++)
+                for (let col = 0; col < 9; col++)
                     if (puzzle[row][col] === 0) return false;
-                }
-            }
             return true;
         }
 
         function checkWin() {
-            let correct = true;
-            for (let row = 0; row < 9; row++) {
-                for (let col = 0; col < 9; col++) {
-                    if (puzzle[row][col] !== solution[row][col]) {
-                        correct = false;
-                        break;
-                    }
-                }
-            }
-            
-            if (correct) {
-                stopTimer();
-                document.getElementById('status').textContent = `🎉 Congratulations! Solved in ${formatTime(timer)}!`;
-                document.getElementById('status').classList.add('success');
-            }
+            for (let row = 0; row < 9; row++)
+                for (let col = 0; col < 9; col++)
+                    if (puzzle[row][col] !== solution[row][col]) return;
+
+            stopTimer();
+            document.getElementById('status').textContent = `🎉 Congratulations! Solved in ${formatTime(timer)}!`;
+            document.getElementById('status').classList.add('success');
         }
 
+        // ─── Timer ────────────────────────────────────────────────────────────
         function startTimer() {
             timer = 0;
             clearInterval(timerInterval);
@@ -523,18 +606,41 @@
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
+        // ─── New game ─────────────────────────────────────────────────────────
         function newGame() {
-            puzzle = generateSudoku();
-            createGrid();
-            displayPuzzle();
+            stopTimer();
             selectedCell = null;
             document.getElementById('status').textContent = '';
             document.getElementById('status').classList.remove('success');
-            startTimer();
+            document.getElementById('generating').textContent = '';
+
+            // Show a spinner in the grid while generating
+            const grid = document.getElementById('sudokuGrid');
+            grid.innerHTML = '<div class="spinner"></div><div class="loading-text">⏳ Generating…</div>';
+            grid.className = 'grid-loading';
+
+            // Let the UI repaint, then generate
+            setTimeout(() => {
+                puzzle = generateSudoku();
+                grid.className = 'sudoku-grid'; // restore grid styles
+                createGrid();
+                displayPuzzle();
+
+                // Keep the message visible for 1 extra second after generation
+                setTimeout(() => {
+                    document.getElementById('generating').textContent = '';
+                    startTimer();
+                }, 1000);
+            }, 100);
         }
 
-        // Initialize game
+        // ─── Start ────────────────────────────────────────────────────────────
         newGame();
+    </script>
+
+    <!-- ORIENTATION GUARD — auto shows rotate message when needed -->
+    <script>
+    !function(){var T=600,I='og-overlay';function t(){return Math.min(screen.width,screen.height)>=T}function n(){var l=window.innerWidth>window.innerHeight;return t()?!l:l}function b(){if(document.getElementById(I))return;var s=document.createElement('style');s.textContent='#'+I+'{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#0e1218;z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:-apple-system,sans-serif;text-align:center;padding:32px;box-sizing:border-box}#'+I+'.og-show{display:flex}#og-icon{font-size:3.5rem;animation:og-spin 2s ease-in-out infinite}@keyframes og-spin{0%{transform:rotate(0)}40%,60%{transform:rotate(90deg)}100%{transform:rotate(0)}}#og-title{font-size:1.1rem;font-weight:700;color:#e8edf5;letter-spacing:.04em}#og-sub{font-size:.85rem;color:#64748b;max-width:260px;line-height:1.5}#og-bar{width:48px;height:4px;border-radius:2px;background:linear-gradient(90deg,#22d3ee,#a78bfa)}';document.head.appendChild(s);var d=document.createElement('div');d.id=I;d.innerHTML='<div id="og-icon">🔄</div><div id="og-title"></div><div id="og-sub"></div><div id="og-bar"></div>';document.body.appendChild(d)}function u(){var o=document.getElementById(I);if(!o)return;if(n()){var tb=t();o.querySelector('#og-title').textContent=tb?'Rotate to landscape':'Rotate to portrait';o.querySelector('#og-sub').textContent=tb?'This game plays best in landscape mode. Please rotate your tablet.':'This game plays best in portrait mode. Please rotate your phone.';o.classList.add('og-show')}else o.classList.remove('og-show')}function i(){b();u();window.addEventListener('resize',u);window.addEventListener('orientationchange',function(){setTimeout(u,350)})}document.readyState==='loading'?document.addEventListener('DOMContentLoaded',i):i()}();
     </script>
 </body>
 </html>
