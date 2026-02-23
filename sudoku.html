@@ -16,7 +16,7 @@
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             padding: 10px;
         }
@@ -24,10 +24,10 @@
         .container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
-            padding: 20px;
+            padding: 12px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: calc(100% - 0px);
             max-width: 500px;
-            width: 100%;
         }
 
         h1 {
@@ -39,16 +39,26 @@
 
         .controls {
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .controls-top {
+            display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .difficulty {
             display: flex;
             gap: 5px;
+            flex-wrap: nowrap;
+        }
+
+        #newGame {
+            width: 100%;
         }
 
         button {
@@ -93,8 +103,8 @@
             gap: 0;
             background: #333;
             border: 3px solid #333;
-            margin: 15px auto;
-            max-width: 450px;
+            margin: 12px auto;
+            width: 100%;
             aspect-ratio: 1;
         }
 
@@ -104,7 +114,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: clamp(12px, 3.5vw, 22px);
             font-weight: bold;
             background: white;
             cursor: pointer;
@@ -143,17 +153,17 @@
         .number-pad {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-            max-width: 450px;
-            margin-left: auto;
-            margin-right: auto;
+            gap: 6px;
+            margin-top: 12px;
+            width: 100%;
         }
 
         .number-pad button {
-            aspect-ratio: 1;
-            font-size: 18px;
+            height: 52px;
+            font-size: clamp(14px, 4vw, 18px);
             padding: 0;
+            width: 100%;
+            border-radius: 12px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
@@ -188,8 +198,8 @@
             gap: 14px;
             background: #f0f4ff !important;
             border: 3px solid #333;
-            margin: 15px auto;
-            max-width: 450px;
+            margin: 12px auto;
+            width: 100%;
             aspect-ratio: 1;
             border-radius: 4px;
         }
@@ -214,28 +224,6 @@
             to { transform: rotate(360deg); }
         }
 
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            .sudoku-cell {
-                font-size: 16px;
-            }
-
-            .number-pad button {
-                font-size: 16px;
-            }
-
-            button {
-                padding: 8px 12px;
-                font-size: 12px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -243,12 +231,14 @@
         <h1>🔢 SUDOKU</h1>
         
         <div class="controls">
-            <div class="difficulty">
-                <button class="diff-btn active" data-difficulty="easy">Easy</button>
-                <button class="diff-btn" data-difficulty="medium">Medium</button>
-                <button class="diff-btn" data-difficulty="hard">Hard</button>
+            <div class="controls-top">
+                <div class="difficulty">
+                    <button class="diff-btn active" data-difficulty="easy">Easy</button>
+                    <button class="diff-btn" data-difficulty="medium">Medium</button>
+                    <button class="diff-btn" data-difficulty="hard">Hard</button>
+                </div>
+                <div id="timer">00:00</div>
             </div>
-            <div id="timer">00:00</div>
             <button id="newGame">New Game</button>
         </div>
 
@@ -264,7 +254,7 @@
             <button class="num-btn" data-num="7">7</button>
             <button class="num-btn" data-num="8">8</button>
             <button class="num-btn" data-num="9">9</button>
-            <button class="num-btn" data-num="0">Clear</button>
+            <button class="num-btn" data-num="0">⌫</button>
         </div>
 
         <div class="status" id="status"></div>
@@ -631,16 +621,18 @@
                     document.getElementById('generating').textContent = '';
                     startTimer();
                 }, 1000);
-            }, 100);
+            }, 50);
         }
 
         // ─── Start ────────────────────────────────────────────────────────────
         newGame();
     </script>
 
-    <!-- ORIENTATION GUARD — auto shows rotate message when needed -->
+    <!-- Shared utility library — handles auto-resize, spinner, timer, status -->
+    <script src="common.js"></script>
     <script>
-    !function(){var T=600,I='og-overlay';function t(){return Math.min(screen.width,screen.height)>=T}function n(){var l=window.innerWidth>window.innerHeight;return t()?!l:l}function b(){if(document.getElementById(I))return;var s=document.createElement('style');s.textContent='#'+I+'{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#0e1218;z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:-apple-system,sans-serif;text-align:center;padding:32px;box-sizing:border-box}#'+I+'.og-show{display:flex}#og-icon{font-size:3.5rem;animation:og-spin 2s ease-in-out infinite}@keyframes og-spin{0%{transform:rotate(0)}40%,60%{transform:rotate(90deg)}100%{transform:rotate(0)}}#og-title{font-size:1.1rem;font-weight:700;color:#e8edf5;letter-spacing:.04em}#og-sub{font-size:.85rem;color:#64748b;max-width:260px;line-height:1.5}#og-bar{width:48px;height:4px;border-radius:2px;background:linear-gradient(90deg,#22d3ee,#a78bfa)}';document.head.appendChild(s);var d=document.createElement('div');d.id=I;d.innerHTML='<div id="og-icon">🔄</div><div id="og-title"></div><div id="og-sub"></div><div id="og-bar"></div>';document.body.appendChild(d)}function u(){var o=document.getElementById(I);if(!o)return;if(n()){var tb=t();o.querySelector('#og-title').textContent=tb?'Rotate to landscape':'Rotate to portrait';o.querySelector('#og-sub').textContent=tb?'This game plays best in landscape mode. Please rotate your tablet.':'This game plays best in portrait mode. Please rotate your phone.';o.classList.add('og-show')}else o.classList.remove('og-show')}function i(){b();u();window.addEventListener('resize',u);window.addEventListener('orientationchange',function(){setTimeout(u,350)})}document.readyState==='loading'?document.addEventListener('DOMContentLoaded',i):i()}();
+        // Enable auto-resize for all orientations — no more "please rotate" message!
+        CommonUtils.AutoResize.init();
     </script>
 </body>
 </html>
