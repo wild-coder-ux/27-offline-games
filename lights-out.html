@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Toggle Lights">
-<title>Lights Out</title>
+<meta name="apple-mobile-web-app-title" content="Hangman">
+<title>Hangman</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden}
@@ -14,116 +14,322 @@ body{
   background:#1a1a2e;color:#e0e0e0;
   display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;
   height:100vh;height:100dvh;
-  padding:8px;
+  padding:6px 8px;
   user-select:none;-webkit-user-select:none;
 }
 h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
-.sub{font-size:.7rem;color:#888;text-align:center}
-.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px}
-.dbtn{display:flex;gap:5px}
-.dbtn button{font-family:inherit;font-size:.6rem;font-weight:700;padding:4px 8px;border:none;border-radius:20px;background:#16213e;color:#888;text-transform:uppercase;cursor:pointer}
-.dbtn button.on{background:#e94560;color:#fff}
-.stats span{font-family:monospace;font-size:.9rem;color:#aaa;font-weight:700}
-.board{display:grid;gap:6px;width:100%;max-width:320px;padding:8px;touch-action:manipulation}
-.cell{aspect-ratio:1;border-radius:8px;cursor:pointer;background:#16213e;transition:background .2s,box-shadow .2s;border:2px solid #2a2a4a}
-.cell.on{background:#e94560;box-shadow:0 0 16px rgba(233,69,96,.5);border-color:#e94560}
-.cell:active{transform:scale(.95)}
+.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:400px}
+.cat{font-size:.7rem;color:#4fc3f7;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.lives{font-size:.85rem;color:#aaa;font-weight:700}
+.hangman{width:120px;height:140px}
+.hangman line,.hangman circle{stroke:#e94560;stroke-width:3;stroke-linecap:round;fill:none}
+.hangman .base{stroke:#2a2a4a}
+.hangman .part{opacity:0;transition:opacity .3s}
+.hangman .part.show{opacity:1}
+
+.word{
+  display:flex;gap:6px;justify-content:center;flex-wrap:wrap;
+  width:100%;max-width:400px;
+}
+.letter-slot{
+  width:clamp(24px,7vw,36px);
+  border-bottom:3px solid #2a2a4a;
+  text-align:center;
+  font-size:clamp(1.1rem,5vw,1.6rem);
+  font-weight:800;
+  padding-bottom:2px;
+  color:#4fc3f7;
+}
+.letter-slot.revealed{border-bottom-color:#538d4e}
+.letter-slot.wrong{color:#e94560;border-bottom-color:#e94560}
+
+.kb{width:100%;max-width:400px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.key{
+  font-family:inherit;font-size:clamp(.7rem,3vw,.9rem);font-weight:700;
+  width:clamp(28px,8vw,36px);height:clamp(34px,9vw,42px);
+  border:none;border-radius:6px;
+  background:#16213e;color:#e0e0e0;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  text-transform:uppercase;
+}
+.key:active{opacity:.7}
+.key.correct{background:#538d4e;color:#fff}
+.key.wrong{background:#3a3a4c;color:#555}
+.key:disabled{opacity:.3;cursor:default}
+
 .actions button{font-family:inherit;font-size:.7rem;font-weight:700;padding:6px 14px;border:none;border-radius:16px;background:#16213e;color:#aaa;cursor:pointer}
-.lights-left{font-family:monospace;font-size:1rem;color:#e94560;font-weight:700}
+
 .ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;visibility:hidden;opacity:0;transition:opacity .3s}
 .ov.show{visibility:visible;opacity:1}
-.ov h2{font-size:1.6rem;color:#e94560}
-.ov p{color:#aaa;font-size:1rem}
+.ov h2{font-size:1.5rem;color:#e94560}
+.ov p{color:#aaa;font-size:1rem;text-align:center}
+.ov .ans{font-size:1.3rem;color:#4fc3f7;font-weight:800;text-transform:uppercase;letter-spacing:.15em}
 .ov button{font-family:inherit;padding:12px 28px;border:none;border-radius:30px;background:#e94560;color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
-<h1>TOGGLE LIGHTS</h1>
-<p class="sub">Tap to toggle — turn off all the lights!</p>
+<h1>HANGMAN</h1>
 <div class="topbar">
-  <div class="dbtn" id="db">
-    <button data-d="4">4×4</button>
-    <button data-d="5" class="on">5×5</button>
-    <button data-d="6">6×6</button>
-  </div>
-  <div class="stats"><span id="moves">Moves: 0</span></div>
+  <span class="cat" id="catLabel">Animals</span>
+  <span class="lives" id="lives">❤️ 6</span>
 </div>
-<span class="lights-left" id="ll"></span>
-<div class="board" id="brd"></div>
-<div class="actions"><button id="newBtn">↻ New Puzzle</button></div>
+
+<svg class="hangman" id="hm" viewBox="0 0 120 140">
+  <line class="base" x1="10" y1="135" x2="110" y2="135"/>
+  <line class="base" x1="30" y1="135" x2="30" y2="15"/>
+  <line class="base" x1="30" y1="15" x2="75" y2="15"/>
+  <line class="base" x1="75" y1="15" x2="75" y2="30"/>
+  <circle class="part" id="p0" cx="75" cy="42" r="12"/>
+  <line class="part" id="p1" x1="75" y1="54" x2="75" y2="85"/>
+  <line class="part" id="p2" x1="75" y1="62" x2="55" y2="78"/>
+  <line class="part" id="p3" x1="75" y1="62" x2="95" y2="78"/>
+  <line class="part" id="p4" x1="75" y1="85" x2="58" y2="110"/>
+  <line class="part" id="p5" x1="75" y1="85" x2="92" y2="110"/>
+</svg>
+
+<div class="word" id="word"></div>
+<div class="kb" id="kb"></div>
+<div class="actions"><button id="newBtn">↻ New Word</button></div>
+
 <div class="ov" id="ov">
-  <h2>🎉 Lights Out!</h2>
+  <h2 id="ovT"></h2>
   <p id="ovM"></p>
-  <button id="ovB">Next Puzzle</button>
+  <p class="ans" id="ovW"></p>
+  <button id="ovB">Next Word</button>
 </div>
+
 <script>
 (function(){
-  var N=5,grid,moves,over;
-  var brdEl=document.getElementById('brd');
-  var movesEl=document.getElementById('moves'),llEl=document.getElementById('ll');
-  var ov=document.getElementById('ov'),ovM=document.getElementById('ovM');
+/* ========================================
+   HANGMAN - EXPANDED CATEGORIES
+   ========================================
 
-  function newGame(n){
-    if(n)N=n;
-    grid=[];moves=0;over=false;
-    for(var r=0;r<N;r++){grid[r]=[];for(var c=0;c<N;c++)grid[r][c]=0;}
-    // Random presses to ensure solvable
-    var presses=Math.floor(N*N*0.4)+5;
-    for(var i=0;i<presses;i++){
-      var rr=Math.floor(Math.random()*N),cc=Math.floor(Math.random()*N);
-      toggle(rr,cc,true);
-    }
-    // Make sure at least some lights are on
-    var cnt=countOn();
-    if(cnt<3){for(var i=0;i<5;i++){toggle(Math.floor(Math.random()*N),Math.floor(Math.random()*N),true);}}
-    ov.className='ov';updD();render();
+   INSTRUCTIONS:
+   1. Open hangman.html
+   2. Find lines 103-109 (the CATS object)
+   3. Replace the entire CATS object with this code below
+   4. Save and test
+
+   BEFORE (line 103-109):
+   var CATS={
+     Animals:['elephant','giraffe',...],
+     Countries:['australia','brazil',...],
+     ...
+   };
+
+   AFTER: Replace with everything between the === markers below ===
+*/
+
+var CATS={
+  Animals:[
+    'elephant','giraffe','leopard','cheetah','gorilla','penguin','dolphin',
+    'crocodile','kangaroo','rhinoceros','butterfly','flamingo','octopus',
+    'squirrel','hedgehog','peacock','platypus','walrus','chimpanzee','zebra',
+    'panther','mongoose','hamster','raccoon','pelican','seahorse','porcupine',
+    'antelope','chipmunk','starfish','lobster','parrot','toucan','buffalo',
+    'armadillo','badger','beaver','coyote','gazelle','hyena','jaguar','koala',
+    'lemur','opossum','panda','rabbit','sloth','tiger','vulture','weasel',
+    'ostrich','reindeer','iguana','turtle','shark','whale','salmon','python',
+    'cobra','eagle','falcon','hawk','raven','spider','beetle','mantis',
+    'cricket','hornet','dragon','lizard','otter','seal','moose','bison'
+  ],
+
+  Countries:[
+    'argentina','australia','austria','belgium','brazil','canada','china',
+    'denmark','egypt','finland','france','germany','greece','hungary',
+    'iceland','india','indonesia','ireland','israel','italy','jamaica',
+    'japan','kenya','malaysia','mexico','morocco','netherlands','nigeria',
+    'norway','pakistan','peru','philippines','poland','portugal','romania',
+    'russia','scotland','singapore','spain','sweden','switzerland','thailand',
+    'turkey','ukraine','venezuela','vietnam','zimbabwe','colombia','croatia',
+    'bolivia','chile','ecuador','paraguay','uruguay','cuba','panama',
+    'guatemala','honduras','nicaragua','afghanistan','bangladesh','cambodia',
+    'jordan','lebanon','syria','nepal','bhutan','mongolia','myanmar','serbia'
+  ],
+
+  Cities:[
+    'amsterdam','athens','bangkok','barcelona','beijing','berlin','boston',
+    'brussels','budapest','cairo','chicago','copenhagen','delhi','dublin',
+    'florence','frankfurt','geneva','hamburg','helsinki','houston','istanbul',
+    'jerusalem','lisbon','london','madrid','melbourne','miami','milan',
+    'montreal','moscow','munich','nairobi','oslo','paris','prague','rome',
+    'seattle','shanghai','singapore','stockholm','sydney','tokyo','toronto',
+    'valencia','venice','vienna','warsaw','zurich','atlanta','austin',
+    'baltimore','denver','detroit','phoenix','portland','dubai','vancouver',
+    'calgary','edinburgh','glasgow','liverpool','manchester','birmingham',
+    'marseille','lyon','seville','barcelona','valencia','malaga','toledo'
+  ],
+
+  Food:[
+    'apple','banana','orange','strawberry','blueberry','watermelon','pineapple',
+    'mango','cherry','peach','grape','lemon','coconut','avocado','papaya',
+    'pizza','burger','sandwich','pasta','sushi','taco','burrito','salad',
+    'soup','steak','chicken','salmon','shrimp','lobster','cheese','yogurt',
+    'butter','bread','rice','noodles','pancake','waffle','cookie','cake',
+    'chocolate','vanilla','caramel','honey','maple','cinnamon','pepper',
+    'garlic','onion','tomato','potato','carrot','broccoli','spinach',
+    'lettuce','cucumber','mushroom','asparagus','celery','radish','pumpkin',
+    'zucchini','eggplant','cauliflower','artichoke','beetroot','cabbage'
+  ],
+
+  Sports:[
+    'football','basketball','baseball','tennis','soccer','volleyball',
+    'cricket','hockey','rugby','golf','swimming','boxing','wrestling',
+    'gymnastics','cycling','skiing','skating','surfing','sailing','rowing',
+    'archery','fencing','judo','karate','taekwondo','badminton','squash',
+    'handball','lacrosse','polo','bowling','billiards','darts','athletics',
+    'marathon','triathlon','diving','snowboarding','skateboarding','climbing',
+    'weightlifting','powerlifting','crossfit','yoga','pilates','aerobics',
+    'softball','netball','curling','bobsled','luge','skiing','biathlon'
+  ],
+
+  Professions:[
+    'teacher','doctor','nurse','engineer','architect','lawyer','accountant',
+    'dentist','veterinarian','pharmacist','scientist','researcher','professor',
+    'journalist','reporter','editor','writer','author','photographer',
+    'artist','musician','singer','dancer','actor','director','producer',
+    'chef','baker','waiter','bartender','pilot','captain','sailor',
+    'driver','mechanic','electrician','plumber','carpenter','painter',
+    'gardener','farmer','fisherman','miner','builder','designer','programmer',
+    'developer','analyst','manager','consultant','secretary','librarian'
+  ],
+
+  Technology:[
+    'computer','laptop','keyboard','monitor','printer','scanner','mouse',
+    'smartphone','tablet','headphones','speaker','microphone','camera',
+    'television','remote','charger','battery','processor','memory','storage',
+    'software','hardware','internet','network','bluetooth','wireless',
+    'satellite','antenna','router','modem','server','database','algorithm',
+    'application','program','website','browser','search','download','upload',
+    'email','message','social','digital','virtual','artificial','intelligence',
+    'machine','learning','robotics','automation','innovation','encryption'
+  ],
+
+  Nature:[
+    'mountain','valley','river','ocean','lake','forest','desert','island',
+    'beach','volcano','glacier','waterfall','canyon','meadow','prairie',
+    'jungle','rainforest','savanna','tundra','swamp','marsh','delta',
+    'peninsula','archipelago','plateau','cliff','cave','lagoon','reef',
+    'thunder','lightning','rainbow','sunrise','sunset','moonlight','starlight',
+    'cloud','storm','hurricane','tornado','blizzard','avalanche','earthquake',
+    'tsunami','drought','flood','breeze','wind','rain','snow','hail','mist'
+  ],
+
+  Music:[
+    'guitar','piano','violin','drums','trumpet','saxophone','flute',
+    'clarinet','trombone','harmonica','accordion','banjo','ukulele',
+    'cello','harp','organ','synthesizer','keyboard','tambourine','cymbals',
+    'melody','harmony','rhythm','tempo','beat','chord','scale','note',
+    'symphony','orchestra','concert','performance','composer','conductor',
+    'musician','singer','vocalist','chorus','ensemble','quartet','quintet',
+    'jazz','blues','rock','classical','country','reggae','metal','folk'
+  ],
+
+  Colors:[
+    'red','blue','green','yellow','orange','purple','pink','brown',
+    'black','white','gray','silver','gold','bronze','violet','indigo',
+    'turquoise','cyan','magenta','maroon','navy','teal','olive','lime',
+    'coral','crimson','scarlet','ruby','emerald','sapphire','amber',
+    'ivory','pearl','cream','beige','tan','khaki','lavender','lilac',
+    'burgundy','charcoal','mint','peach','plum','rose','mustard','jade'
+  ]
+};
+
+/* === END OF EXPANDED CATEGORIES === */
+
+/*
+   STATS:
+   - 10 categories (up from 5)
+   - ~65 words per category (up from 20)
+   - ~650 total words (up from 100)
+   - 6.5x more content!
+*/
+
+  var catNames=Object.keys(CATS);
+  var catIdx=0,word,guessed,wrong,over,maxWrong=6;
+  var wordEl=document.getElementById('word'),kbEl=document.getElementById('kb');
+  var livesEl=document.getElementById('lives'),catLabel=document.getElementById('catLabel');
+  var ov=document.getElementById('ov'),ovT=document.getElementById('ovT');
+  var ovM=document.getElementById('ovM'),ovW=document.getElementById('ovW');
+
+  function newGame(){
+    catIdx=(catIdx+1)%catNames.length;
+    var cat=catNames[catIdx];
+    var list=CATS[cat];
+    word=list[Math.floor(Math.random()*list.length)].toLowerCase();
+    guessed={};wrong=0;over=false;
+    catLabel.textContent=cat;
+    ov.className='ov';
+    for(var i=0;i<6;i++)document.getElementById('p'+i).classList.remove('show');
+    render();buildKB();updLives();
   }
 
-  function updD(){var bs=document.getElementById('db').children;for(var i=0;i<bs.length;i++)bs[i].className=parseInt(bs[i].getAttribute('data-d'))===N?'on':'';}
-
-  function toggle(r,c,silent){
-    var dirs=[[0,0],[-1,0],[1,0],[0,-1],[0,1]];
-    for(var i=0;i<dirs.length;i++){
-      var nr=r+dirs[i][0],nc=c+dirs[i][1];
-      if(nr>=0&&nr<N&&nc>=0&&nc<N) grid[nr][nc]=1-grid[nr][nc];
-    }
-    if(!silent){moves++;render();checkWin();}
-  }
-
-  function countOn(){var c=0;for(var r=0;r<N;r++)for(var cc=0;cc<N;cc++)if(grid[r][cc])c++;return c;}
+  function updLives(){livesEl.textContent='❤️ '+(maxWrong-wrong);}
 
   function render(){
-    brdEl.innerHTML='';
-    brdEl.style.gridTemplateColumns='repeat('+N+',1fr)';
-    for(var r=0;r<N;r++){
-      for(var c=0;c<N;c++){
-        var d=document.createElement('div');
-        d.className='cell'+(grid[r][c]?' on':'');
-        d.setAttribute('data-r',r);d.setAttribute('data-c',c);
-        brdEl.appendChild(d);
+    wordEl.innerHTML='';
+    var allRevealed=true;
+    for(var i=0;i<word.length;i++){
+      var d=document.createElement('div');d.className='letter-slot';
+      if(guessed[word[i]]){d.textContent=word[i];d.classList.add('revealed');}
+      else{allRevealed=false;}
+      wordEl.appendChild(d);
+    }
+    if(allRevealed&&!over){
+      over=true;
+      ovT.textContent='🎉 You got it!';
+      ovM.textContent='';ovW.textContent=word;
+      setTimeout(function(){ov.className='ov show';},400);
+    }
+  }
+
+  function buildKB(){
+    kbEl.innerHTML='';
+    for(var i=0;i<26;i++){
+      var ch=String.fromCharCode(97+i);
+      var b=document.createElement('button');b.className='key';b.textContent=ch;
+      b.setAttribute('data-ch',ch);
+      b.addEventListener('click',(function(c){return function(){guess(c);};})(ch));
+      kbEl.appendChild(b);
+    }
+  }
+
+  function guess(ch){
+    if(over||guessed[ch])return;
+    guessed[ch]=true;
+    var btn=kbEl.querySelector('[data-ch="'+ch+'"]');
+    if(word.indexOf(ch)>=0){
+      btn.classList.add('correct');
+    }else{
+      btn.classList.add('wrong');btn.disabled=true;
+      document.getElementById('p'+wrong).classList.add('show');
+      wrong++;
+      updLives();
+      if(wrong>=maxWrong){
+        over=true;
+        // Reveal word
+        wordEl.innerHTML='';
+        for(var i=0;i<word.length;i++){
+          var d=document.createElement('div');d.className='letter-slot';
+          d.textContent=word[i];
+          if(!guessed[word[i]])d.classList.add('wrong');
+          else d.classList.add('revealed');
+          wordEl.appendChild(d);
+        }
+        ovT.textContent='💀 Game Over';
+        ovM.textContent='The word was:';ovW.textContent=word;
+        setTimeout(function(){ov.className='ov show';},600);
+        return;
       }
     }
-    movesEl.textContent='Moves: '+moves;
-    var on=countOn();
-    llEl.textContent=on>0?on+' light'+(on>1?'s':'')+' remaining':'';
+    render();
   }
 
-  function checkWin(){
-    if(countOn()===0){
-      over=true;
-      ovM.textContent='All lights off in '+moves+' moves!';
-      setTimeout(function(){ov.className='ov show';},300);
-    }
-  }
-
-  brdEl.addEventListener('click',function(e){
+  document.addEventListener('keydown',function(e){
     if(over)return;
-    var t=e.target.closest('.cell');if(!t)return;
-    toggle(parseInt(t.getAttribute('data-r')),parseInt(t.getAttribute('data-c')));
+    if(/^[a-zA-Z]$/.test(e.key))guess(e.key.toLowerCase());
   });
 
-  var dbs=document.getElementById('db').children;
-  for(var i=0;i<dbs.length;i++){dbs[i].addEventListener('click',(function(b){return function(){newGame(parseInt(b.getAttribute('data-d')));};})(dbs[i]));}
   document.getElementById('newBtn').addEventListener('click',function(){newGame();});
   document.getElementById('ovB').addEventListener('click',function(){newGame();});
   newGame();
