@@ -403,5 +403,115 @@ init();
 
 })();
 </script>
+<!-- ORIENTATION GUARD — auto shows rotate message when needed -->
+<script>
+!function(){
+  var I='og2-overlay';
+  function isTablet(){return Math.min(screen.width,screen.height)>=600}
+  function needsRotate(){var l=window.innerWidth>window.innerHeight;return isTablet()?!l:l}
+
+  function build(){
+    if(document.getElementById(I))return;
+
+    /* ── Styles ── */
+    var s=document.createElement('style');
+    s.textContent=
+      '#'+I+'{display:none;position:fixed;inset:0;'+
+        'background:linear-gradient(135deg,#0e1218 0%,#1a1f2e 50%,#0e1218 100%);'+
+        'z-index:99999;flex-direction:column;align-items:center;justify-content:center;'+
+        'font-family:-apple-system,Arial,sans-serif;text-align:center;'+
+        'padding:32px;box-sizing:border-box;overflow:hidden}'+
+      '#'+I+'.og2-show{display:flex}'+
+
+      /* Glow pulse */
+      '#'+I+'::before{content:"";position:absolute;width:300px;height:300px;'+
+        'background:radial-gradient(circle,rgba(103,126,234,.18) 0%,transparent 70%);'+
+        'border-radius:50%;animation:og2-glow 2.5s ease-in-out infinite}'+
+      '@keyframes og2-glow{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.35);opacity:1}}'+
+
+      /* Phone wrap */
+      '#og2-phone{position:relative;width:90px;height:90px;'+
+        'display:flex;align-items:center;justify-content:center;'+
+        'margin-bottom:28px;animation:og2-rot 2.4s ease-in-out infinite}'+
+      '@keyframes og2-rot{0%{transform:rotate(0)}35%,65%{transform:rotate(90deg)}100%{transform:rotate(0)}}'+
+
+      /* Phone SVG glow */
+      '#og2-phone svg{width:56px;height:90px;'+
+        'filter:drop-shadow(0 0 12px rgba(103,126,234,.9)) drop-shadow(0 0 28px rgba(103,126,234,.4))}'+
+
+      /* Arrows */
+      '#og2-al,#og2-ar{position:absolute;font-size:24px;opacity:0;'+
+        'color:#a78bfa;text-shadow:0 0 10px rgba(167,139,250,.9)}'+
+      '#og2-al{left:-2px;animation:og2-ala 2.4s ease-in-out infinite}'+
+      '#og2-ar{right:-2px;animation:og2-ara 2.4s ease-in-out infinite}'+
+      '@keyframes og2-ala{0%,20%{opacity:0;transform:translateX(6px)}40%{opacity:1;transform:translateX(0)}70%,100%{opacity:0;transform:translateX(-6px)}}'+
+      '@keyframes og2-ara{0%,20%{opacity:0;transform:translateX(-6px)}40%{opacity:1;transform:translateX(0)}70%,100%{opacity:0;transform:translateX(6px)}}'+
+
+      /* Title & sub */
+      '#og2-title{font-size:1.15rem;font-weight:700;color:#e8edf5;letter-spacing:.05em;margin-bottom:10px;position:relative}'+
+      '#og2-sub{font-size:.82rem;color:#64748b;max-width:240px;line-height:1.6;position:relative}'+
+
+      /* Animated gradient bar */
+      '#og2-bar{position:relative;width:56px;height:4px;border-radius:2px;margin-top:22px;'+
+        'background:linear-gradient(90deg,#667eea,#a78bfa,#22d3ee,#667eea);'+
+        'background-size:200% 100%;animation:og2-bar 1.8s linear infinite}'+
+      '@keyframes og2-bar{0%{background-position:0%}100%{background-position:200%}}';
+
+    document.head.appendChild(s);
+
+    /* ── Overlay HTML ── */
+    var d=document.createElement('div');
+    d.id=I;
+    d.innerHTML=
+      '<div id="og2-phone">'+
+        '<span id="og2-al">\u2039</span>'+
+        '<svg viewBox="0 0 56 90" fill="none" xmlns="http://www.w3.org/2000/svg">'+
+          '<rect x="2" y="2" width="52" height="86" rx="10" fill="#1e2535" stroke="#667eea" stroke-width="2.5"/>'+
+          '<rect x="7" y="12" width="42" height="62" rx="4" fill="#0d1117" opacity=".9"/>'+
+          '<rect x="12" y="22" width="32" height="3" rx="1.5" fill="#667eea" opacity=".7"/>'+
+          '<rect x="12" y="30" width="24" height="3" rx="1.5" fill="#667eea" opacity=".5"/>'+
+          '<rect x="12" y="38" width="28" height="3" rx="1.5" fill="#667eea" opacity=".35"/>'+
+          '<rect x="12" y="46" width="20" height="3" rx="1.5" fill="#a78bfa" opacity=".5"/>'+
+          '<rect x="12" y="54" width="26" height="3" rx="1.5" fill="#a78bfa" opacity=".35"/>'+
+          '<rect x="20" y="78" width="16" height="3" rx="1.5" fill="#667eea" opacity=".7"/>'+
+          '<circle cx="28" cy="7" r="2" fill="#667eea" opacity=".6"/>'+
+        '</svg>'+
+        '<span id="og2-ar">\u203a</span>'+
+      '</div>'+
+      '<div id="og2-title"></div>'+
+      '<div id="og2-sub"></div>'+
+      '<div id="og2-bar"></div>';
+
+    document.body.appendChild(d);
+  }
+
+  function update(){
+    var o=document.getElementById(I);
+    if(!o)return;
+    if(needsRotate()){
+      var landscape=isTablet();
+      o.querySelector('#og2-title').textContent=landscape?'Rotate to landscape':'Rotate to portrait';
+      o.querySelector('#og2-sub').textContent=landscape
+        ?'This game plays best in landscape mode. Please rotate your tablet.'
+        :'This game plays best in portrait mode. Please rotate your phone.';
+      o.classList.add('og2-show');
+    } else {
+      o.classList.remove('og2-show');
+    }
+  }
+
+  function init(){
+    build();
+    update();
+    window.addEventListener('resize',update);
+    window.addEventListener('orientationchange',function(){setTimeout(update,350)});
+  }
+
+  document.readyState==='loading'
+    ?document.addEventListener('DOMContentLoaded',init)
+    :init();
+}();
+
+</script>
 </body>
 </html>
