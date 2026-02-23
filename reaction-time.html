@@ -3,149 +3,363 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Reaction Time</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;height:100dvh;user-select:none}
-.screen{
-  width:100%;height:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:16px;cursor:pointer;padding:20px;
-  transition:background .15s;
+:root{
+  --bg:#0d0d0f;
+  --panel:#141418;
+  --border:#2a2a35;
+  --text:#e8e8f0;
+  --muted:#555566;
+  --correct:#00e5a0;
+  --wrong:#ff3b5c;
+  --warn:#ffc245;
 }
-.screen.wait{background:#1a1a2e}
-.screen.ready{background:#e94560}
-.screen.go{background:#538d4e}
-.screen.result{background:#1a1a2e}
-.screen.early{background:#e94560}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'DM Mono',monospace;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.scene{
+  width:100%;
+  max-width:440px;
+  padding:20px 16px;
+  overflow:hidden;
+}
 
-h1{font-size:1.1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#fff}
-.icon{font-size:4rem}
-.main-text{font-size:clamp(1.2rem,5vw,1.8rem);font-weight:700;text-align:center;color:#fff}
-.sub-text{font-size:clamp(.8rem,3vw,1rem);color:rgba(255,255,255,.7);text-align:center}
-.time{font-size:clamp(3rem,12vw,5rem);font-weight:800;color:#4fc3f7;font-family:monospace}
-.time .unit{font-size:.4em;color:#aaa}
-.stats{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
-.stat{text-align:center}
-.stat .val{font-size:1.2rem;font-weight:800;color:#4fc3f7;font-family:monospace}
-.stat .label{font-size:.6rem;color:#888;text-transform:uppercase}
-.rounds{display:flex;gap:6px;justify-content:center}
-.dot{width:10px;height:10px;border-radius:50%;background:#2a2a4a}
-.dot.done{background:#538d4e}.dot.cur{background:#e94560}
-.btn{font-family:inherit;font-size:.9rem;font-weight:700;padding:12px 28px;border:none;border-radius:30px;cursor:pointer;background:#16213e;color:#aaa}
-.btn:active{transform:scale(.95)}
+/* MENU */
+.menu-screen{text-align:center}
+.logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(1.8rem,11vw,3rem);
+  letter-spacing:.08em;
+  line-height:1.1;
+  background:linear-gradient(135deg,#fff,#555);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.tagline{font-size:.7rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-top:4px;margin-bottom:32px}
+.best-display{
+  display:inline-block;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px 28px;
+  margin-bottom:28px;
+  font-size:.7rem;
+  color:var(--muted);
+}
+.best-display span{
+  display:block;
+  font-size:1.5rem;
+  color:var(--warn);
+  font-family:'Bebas Neue',sans-serif;
+  letter-spacing:.08em;
+  margin-top:2px;
+}
+.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.mode-card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px 14px;
+  cursor:pointer;
+  text-align:left;
+  transition:border-color .2s,transform .15s;
+}
+.mode-card:hover{border-color:var(--muted);transform:translateY(-2px)}
+.mode-card.selected{border-color:var(--text)}
+.mode-icon{font-size:1.5rem;margin-bottom:8px}
+.mode-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.08em}
+.mode-desc{font-size:.65rem;color:var(--muted);margin-top:4px;line-height:1.5}
+.play-btn{
+  width:100%;padding:16px;
+  background:var(--text);color:var(--bg);
+  border:none;border-radius:14px;
+  font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.12em;
+  cursor:pointer;transition:opacity .15s;
+}
+.play-btn:hover{opacity:.88}
+.play-btn:active{opacity:.7}
+
+/* HUD */
+.hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.hud-item{text-align:center}
+.hud-label{font-size:.58rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase}
+.hud-val{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-top:2px}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:26px;overflow:hidden}
+.progress-fill{height:100%;background:var(--text);border-radius:2px;transition:width .3s}
+
+/* WORD */
+.word-area{text-align:center;margin-bottom:30px;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.instruction{font-size:.6rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px}
+.stroop-word{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,14vw,4.2rem);letter-spacing:.06em;line-height:1;width:100%;text-align:center;overflow:hidden;white-space:nowrap;}
+.stroop-word.anim-correct{animation:wCorrect .3s ease}
+.stroop-word.anim-wrong{animation:wWrong .35s ease}
+@keyframes wCorrect{0%,100%{opacity:1}40%{opacity:.15;filter:brightness(5)}}
+@keyframes wWrong{
+  0%{transform:translateX(0)}15%{transform:translateX(-9px)}
+  35%{transform:translateX(9px)}55%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}100%{transform:translateX(0)}
+}
+
+/* TIMER ARC */
+.timer-arc{position:relative;width:52px;height:52px;margin-top:10px}
+.timer-arc svg{transform:rotate(-90deg)}
+.timer-arc circle{fill:none;stroke:var(--border);stroke-width:3}
+.arc-fill{stroke:#ff3b5c;stroke-dasharray:138;stroke-dashoffset:0}
+.timer-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#ff3b5c}
+
+/* CIRCLES */
+.circles-wrap{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:18px;
+}
+.c-btn{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  border:3px solid rgba(255,255,255,0.1);
+  cursor:pointer;
+  display:block;
+  flex-shrink:0;
+  transition:transform .12s;
+}
+.c-btn:hover{transform:scale(1.1)}
+.c-btn:active{transform:scale(.85)!important}
+
+/* FEEDBACK */
+.feedback{height:28px;display:flex;align-items:center;justify-content:center;margin-top:16px;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}
+
+/* RESULT */
+.result-screen{text-align:center;width:100%;overflow:hidden;}
+.result-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,11vw,2.6rem);letter-spacing:.08em;margin-bottom:20px;width:100%;text-align:center;overflow:hidden;}
+.new-best{font-size:.68rem;color:var(--warn);letter-spacing:.15em;text-transform:uppercase;margin-bottom:18px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;width:100%}
+.stat-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 8px;overflow:hidden;}
+.stat-label{font-size:.58rem;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.3rem,7vw,1.9rem);letter-spacing:.04em;margin-top:4px;white-space:nowrap;}
+.stat-val.hi{color:var(--correct)}
+.result-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-sec{
+  padding:14px;background:var(--panel);color:var(--text);
+  border:1px solid var(--border);border-radius:12px;
+  font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em;
+  cursor:pointer;transition:border-color .2s;
+}
+.btn-sec:hover{border-color:var(--muted)}
 </style>
 </head>
 <body>
-<div class="screen wait" id="screen">
-  <h1>⚡ REACTION TIME</h1>
-  <div class="icon">🎯</div>
-  <div class="main-text">Test your reflexes!</div>
-  <div class="sub-text">5 rounds — tap when the screen turns GREEN</div>
-  <div class="rounds" id="rounds"></div>
-  <button class="btn" id="startBtn">START TEST</button>
-</div>
+<div class="scene" id="app"></div>
 <script>
-(function(){
-var screen=document.getElementById('screen');
-var TOTAL_ROUNDS=5;
-var round,times,phase,startTime,timeoutId;
+const COLORS=[
+  {name:'RED',    hex:'#ff3b5c'},
+  {name:'BLUE',   hex:'#4d9fff'},
+  {name:'GREEN',  hex:'#00e5a0'},
+  {name:'YELLOW', hex:'#ffc245'},
+  {name:'PURPLE', hex:'#b96dff'},
+];
+const ROUNDS=10, HARD_TIME=2500, DELAY=580;
+const app=document.getElementById('app');
+let mode='easy', state={}, blocked=false;
 
-function dotsHTML(){
-  var h='<div class="rounds">';
-  for(var i=0;i<TOTAL_ROUNDS;i++){
-    var cls='dot';if(i<round)cls+=' done';if(i===round)cls+=' cur';
-    h+='<div class="'+cls+'"></div>';
-  }
-  return h+'</div>';
+function palette(){ return mode==='easy'?COLORS.slice(0,3):COLORS; }
+
+function getBest(m){ try{return JSON.parse(localStorage.getItem('rt_best_'+(m||mode)))||null;}catch(e){return null;} }
+function saveBest(d){ const b=getBest(); const ok=!b||d.score>b.score; if(ok)localStorage.setItem('rt_best_'+mode,JSON.stringify(d)); return ok; }
+
+/* ─── MENU ─── */
+function showMenu(){
+  blocked=false;
+  const best=getBest(mode);
+  app.innerHTML=`
+    <div class="menu-screen">
+      <div class="logo">REACTION TIME</div>
+      <div class="tagline">Tap the ink color — not the word</div>
+      <div class="best-display">
+        Personal Best · ${mode.toUpperCase()}
+        <span>${best ? best.score+' pts' : '—'}</span>
+      </div>
+      <div class="mode-cards">
+        <div class="mode-card ${mode==='easy'?'selected':''}" id="mE">
+          <div class="mode-icon">🎯</div>
+          <div class="mode-name">Easy</div>
+          <div class="mode-desc">3 colors<br>No time limit</div>
+        </div>
+        <div class="mode-card ${mode==='hard'?'selected':''}" id="mH">
+          <div class="mode-icon">⚡</div>
+          <div class="mode-name">Hard</div>
+          <div class="mode-desc">5 colors<br>2.5 s each</div>
+        </div>
+      </div>
+      <button class="play-btn" id="playBtn">PLAY</button>
+    </div>`;
+  document.getElementById('mE').onclick=()=>{mode='easy';showMenu();};
+  document.getElementById('mH').onclick=()=>{mode='hard';showMenu();};
+  document.getElementById('playBtn').onclick=startGame;
 }
 
-function newGame(){
-  round=0;times=[];phase='waiting';
-  startRound();
+/* ─── GAME START ─── */
+function startGame(){
+  state={round:0,score:0,combo:0,correct:0,times:[],tiv:null};
+  blocked=false;
+  nextRound();
 }
 
-function startRound(){
-  phase='red';
-  screen.className='screen ready';
-  screen.innerHTML='<div class="icon">🔴</div><div class="main-text">Wait for GREEN...</div><div class="sub-text">Round '+(round+1)+'/'+TOTAL_ROUNDS+'</div>'+dotsHTML();
-
-  var delay=1500+Math.random()*3000;
-  timeoutId=setTimeout(function(){
-    phase='green';startTime=Date.now();
-    screen.className='screen go';
-    screen.innerHTML='<div class="icon">🟢</div><div class="main-text">TAP NOW!</div>';
-  },delay);
-}
-
-function handleTap(){
-  if(phase==='idle')return;
-
-  if(phase==='red'){
-    clearTimeout(timeoutId);phase='idle';
-    screen.className='screen early';
-    screen.innerHTML='<div class="icon">⚠️</div><div class="main-text">Too early!</div><div class="sub-text">Tap to try again</div>';
-    setTimeout(function(){phase='retry';},300);
-    return;
-  }
-
-  if(phase==='retry'){
-    startRound();return;
-  }
-
-  if(phase==='green'){
-    var time=Date.now()-startTime;
-    times.push(time);round++;phase='idle';
-
-    screen.className='screen result';
-    var html='<div class="time">'+time+'<span class="unit">ms</span></div>';
-    html+='<div class="sub-text">Round '+round+'/'+TOTAL_ROUNDS+'</div>';
-
-    if(round>=TOTAL_ROUNDS){
-      var avg=Math.round(times.reduce(function(a,b){return a+b;},0)/times.length);
-      var best=Math.min.apply(null,times);
-      var worst=Math.max.apply(null,times);
-      var rating=avg<200?'🏆 Incredible!':avg<250?'⚡ Great!':avg<300?'👍 Good':avg<400?'😐 Average':'🐌 Keep practicing!';
-
-      html='<h1>RESULTS</h1><div class="time">'+avg+'<span class="unit">ms avg</span></div>';
-      html+='<div class="main-text">'+rating+'</div>';
-      html+='<div class="stats">';
-      html+='<div class="stat"><div class="val">'+best+'ms</div><div class="label">Best</div></div>';
-      html+='<div class="stat"><div class="val">'+worst+'ms</div><div class="label">Worst</div></div>';
-      html+='<div class="stat"><div class="val">'+times.join(', ')+'</div><div class="label">All (ms)</div></div>';
-      html+='</div>';
-      html+='<button class="btn" id="againBtn">TRY AGAIN</button>';
-      screen.innerHTML=html;
-      document.getElementById('againBtn').addEventListener('click',function(e){e.stopPropagation();newGame();});
-      return;
-    }
-
-    html+='<div class="sub-text">Tap for next round</div>';
-    screen.innerHTML=html;
-    setTimeout(function(){phase='next';},200);
-    return;
-  }
-
-  if(phase==='next'){
-    startRound();return;
-  }
-
-  if(phase==='done'){
-    newGame();return;
+/* ─── NEXT ROUND ─── */
+function nextRound(){
+  if(state.round>=ROUNDS){endGame();return;}
+  state.round++;
+  blocked=false;
+  const colors=palette();
+  const wordColor=colors[Math.floor(Math.random()*colors.length)];
+  let inkColor;
+  if(Math.random()<0.65){
+    const others=colors.filter(c=>c.name!==wordColor.name);
+    inkColor=others[Math.floor(Math.random()*others.length)];
+  } else { inkColor=wordColor; }
+  state.target=inkColor;
+  state.t0=performance.now();
+  renderRound(wordColor,inkColor,colors);
+  if(mode==='hard'){
+    state.timeLeft=HARD_TIME;
+    state.tiv=setInterval(()=>{
+      state.timeLeft-=50;
+      tickArc();
+      if(state.timeLeft<=0){ clearInterval(state.tiv); state.tiv=null; pick(null); }
+    },50);
   }
 }
 
-screen.addEventListener('click',function(e){
-  if(e.target.id==='startBtn'){e.stopPropagation();newGame();return;}
-  if(e.target.id==='againBtn'){e.stopPropagation();newGame();return;}
-  handleTap();
-});
+/* ─── RENDER ─── */
+function renderRound(wc,ic,colors){
+  const pct=((state.round-1)/ROUNDS)*100;
+  app.innerHTML=`
+    <div>
+      <div class="hud">
+        <div class="hud-item"><div class="hud-label">Score</div><div class="hud-val" id="hScore">${state.score}</div></div>
+        <div class="hud-item"><div class="hud-label">Round</div><div class="hud-val">${state.round}/${ROUNDS}</div></div>
+        <div class="hud-item"><div class="hud-label">Combo</div><div class="hud-val" id="hCombo" style="color:${state.combo>1?'#ffc245':'inherit'}">${state.combo>1?'×'+state.combo:'-'}</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="word-area">
+        <div class="instruction">TAP THE INK COLOR</div>
+        <div class="stroop-word" id="sWord" style="color:${ic.hex}">${wc.name}</div>
+        ${mode==='hard'?`<div class="timer-arc"><svg width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="22"/><circle cx="26" cy="26" r="22" class="arc-fill" id="arcFill" style="stroke-dashoffset:0"/></svg><div class="timer-text" id="arcTxt">2.5</div></div>`:''}
+      </div>
+      <div class="circles-wrap" id="cWrap"></div>
+      <div class="feedback" id="fb"></div>
+    </div>`;
 
-// Keyboard
-document.addEventListener('keydown',function(e){if(e.key===' '){e.preventDefault();handleTap();}});
-})();
+  /* Build circles via JS — guarantees background color is applied */
+  const wrap=document.getElementById('cWrap');
+  colors.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='c-btn';
+    btn.dataset.color=c.name;
+    btn.style.background=c.hex;
+    btn.style.boxShadow=`0 4px 16px ${c.hex}66`;
+    wrap.appendChild(btn);
+  });
+
+  /* Single delegated listener */
+  wrap.addEventListener('click',function(e){
+    const btn=e.target.closest('.c-btn');
+    if(btn && !blocked) pick(btn.dataset.color);
+  });
+}
+
+function tickArc(){
+  const fill=document.getElementById('arcFill');
+  const txt=document.getElementById('arcTxt');
+  if(!fill||!txt) return;
+  const p=state.timeLeft/HARD_TIME;
+  fill.style.strokeDashoffset=138*(1-p);
+  txt.textContent=(state.timeLeft/1000).toFixed(1);
+  fill.style.stroke=p<.4?'#ff3b5c':p<.7?'#ffc245':'#ff3b5c';
+}
+
+/* ─── PICK ─── */
+function pick(chosen){
+  if(blocked) return;
+  blocked=true;
+  if(state.tiv){clearInterval(state.tiv);state.tiv=null;}
+  const rt=Math.round(performance.now()-state.t0);
+  const correct=chosen!==null && chosen===state.target.name;
+  const fb=document.getElementById('fb');
+  const sw=document.getElementById('sWord');
+
+  const flash=(el,cls)=>{ if(el){el.classList.add(cls);} };
+
+  if(chosen===null){
+    state.combo=0;
+    if(fb) fb.innerHTML=`<span style="color:var(--wrong)">TOO SLOW</span>`;
+    // Highlight correct circle
+    const cb=document.querySelector(`.c-btn[data-color="${state.target.name}"]`);
+    if(cb) cb.style.border='3px solid #fff';
+  } else if(correct){
+    state.combo++;
+    state.correct++;
+    state.times.push(rt);
+    const pts=10+(state.combo>1?state.combo*2:0);
+    state.score+=pts;
+    flash(sw,'anim-correct');
+    const cb=document.querySelector(`.c-btn[data-color="${chosen}"]`);
+    if(cb){ cb.style.border='3px solid #fff'; cb.style.boxShadow='0 0 20px #ffffff99'; }
+    if(fb) fb.innerHTML=`<span style="color:var(--correct)">+${pts}${state.combo>1?' ×COMBO':''} &nbsp; ${rt}ms</span>`;
+    const hs=document.getElementById('hScore');
+    const hc=document.getElementById('hCombo');
+    if(hs) hs.textContent=state.score;
+    if(hc){ hc.textContent=state.combo>1?'×'+state.combo:'-'; hc.style.color=state.combo>1?'#ffc245':'inherit'; }
+  } else {
+    state.combo=0;
+    state.times.push(rt);
+    flash(sw,'anim-wrong');
+    const wb=document.querySelector(`.c-btn[data-color="${chosen}"]`);
+    if(wb){ wb.style.border='3px solid #ff3b5c'; }
+    const cb=document.querySelector(`.c-btn[data-color="${state.target.name}"]`);
+    if(cb){ cb.style.border='3px solid #fff'; cb.style.boxShadow='0 0 18px #ffffff88'; }
+    if(fb) fb.innerHTML=`<span style="color:var(--wrong)">WRONG &nbsp;·&nbsp; ${rt}ms</span>`;
+  }
+  setTimeout(nextRound, DELAY);
+}
+
+/* ─── END ─── */
+function endGame(){
+  const avg=state.times.length?Math.round(state.times.reduce((a,b)=>a+b,0)/state.times.length):0;
+  const acc=Math.round((state.correct/ROUNDS)*100);
+  const isNew=saveBest({score:state.score,avg,acc});
+  const grade=acc>=90?'INCREDIBLE!':acc>=70?'GREAT FOCUS':acc>=50?'NOT BAD':'KEEP GOING';
+  app.innerHTML=`
+    <div class="result-screen">
+      <div class="result-title">${grade}</div>
+      ${isNew?'<div class="new-best">★ New Personal Best ★</div>':''}
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-label">Score</div><div class="stat-val hi">${state.score}</div></div>
+        <div class="stat-box"><div class="stat-label">Accuracy</div><div class="stat-val">${acc}%</div></div>
+        <div class="stat-box"><div class="stat-label">Avg React</div><div class="stat-val">${avg?avg+'ms':'—'}</div></div>
+        <div class="stat-box"><div class="stat-label">Correct</div><div class="stat-val">${state.correct}/${ROUNDS}</div></div>
+      </div>
+      <div class="result-btns">
+        <button class="btn-sec" id="retryBtn">RETRY</button>
+        <button class="play-btn" id="menuBtn" style="font-size:1.1rem">MENU</button>
+      </div>
+    </div>`;
+  document.getElementById('retryBtn').onclick=startGame;
+  document.getElementById('menuBtn').onclick=showMenu;
+}
+
+showMenu();
 </script>
 </body>
 </html>
