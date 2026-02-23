@@ -99,43 +99,123 @@ details p{
 <div class="section-title">🧩 Puzzle Games</div>
 
 <details><summary>Sudoku</summary>
-<p>Fill the 9×9 grid so every row, column and 3×3 box contains numbers 1–9 without repeating.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Fill every cell in the 9×9 grid so that each row, each column, and each 3×3 box contains the digits 1–9 exactly once.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Tap a cell</strong> to select it (highlighted in yellow), then tap a number on the pad below to fill it in.<br>
+• Tap <strong>⌫</strong> to erase the selected cell.<br>
+• On desktop: click a cell then press a <strong>number key</strong> to fill it, or <strong>Delete / Backspace</strong> to clear it.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Given vs. your numbers:</strong> Pre-filled clue numbers appear on a blue background and cannot be changed. The cells you fill in are white — tap any of your own entries to change or erase them.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Feedback:</strong><br>
+• 🔴 <strong>Red cell</strong> — the number you entered conflicts with another in the same row, column, or box.<br>
+• 🟢 <strong>Green cell</strong> — correct! That number is in the right place.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Difficulty:</strong><br>
+• <strong>Easy</strong> — ~45 givens. Most moves follow directly from the clues, great for beginners.<br>
+• <strong>Medium</strong> — ~35 givens. Requires tracking possibilities across multiple cells.<br>
+• <strong>Hard</strong> — ~33 givens. Demands careful logical deduction — no guessing needed, but every step counts.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Timer:</strong> The clock runs from the moment a new puzzle loads. Try to beat your best time on each difficulty!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Start by scanning for any row, column, or box that only has one empty cell — that cell's number is forced. Then look for digits that can only go in one place within a box.</p>
 </details>
 
 <details><summary>Word Guess</summary>
-<p>Guess the hidden word within limited attempts. Use clues from correct letter positions.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Guess the hidden word in 6 attempts or fewer.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong> Type letters using your keyboard or tap the on-screen keys. Press <strong>Enter</strong> to submit your guess and <strong>⌫</strong> to delete a letter.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Colour Clues:</strong><br>
+🟩 <strong>Green</strong> — correct letter, correct position.<br>
+🟨 <strong>Yellow</strong> — correct letter, wrong position.<br>
+⬛ <strong>Grey</strong> — letter is not in the word at all.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Word Length:</strong> Choose between 4, 5, 6 or 7 letter words using the buttons at the top. Longer words = harder challenge.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Hint:</strong> Tap 💡 Hint to reveal the position and letter of one hidden tile. You get 2 hints per game — use them wisely!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Start with a word that uses common letters like E, A, R, S and T to get the most clues early on.</p>
 </details>
 
 <details><summary>Minesweeper</summary>
-<p>Reveal tiles without hitting mines. Numbers indicate how many mines are nearby.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Reveal every safe cell on the grid without hitting a mine.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> Tap any cell to reveal it. If it's a mine — game over. If it's safe, a number appears showing how many mines are in the 8 surrounding cells. Use these numbers to figure out where the mines are hiding.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Flagging mines:</strong><br>
+• Tap the <strong>🚩 Flag</strong> button to enter flag mode, then tap any cell to mark it as a suspected mine.<br>
+• On mobile you can also <strong>long-press</strong> any cell to flag it directly without switching modes.<br>
+• The mine counter at the top shows how many unflagged mines remain.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Chording:</strong> If a revealed number already has exactly the right number of flags around it, tapping it again will auto-reveal all remaining neighbours — a big time-saver.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Difficulty:</strong><br>
+• <strong>Easy</strong> — 9×9 grid, 10 mines.<br>
+• <strong>Medium</strong> — 12×10 grid, 25 mines.<br>
+• <strong>Hard</strong> — 14×10 grid, 40 mines.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Safe first move:</strong> Your first tap is always safe — mines are placed after your first click so you can never lose immediately.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Start in the middle or a corner. When a numbered cell touches exactly that many unrevealed cells, all of them must be mines — flag them all.</p>
 </details>
 
 <details><summary>2048</summary>
-<p>Swipe tiles to merge matching numbers. Reach 2048 to win.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Merge tiles to build up to the 2048 tile.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong> Swipe in any direction (or use the arrow keys on desktop) to make your move.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How it works:</strong> Every swipe slides <em>all</em> tiles on the board as far as they can go in that direction — this is intentional and is the core mechanic! Any two tiles with the same number that collide merge into one tile worth double: 2+2→4, 4+4→8, and so on. After each move, a new tile (2 or 4) appears in a random empty cell.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Merging:</strong> Only one merge per tile per move — a newly merged tile won't merge again in the same swipe. So swiping right on 2 · 2 · 2 · 2 gives you 4 · 4, not 8.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Each merge adds the new tile's value to your score — merging two 128s into 256 scores 256 points. Higher merges = much bigger points. Your best score is saved automatically.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Game Over:</strong> The game ends when every cell is filled and no two neighbouring tiles can merge.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Pick one corner for your highest tile and never swipe away from it. Build a descending chain along two edges (e.g. 512 → 256 → 128 → 64) so merges flow naturally inward — this stops large tiles getting stranded in the middle.</p>
 </details>
 
 <details><summary>Sliding Puzzle</summary>
-<p>Slide tiles into the empty space to restore the correct order. The sequence is 1,2 3 4...</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Rearrange the numbered tiles into the correct order (1, 2, 3… left to right, top to bottom) by sliding them into the one empty space.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Tap any tile</strong> next to the empty space to slide it in.<br>
+• <strong>Swipe</strong> toward the empty space to move a row or column.<br>
+• On desktop: use the <strong>arrow keys</strong> to push a neighbouring tile into the gap.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Grid sizes:</strong><br>
+• <strong>3×3</strong> — 8 tiles, beginner friendly.<br>
+• <strong>4×4</strong> — 15 tiles, a classic challenge.<br>
+• <strong>5×5</strong> — 24 tiles, for puzzle masters only.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Timer & Moves:</strong> The clock starts on your first move. Try to solve it in the fewest moves and shortest time. Tiles in their correct position are highlighted in blue.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Solve row by row from the top. Place the first two tiles of each row, then slot the rest in — don't scramble completed rows trying to fix the bottom.</p>
 </details>
 
 <details><summary>Toggle Lights</summary>
-<p>Tap lights to toggle them and adjacent lights. Turn all lights off to win.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Turn off all the lit cells on the grid.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How it works:</strong> Tapping any cell toggles it AND its immediate neighbours (up, down, left, right) between on and off. The puzzle is to find the right sequence of taps to extinguish every light.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Grid sizes:</strong> Choose 4×4, 5×5 or 6×6 using the buttons at the top. Larger grids are significantly harder.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Moves:</strong> Your move count is tracked — try to solve each puzzle in as few taps as possible. Every puzzle is guaranteed to be solvable.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Lights remaining:</strong> The counter below the grid shows how many lights are still on, so you can track your progress.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Work row by row from top to bottom — use the row below to fix whatever is lit in the row above. This systematic approach (called the "chase the lights" method) solves most boards efficiently.</p>
 </details>
 
 <details><summary>Hangman</summary>
-<p>Guess letters to reveal the word before the drawing completes.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Guess the hidden word before the hangman drawing is complete.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> A random word is chosen from a category shown at the top. Tap letters on the on-screen keyboard (or type on a physical keyboard) to guess. Each correct letter is revealed in its position. Each wrong letter adds a body part to the drawing.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Lives:</strong> You have 6 chances ❤️. After 6 wrong guesses the game is over and the word is revealed.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Categories:</strong> The game cycles through 10 categories — Animals, Countries, Cities, Food, Sports, Professions, Technology, Nature, Music and Colors — with hundreds of words total.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Keyboard colours:</strong> Correct guesses turn green, wrong guesses turn grey so you can track what you've already tried.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Start with common letters — E, A, R, S, T, I, O, N — they appear in most English words. Then use the category shown to narrow down what the word might be.</p>
 </details>
 
 <details><summary>Word Search</summary>
-<p>Find hidden words in the grid horizontally, vertically or diagonally.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Find all 6 hidden words in the letter grid before moving on to the next themed puzzle.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> Press and drag across letters to highlight a word — drag in any direction and release when you've selected the whole word. If it's in the list, it locks in green. On desktop you can click and drag with the mouse.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Directions:</strong> Words can run in all 8 directions — left, right, up, down, and all four diagonals. Always read in a straight line.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Word list:</strong> The 6 words to find are shown below the grid. Found words are crossed off with a strikethrough as you go. Your progress is shown as a counter (e.g. 3/6) in the top corner.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Themes:</strong> Each puzzle belongs to a category — Animals, Space, Food, Music, Tech, Ocean, Nature, Sports, School, Colors, Weather, Garden, City, Winter, or Adventure. Themes rotate automatically with every new puzzle.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">New Puzzle:</strong> Tap <strong>↻ New Puzzle</strong> at any time to skip to a fresh grid with the next theme. When you find all 6 words, a completion screen appears and you can tap <strong>Next Puzzle</strong> to continue.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Scan for the shortest words first — they're quicker to spot and the letters they share with longer words can help you track those down too.</p>
 </details>
 
 <details><summary>Crossword</summary>
-<p>Fill in intersecting words based on clues provided.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Fill in all the crossword squares by solving the across and down clues.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> Tap any white cell to select it — the current clue appears at the top of the screen. Type your answer using the on-screen keyboard. Tap the same cell again (or the clue bar) to switch between Across and Down for that cell.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Clue list:</strong> Across and Down clues are listed below the grid. Tap any clue to jump to that word. Completed words are crossed off automatically.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Timer:</strong> The clock runs from when you start — try to complete the puzzle as fast as possible.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Hint:</strong> Tap 💡 Hint to reveal a single letter in the currently selected word. Use sparingly!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Start with the short 3-letter words — they're often easier to crack and the crossing letters they give you will unlock the longer ones.</p>
 </details>
 
-<details><summary>Word Builder</summary>
-<p>Create as many words as possible from the given letters. Longer words give more points. Skip to reveal the answers.</p>
+<details><summary>Word Builder — Brain Edition</summary>
+<p><strong style="color:#22d3ee">Goal:</strong> Build as many valid words as you can from a set of scrambled letters. Longer words score more points.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> Tap the letter tiles one by one to spell out a word — the order you tap them becomes your word, shown above. Each letter can only be used once per attempt. Tap <strong>Submit</strong> when you're happy with your word, <strong>Clear</strong> to start over, or <strong>Shuffle</strong> to rearrange the tiles if you're stuck.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Each accepted word scores points equal to its letter count — a 3-letter word = 3 pts, a 6-letter word = 6 pts. Longer words are rarer and worth more, so always try to find the big ones!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Feedback:</strong> Valid new words flash gold and show a brief definition. Already-found words flash pink. Invalid words shake red.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Modes:</strong><br>
+• ⚡ <strong>Focus</strong> — 3-minute countdown. Score as many points as possible before time runs out. The timer turns red in the final 20 seconds.<br>
+• 🌿 <strong>Relax</strong> — No time limit. Explore the letters at your own pace and find every word.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Sets:</strong> Each round uses a different letter set (e.g. H-E-A-R-T, S-P-R-I-N-G, C-R-E-A-T-E). When you've found all possible words — or time runs out — a summary screen shows every word and its definition, including any you missed.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Skip:</strong> Tap <strong>Skip</strong> to end the current set early and see the summary, then move to the next set.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Always try the full set of letters first — the longest word is often the most obvious one once you see it. Then work backwards to 3- and 4-letter combinations.</p>
 </details>
 
 </div>
@@ -145,19 +225,61 @@ details p{
 <div class="section-title">🔢 Math & Logic</div>
 
 <details><summary>Target 24</summary>
-<p>Use four numbers and arithmetic operations to make 24.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Use all four number cards with +, −, ×, ÷ to make exactly 24.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong><br>
+1. Tap a number card to select it (it turns red).<br>
+2. Tap an operator (+, −, ×, ÷).<br>
+3. Tap a second number — the result replaces both cards.<br>
+4. Repeat until one number remains. It must equal <strong>24</strong>!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Modes:</strong><br>
+• <strong>Play</strong> — Earn points for each puzzle you solve. Build a streak for bonus points.<br>
+• <strong>Practice</strong> — No score pressure, just explore and learn.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Difficulty:</strong> Easy, Medium and Hard puzzles are available. Harder puzzles require trickier combinations like division or unusual operation order.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Buttons:</strong><br>
+• <strong>💡 Hint</strong> — Highlights a useful next step. You get 3 hints per session.<br>
+• <strong>👁 Solution</strong> — Reveals the full solution step by step.<br>
+• <strong>↩ Undo</strong> — Reverses your last operation.<br>
+• <strong>⏭ Skip</strong> — Move to a new puzzle without penalty.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Think about multiplication first — most 24 solutions involve a × somewhere. Try to spot pairs that multiply to 24, 12, 8, or 6 early.</p>
 </details>
 
 <details><summary>Math Sprint</summary>
-<p>Solve math problems quickly before time runs out.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Solve as many maths problems as possible in 60 seconds.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> A maths equation appears on screen. Use the number pad to type your answer, then tap ✓ to submit. A new question appears immediately. Work as fast as you can!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Difficulty:</strong><br>
+• <strong>Easy</strong> — Addition and subtraction with numbers up to 20.<br>
+• <strong>Medium</strong> — Addition, subtraction and multiplication with numbers up to 60.<br>
+• <strong>Hard</strong> — All four operations including division, numbers up to 150, and occasional negative answers.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Negative answers:</strong> On Hard mode some answers are negative. Use the <strong>±</strong> button to toggle a minus sign before your number.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Stats:</strong> Score (correct), wrong answers, 🔥 combo streak and your high score are all shown at the top. High score is saved automatically.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Speed matters more than perfection — a wrong answer costs nothing except losing your combo. Keep moving and don't get stuck on a single question.</p>
 </details>
 
 <details><summary>Number Sequence</summary>
-<p>Identify the pattern and find the next number in the sequence.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Identify the pattern in a sequence of numbers and find the missing one.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> Six numbers are shown in a row with one replaced by a <strong>?</strong>. Work out the rule connecting the numbers, then use the number pad to type your answer and tap ✓ to submit.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Pattern types (by level):</strong><br>
+• <strong>Early levels</strong> — Simple adding or subtracting the same number each step.<br>
+• <strong>Mid levels</strong> — Multiplication, square numbers, or increasing differences.<br>
+• <strong>High levels</strong> — Fibonacci-like sequences, triangular numbers, cube numbers, alternating rules.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Levelling up:</strong> Every 3 correct answers increases your level, unlocking harder pattern types. The level and score are shown at the top.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Buttons:</strong><br>
+• <strong>💡 Hint</strong> — Reveals the pattern rule in plain English (e.g. "Multiply by 3 each time").<br>
+• <strong>⏭ Skip</strong> — Skips to a new question and shows the correct answer.<br>
+• <strong>±</strong> — Toggles a negative sign for sequences with negative answers.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> First check the difference between each pair of numbers. If those differences are equal it's arithmetic. If they're growing it might be squares or Fibonacci. If they're multiplying, it's geometric.</p>
 </details>
 
 <details><summary>Binary Puzzle</summary>
-<p>Fill the grid with 0s and 1s without repeating patterns or breaking balance rules.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Fill the grid entirely with 0s and 1s following three strict rules.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">The Three Rules:</strong><br>
+• <strong>Balance</strong> — Each row and column must have an equal number of 0s and 1s.<br>
+• <strong>No triplets</strong> — You cannot have three or more of the same digit in a row (e.g. 0-0-0 or 1-1-1 is not allowed).<br>
+• <strong>Unique rows & columns</strong> — No two rows can be identical, and no two columns can be identical.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong> Tap an empty cell to place a 0. Tap again for 1. Tap once more to clear it back to empty.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Grid Sizes:</strong> Choose 4×4 (easy), 6×6 (medium) or 8×8 (hard) using the buttons at the top.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Check & Timer:</strong> Tap ✓ Check at any time to highlight errors in red. The timer tracks how long you take — try to beat your best time.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> If a row already has the maximum allowed 0s, fill the remaining cells with 1s. Look for any sequence of two identical digits and block a third from forming next to them.</p>
 </details>
 
 </div>
@@ -167,15 +289,40 @@ details p{
 <div class="section-title">🧠 AI Inspired</div>
 
 <details><summary>AI Guesser</summary>
-<p>Think of something and answer questions. The AI attempts to guess it.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Think of something — the AI will try to guess it by asking up to 20 yes/no questions.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong><br>
+1. Pick a category (Animals, Fruits, etc.) to set what the AI guesses from.<br>
+2. Think of something within that category and keep it in mind.<br>
+3. Answer each question honestly using <strong>Yes</strong>, <strong>No</strong> or <strong>Maybe</strong>.<br>
+4. The AI uses your answers to narrow down the possibilities and make its best guess.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Answering:</strong><br>
+• <strong>Yes</strong> — Definitely true about your thing.<br>
+• <strong>No</strong> — Definitely not true.<br>
+• <strong>Maybe</strong> — Partly true or unsure — the AI will account for this.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Confidence bar:</strong> Watch the bar at the top grow as the AI becomes more certain. It may guess early if it's very confident before 20 questions are up.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Answer as honestly as you can — the AI uses pattern matching based on known properties of each item. Misleading answers will confuse it!</p>
 </details>
 
 <details><summary>Pattern Classifier</summary>
-<p>Identify patterns and classify shapes based on learned logic rules and much more! Timeout for an answer is 6 seconds.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Sort each item into the correct category to score points and advance through increasingly tricky classification levels.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> An item appears in the centre — read it, decide which category it belongs to, then tap the correct bin at the bottom. Each level introduces a new pair of categories (e.g. Fruit vs Vegetable, Planet vs Star, Mammal vs Reptile).</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Correct answers earn points and build your streak. A longer streak = bigger score multiplier. A wrong answer breaks your streak, so think before you tap!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Reveal:</strong> Tap 💡 <strong>Reveal</strong> to see the correct answer and a fun fact about the item — great for learning, but it won't earn you points.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Skip:</strong> Tap ⭭ <strong>Skip</strong> to move to the next item without penalty if you're truly stumped.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Levels:</strong> Complete all items in a level to unlock the next one. Topics span nature, science, geography, history, and more.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Read the fun facts after each level — they often give you an edge on future rounds!</p>
 </details>
 
 <details><summary>Chatbot Maze</summary>
-<p>Navigate a maze using chatbot prompts and logic decisions.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Navigate from the top-left corner of the maze to the exit at the bottom-right in as few moves as possible.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Tap the ▲ ▼ ◀ ▶ buttons</strong> to move your character through the maze.<br>
+• <strong>Swipe on the maze</strong> to move in that direction.<br>
+• You can also type directions in the chat: <em>up, down, left, right</em> or <em>north, south, west, east</em>.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Walls:</strong> You can only move through open passages — walls will block your path. The chatbot will let you know if a move isn't possible.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Levels:</strong> Each time you reach the exit, you advance to the next level with a larger and more complex maze.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Move counter:</strong> Your move count is tracked at the top. Try to solve each maze in the fewest moves possible.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Follow the right-hand rule — keep your hand on the right wall and follow it. This solves most standard mazes without backtracking.</p>
 </details>
 
 </div>
@@ -185,7 +332,14 @@ details p{
 <div class="section-title">🃏 Card Games</div>
 
 <details><summary>Memory Match</summary>
-<p>Flip cards and match pairs. Remember positions to win faster.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Find and match all pairs of emoji cards by remembering their positions.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> All cards start face down showing ?. Tap any card to flip it and reveal its emoji. Tap a second card — if they match, both stay face up. If they don't match, both flip back over after a brief moment. Remember what you saw and where!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Grid sizes:</strong><br>
+• <strong>4×3</strong> — 6 pairs, great for beginners.<br>
+• <strong>4×4</strong> — 8 pairs, medium challenge.<br>
+• <strong>5×4</strong> — 10 pairs, hardest.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Moves & Timer:</strong> Every pair of cards you flip counts as one move. The timer runs from the start. Try to complete the board in as few moves and as little time as possible.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Don't rush — take a moment to memorise where each card is before flipping a second one. Scan the whole board mentally before each turn.</p>
 </details>
 
 </div>
@@ -208,27 +362,79 @@ details p{
 </details>
 
 <details><summary>Snake</summary>
-<p>Control the snake, eat food, and avoid hitting walls or yourself.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Guide your snake to eat as much food as possible without hitting a wall or your own body.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>D-Pad buttons (▲ ▼ ◀ ▶)</strong> — tap to change direction.<br>
+• <strong>Swipe</strong> on the game board to steer the snake.<br>
+• On desktop: use the <strong>arrow keys</strong>.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How it works:</strong> Your snake moves continuously. Each piece of food you eat makes the snake one segment longer. The longer you get, the harder it is to avoid yourself!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Each food item = 1 point. Your best score is saved automatically.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Speed:</strong> Choose <strong>Slow</strong>, <strong>Normal</strong>, or <strong>Fast</strong> before starting. Faster speed = bigger challenge and more glory.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Hug the walls and spiral inward — this gives you the most room to manoeuvre and avoids accidental self-collisions.</p>
 </details>
 
 <details><summary>Block Stack</summary>
-<p>Stack moving blocks carefully to build the tallest tower.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Stack falling blocks to clear lines and survive as long as possible.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>◀ ▶</strong> — Move piece left or right<br>
+• <strong>↻</strong> — Rotate piece<br>
+• <strong>▼</strong> — Soft drop (move down faster)<br>
+• <strong>⬇ DROP</strong> — Hard drop (instant drop to bottom)<br>
+• On desktop: Arrow keys to move/rotate, Space to hard drop.<br>
+• On the board: Swipe left/right to move, swipe down to hard drop, tap to rotate.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Clearing 1 line = 100 pts × level. Clearing multiple lines at once scores much more — 2 lines = 300, 3 = 500, 4 = 800, all multiplied by your current level.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Levels:</strong> Every 10 lines cleared increases your level. Higher levels = faster falling speed.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Ghost piece:</strong> A faint outline shows exactly where your piece will land, helping you plan ahead.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Game Over:</strong> The game ends when a new piece can't fit at the top of the board.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Keep the board flat and low. Try to clear multiple lines at once for big score bonuses. Use the NEXT preview to plan your placement before the piece drops.</p>
 </details>
 
 <details><summary>Tap Bird</summary>
-<p>Tap to keep the bird flying and avoid obstacles.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Guide the bird through gaps between pipes for as long as possible without crashing.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Tap / click</strong> anywhere on the screen to make the bird flap upward.<br>
+• On desktop: press <strong>Space</strong> or click to flap.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How it works:</strong> Gravity pulls the bird down constantly. Every tap gives it a short upward boost. Time your taps to thread through the gaps between the green pipes.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> You earn 1 point for each pair of pipes you pass through. Your high score is saved between sessions.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Game Over:</strong> Hitting any pipe or the ground ends the game. Tap to restart immediately from the game over screen.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Make small, frequent taps rather than holding off — big drops are much harder to recover from than small ones.</p>
 </details>
 
 <details><summary>Brick Breaker</summary>
-<p>Use the paddle to bounce the ball and break all bricks.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Clear all bricks by bouncing the ball with your paddle. Don't let the ball fall off the bottom!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Touch/drag</strong> — Move the paddle left and right by dragging your finger across the screen.<br>
+• <strong>Tap</strong> — Launch the ball at the start of each life.<br>
+• On desktop: Move the mouse to control the paddle, Space to launch.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Each brick destroyed = 10 points × current level. Higher levels multiply your score.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Lives:</strong> You start with 3 lives ❤️. Losing the ball costs one life. The game ends when all lives are gone.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Levels:</strong> Clear all bricks to advance to the next level. New levels are faster and score more.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Paddle control:</strong> Where the ball hits the paddle affects its angle — hitting the edge sends it at a sharper angle, hitting the centre sends it more straight up.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Aim for the top of the brick wall early — once the ball gets above the bricks it bounces around rapidly clearing many at once.</p>
 </details>
 
 <details><summary>Paddle Ball</summary>
-<p>Keep the ball in play using the paddle. Don’t let it fall.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Defeat the AI opponent by bouncing the ball past their paddle. First to 7 points wins.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Drag / swipe</strong> along the bottom of the screen to move your paddle (blue).<br>
+• On desktop: move the <strong>mouse</strong> left and right, or use the <strong>← → arrow keys</strong>.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How it works:</strong> Your paddle is at the bottom; the AI’s paddle (red) is at the top. Keep the ball from passing your paddle while aiming to sneak it past the AI.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Ball angle:</strong> Where the ball hits your paddle affects its direction — hitting the edges sends it at a sharp angle, hitting the centre returns it straighter. Use this to aim past the AI.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Difficulty:</strong> Choose <strong>Easy</strong>, <strong>Med</strong>, or <strong>Hard</strong> — this controls how fast and accurately the AI tracks the ball. A new game starts immediately when you change difficulty.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Aim for the corners — the AI has a reaction delay and struggles to reach extreme angles in time.</p>
 </details>
 
 <details><summary>Pixel Runner</summary>
-<p>Jump over obstacles and survive as long as possible.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Run as far as possible by jumping over obstacles. Survive longer for a higher score.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Tap / click</strong> anywhere on the game area to jump.<br>
+• On desktop: press <strong>Space</strong> or <strong>↑ Arrow</strong> to jump.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Obstacles:</strong> Three types of red obstacles appear — rectangular blocks, triangular spikes, and tall double-topped pillars. Time your jump to clear each one.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring &amp; Medals:</strong><br>
+• Score 10+ → 🥉 Bronze &nbsp;•&nbsp; Score 25+ → 🥈 Silver<br>
+• Score 50+ → 🥇 Gold &nbsp;•&nbsp; Score 100+ → 👑 Legend</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Speed:</strong> The game gradually speeds up as your score increases — making timing your jumps harder the longer you last. Your best score is saved between sessions.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Jump early rather than late — it's better to clear an obstacle with room to spare than to clip the top edge.</p>
 </details>
 
 </div>
@@ -238,11 +444,26 @@ details p{
 <div class="section-title">⚡ Quick Fun</div>
 
 <details><summary>Follow Me</summary>
-<p>Repeat the sequence of lights and sounds correctly.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Memorise and repeat a growing sequence of coloured pad flashes. How long can your memory hold out?</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> Press <strong>START</strong> and watch the pads light up in a sequence. When it's your turn, repeat the sequence by tapping the pads in the exact same order. Each round adds one more step to remember.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Controls:</strong><br>
+• <strong>Tap the coloured pads</strong> to enter your sequence.<br>
+• On desktop: press <strong>1, 2, 3, 4</strong> to activate the top-left, top-right, bottom-left, and bottom-right pads.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Sounds:</strong> Each pad plays a distinct musical tone — use both sight and sound to remember the pattern. The tones get shorter as the sequence speeds up at higher scores.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Each successfully completed round = 1 point. Your all-time best score is displayed and saved automatically.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Say the colours out loud as you watch — turning the sequence into a spoken rhythm makes it much easier to hold in memory.</p>
 </details>
 
 <details><summary>Reaction Time</summary>
-<p>Tap as quickly as possible when the signal appears.</p>
+<p><strong style="color:#22d3ee">Goal:</strong> Tap the circle that matches the <em>ink color</em> of the word shown — not what the word says. Your brain will try to trick you!</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">How to Play:</strong> Each round shows a color word (e.g. "GREEN") printed in a different ink color (e.g. purple). Ignore the word — tap the colored circle that matches the ink.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Modes:</strong><br>
+• <strong>Easy</strong> — 3 color circles, no time limit. Focus on accuracy.<br>
+• <strong>Hard</strong> — 5 color circles, 2.5 seconds per round. Speed and accuracy both matter.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Scoring:</strong> Each correct answer = 10 points. Build a combo streak for bonus points — the longer your streak, the higher the multiplier. A wrong tap or timeout resets your combo.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Feedback:</strong> After each tap you'll see your reaction time in milliseconds. Your average reaction time and accuracy are shown at the end of each game.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Personal Best:</strong> Your top score is saved separately for Easy and Hard mode.</p>
+<p style="margin-top:8px"><strong style="color:#22d3ee">Tip:</strong> Focus on the color of the letters, not the meaning of the word. The Stroop effect makes this harder than it sounds!</p>
 </details>
 
 </div>
