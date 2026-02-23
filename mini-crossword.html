@@ -215,7 +215,7 @@ body{
 }
 .ans-ov.show{opacity:1;visibility:visible}
 .ans-ov h2{
-  font-family:'Playfair Display',serif;font-size:18px;font-weight:900;
+  font-family:'Playfair Display',serif;font-size:12px;font-weight:900;
   color:var(--gold2);letter-spacing:.08em;text-transform:uppercase;
   margin-bottom:16px;
 }
@@ -226,16 +226,27 @@ body{
 }
 .ans-close:hover{color:var(--paper)}
 .ans-grid{
-  display:grid;grid-template-columns:repeat(5,46px);
-  grid-template-rows:repeat(5,46px);gap:3px;
-  background:var(--ink);border:2px solid rgba(200,148,42,.3);
-  border-radius:6px;overflow:hidden;margin-bottom:20px;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:6px;
+  width:90%;
+  max-width:420px;
+  background:var(--ink);
+  border:2px solid rgba(200,148,42,.3);
+  border-radius:8px;
+  margin-bottom:20px;
 }
+
 .ans-cell{
-  background:#1e2a3a;display:flex;align-items:center;justify-content:center;
-  font-family:'Playfair Display',serif;font-size:20px;font-weight:700;
-  color:var(--teal2);
+  aspect-ratio:1/1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Playfair Display',serif;
+  font-size:24px;
+  font-weight:700;
 }
+
 .ans-clues{width:100%;max-width:360px;display:flex;gap:20px}
 .ans-clues .cs{flex:1}
 .ans-clues h3{color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;
