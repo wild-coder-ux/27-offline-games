@@ -48,13 +48,46 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            flex-wrap: nowrap;
+            width: 100%;
+            overflow: hidden;
         }
 
         .difficulty {
             display: flex;
-            gap: 5px;
+            gap: 4px;
             flex-wrap: nowrap;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .difficulty button {
+            padding: 8px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .timer-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        #timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e3c72;
+            white-space: nowrap;
+        }
+
+        #pauseBtn {
+            padding: 6px 10px;
+            font-size: 15px;
+            line-height: 1;
+            min-width: 34px;
+            flex-shrink: 0;
         }
 
         #newGame {
@@ -91,11 +124,7 @@
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
 
-        #timer {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1e3c72;
-        }
+        /* timer styled in .timer-group above */
 
         .sudoku-grid {
             display: grid;
@@ -103,7 +132,6 @@
             gap: 0;
             background: #333;
             border: 3px solid #333;
-            margin: 12px auto;
             width: 100%;
             aspect-ratio: 1;
         }
@@ -224,6 +252,26 @@
             to { transform: rotate(360deg); }
         }
 
+        /* ── Pause overlay ── */
+        .pause-overlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(30, 60, 114, 0.92);
+            border-radius: 4px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            z-index: 10;
+            cursor: pointer;
+        }
+        .pause-overlay.visible { display: flex; }
+        .pause-overlay .pause-icon { font-size: 48px; }
+        .pause-overlay .pause-text { color: #fff; font-size: 18px; font-weight: bold; letter-spacing: .05em; }
+        .pause-overlay .pause-hint { color: rgba(255,255,255,.65); font-size: 13px; }
+        .grid-container { position: relative; margin: 12px auto; width: 100%; }
+
     </style>
 </head>
 <body>
@@ -237,12 +285,22 @@
                     <button class="diff-btn" data-difficulty="medium">Medium</button>
                     <button class="diff-btn" data-difficulty="hard">Hard</button>
                 </div>
-                <div id="timer">00:00</div>
+                <div class="timer-group">
+                    <div id="timer">00:00</div>
+                    <button id="pauseBtn" title="Pause">⏸</button>
+                </div>
             </div>
             <button id="newGame">New Game</button>
         </div>
 
-        <div class="sudoku-grid" id="sudokuGrid"></div>
+        <div class="grid-container">
+            <div class="sudoku-grid" id="sudokuGrid"></div>
+            <div class="pause-overlay" id="pauseOverlay">
+                <div class="pause-icon">⏸</div>
+                <div class="pause-text">PAUSED</div>
+                <div class="pause-hint">Tap to resume</div>
+            </div>
+        </div>
 
         <div class="number-pad">
             <button class="num-btn" data-num="1">1</button>
@@ -268,6 +326,7 @@
         let difficulty = 'easy';
         let timer = 0;
         let timerInterval = null;
+        let isPaused = false;
 
         // How many cells to REMOVE per difficulty
         // Tuned so the uniqueness check reliably hits the target every game:
@@ -293,6 +352,7 @@
         // ─── Number pad ──────────────────────────────────────────────────────
         document.querySelectorAll('.num-btn').forEach(btn => {
             btn.addEventListener('click', () => {
+                if (isPaused) return;
                 if (selectedCell && !selectedCell.classList.contains('given')) {
                     const num = btn.dataset.num;
                     const row = parseInt(selectedCell.dataset.row);
@@ -590,6 +650,32 @@
             clearInterval(timerInterval);
         }
 
+        function pauseGame() {
+            if (isPaused || !timerInterval) return;
+            isPaused = true;
+            stopTimer();
+            document.getElementById('pauseOverlay').classList.add('visible');
+            document.getElementById('pauseBtn').textContent = '▶';
+            document.getElementById('pauseBtn').title = 'Resume';
+        }
+
+        function resumeGame() {
+            if (!isPaused) return;
+            isPaused = false;
+            document.getElementById('pauseOverlay').classList.remove('visible');
+            document.getElementById('pauseBtn').textContent = '⏸';
+            document.getElementById('pauseBtn').title = 'Pause';
+            timerInterval = setInterval(() => {
+                timer++;
+                document.getElementById('timer').textContent = formatTime(timer);
+            }, 1000);
+        }
+
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            isPaused ? resumeGame() : pauseGame();
+        });
+        document.getElementById('pauseOverlay').addEventListener('click', resumeGame);
+
         function formatTime(seconds) {
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
@@ -599,6 +685,10 @@
         // ─── New game ─────────────────────────────────────────────────────────
         function newGame() {
             stopTimer();
+            isPaused = false;
+            document.getElementById('pauseOverlay').classList.remove('visible');
+            document.getElementById('pauseBtn').textContent = '⏸';
+            document.getElementById('pauseBtn').title = 'Pause';
             selectedCell = null;
             document.getElementById('status').textContent = '';
             document.getElementById('status').classList.remove('success');
@@ -628,11 +718,54 @@
         newGame();
     </script>
 
-    <!-- Shared utility library — handles auto-resize, spinner, timer, status -->
-    <script src="common.js"></script>
+
     <script>
-        // Enable auto-resize for all orientations — no more "please rotate" message!
-        CommonUtils.AutoResize.init();
+(function (global) {
+    'use strict';
+    (function injectBaseStyles() {
+        let meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; document.head.appendChild(meta); }
+        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        const style = document.createElement('style');
+        style.textContent = `
+            html { width: 100%; } body { width: 100%; min-height: 100%; }
+            @media (orientation: landscape) and (max-height: 500px) {
+                h1 { font-size: 18px !important; margin-bottom: 5px !important; }
+                .container { padding: 8px !important; }
+                .number-pad { gap: 4px !important; margin-top: 6px !important; }
+                .sudoku-grid { margin: 6px auto !important; }
+            }
+            @media (max-width: 360px) {
+                h1 { font-size: 20px !important; }
+                .sudoku-cell { font-size: 14px !important; }
+                .number-pad button { font-size: 14px !important; }
+                button { padding: 6px 10px !important; font-size: 11px !important; }
+            }
+        `;
+        document.head.appendChild(style);
+    })();
+    const AutoResize = {
+        _callback: null,
+        init: function (callback) {
+            this._callback = callback || null;
+            this._apply();
+            window.addEventListener('resize', () => this._apply());
+            window.addEventListener('orientationchange', () => setTimeout(() => this._apply(), 350));
+        },
+        _apply: function () {
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const isLandscape = vw > vh, isSmallLandscape = isLandscape && vh < 500;
+            const container = document.querySelector('.container, .game-container');
+            if (container) {
+                if (isSmallLandscape) { container.style.maxWidth = Math.min(vw * 0.99, 700) + 'px'; container.style.maxHeight = vh + 'px'; container.style.overflowY = 'auto'; }
+                else { container.style.maxWidth = ''; container.style.maxHeight = ''; container.style.overflowY = ''; }
+            }
+            if (this._callback) this._callback({ vw, vh, isLandscape, isSmallLandscape });
+        }
+    };
+    global.CommonUtils = { AutoResize };
+})(window);
     </script>
+    <script>CommonUtils.AutoResize.init();</script>
 </body>
 </html>
