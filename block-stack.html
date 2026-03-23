@@ -7,44 +7,79 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;height:100dvh;padding:4px;user-select:none;gap:4px}
-h1{font-size:1rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#e94560}
-.topbar{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:380px}
-.stats span{font-family:monospace;font-size:.75rem;font-weight:700;color:#aaa}
-.sc{color:#4fc3f7!important}.lv{color:#e94560!important}
-.game{display:flex;gap:6px;align-items:flex-start}
-.brd{border:3px solid #e94560;border-radius:4px;display:block;background:#0f0f23}
-.side{display:flex;flex-direction:column;gap:6px}
-.nxt{border:2px solid #2a2a4a;border-radius:4px;background:#0f0f23;display:block}
-.nl{font-size:.45rem;color:#888;text-align:center}
-.ctrl{display:grid;grid-template-columns:repeat(3,36px);gap:3px}
-.ctrl button{width:36px;height:36px;border:none;border-radius:8px;background:#16213e;color:#e0e0e0;font-size:.9rem;font-weight:800;cursor:pointer}
-.ctrl button:active{background:#e94560}
-.dbtn{width:100%;padding:8px;border:none;border-radius:8px;background:#e94560;color:#fff;font-family:inherit;font-size:.7rem;font-weight:700;cursor:pointer}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  background:#1a1a2e;color:#e0e0e0;
+  display:flex;flex-direction:column;align-items:center;
+  height:100vh;height:100dvh;
+  padding:4px 4px 6px;user-select:none;
+}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;max-width:420px;padding:2px 4px;flex-shrink:0;
+}
+.stats{font-family:monospace;font-size:.82rem;font-weight:700}
+.sc{color:#4fc3f7}.lv{color:#e94560}.ln{color:#aaa}
+.board-wrap{
+  display:flex;justify-content:center;align-items:center;
+  flex:1;width:100%;min-height:0;
+}
+canvas{display:block;border:2px solid #e94560;border-radius:4px;background:#0f0f23}
+.controls{
+  display:flex;align-items:center;justify-content:center;
+  gap:14px;width:100%;max-width:420px;
+  flex-shrink:0;padding:4px 8px 2px;
+}
+.dpad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(2,1fr);
+  gap:6px;
+}
+.dpad button{
+  border:none;border-radius:12px;
+  background:#16213e;color:#e0e0e0;
+  font-weight:900;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .1s,transform .1s;
+}
+.dpad button:active{background:#e94560;transform:scale(.92)}
+#bDr{
+  border:none;border-radius:12px;
+  background:#e94560;color:#fff;
+  font-family:inherit;font-weight:800;
+  cursor:pointer;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+  transition:background .1s,transform .1s;
+}
+#bDr:active{background:#c73652;transform:scale(.92)}
+#bDr .drop-label{font-size:.6rem;letter-spacing:.08em;opacity:.9}
 </style>
 </head>
 <body>
-<h1>BLOCK STACK</h1>
+
 <div class="topbar">
-  <span class="stats"><span class="sc" id="sc">Score: 0</span></span>
-  <span class="stats"><span class="lv" id="lv">Lv 1</span> <span id="ln">Lines: 0</span></span>
+  <span class="stats sc" id="sc">Score: 0</span>
+  <span class="stats"><span class="lv" id="lv">Lv 1</span>&nbsp;&nbsp;<span class="ln" id="ln">Lines: 0</span></span>
 </div>
-<div class="game">
-  <canvas class="brd" id="brd"></canvas>
-  <div class="side">
-    <div class="nl">NEXT</div>
-    <canvas class="nxt" id="nxt" width="72" height="72"></canvas>
-    <div class="ctrl">
-      <div></div><button id="bU">↻</button><div></div>
-      <button id="bL">◀</button><button id="bD">▼</button><button id="bR">▶</button>
-    </div>
-    <button class="dbtn" id="bDr">⬇ DROP</button>
+
+<div class="board-wrap">
+  <canvas id="brd"></canvas>
+</div>
+
+<div class="controls">
+  <div class="dpad">
+    <div></div><button id="bU">↻</button><div></div>
+    <button id="bL">◀</button><button id="bD">▼</button><button id="bR">▶</button>
   </div>
+  <button id="bDr"><span id="dropIcon">⬇</span><span class="drop-label">DROP</span></button>
 </div>
+
 <script>
 (function(){
-var COLS=10,ROWS=20,CS,brd=document.getElementById('brd'),ctx=brd.getContext('2d');
-var nxt=document.getElementById('nxt'),nctx=nxt.getContext('2d');
+var COLS=10,ROWS=20,CS;
+var brd=document.getElementById('brd'),ctx=brd.getContext('2d');
 var SHAPES=[
   {s:[[1,1,1,1]],c:'#4fc3f7'},
   {s:[[1,1],[1,1]],c:'#ffca28'},
@@ -56,18 +91,36 @@ var SHAPES=[
 ];
 var grid,cur,cx,cy,next,score,lines,level,dropMs,tid,state;
 
-function sz(){
-  var maxH=window.innerHeight*.58;
-  CS=Math.floor(Math.min(maxH/ROWS,(window.innerWidth*.55)/COLS));
-  CS=Math.max(CS,14);CS=Math.min(CS,24);
-  brd.width=COLS*CS;brd.height=ROWS*CS;
+function sizeUI(){
+  var topH=document.querySelector('.topbar').offsetHeight||28;
+  var ctrlH=document.querySelector('.controls').offsetHeight||0;
+  var pad=16;
+  var availH=window.innerHeight - topH - ctrlH - pad;
+  var availW=window.innerWidth - 8;
+  CS=Math.floor(Math.min(availH/ROWS, availW/COLS));
+  CS=Math.max(CS,12); CS=Math.min(CS,34);
+  brd.width=COLS*CS; brd.height=ROWS*CS;
+
+  // Button sizing — proportional to screen, min 44px (touch target)
+  var btn=Math.max(44, Math.floor(Math.min(window.innerWidth*0.16, window.innerHeight*0.09)));
+  document.querySelectorAll('.dpad button').forEach(function(b){
+    b.style.width=btn+'px'; b.style.height=btn+'px';
+    b.style.fontSize=Math.round(btn*0.42)+'px';
+    b.style.borderRadius=Math.round(btn*0.25)+'px';
+  });
+  var drop=document.getElementById('bDr');
+  var dropW=Math.round(btn*1.35);
+  var dropH=Math.round(btn*2+6);
+  drop.style.width=dropW+'px'; drop.style.height=dropH+'px';
+  drop.style.fontSize=Math.round(btn*0.5)+'px';
+  drop.style.borderRadius=Math.round(btn*0.25)+'px';
 }
 
 function rp(){return JSON.parse(JSON.stringify(SHAPES[Math.floor(Math.random()*SHAPES.length)]));}
-function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}}
 
 function newGame(){
-  sz();grid=[];
+  sizeUI();
+  grid=[];
   for(var r=0;r<ROWS;r++){grid[r]=[];for(var c=0;c<COLS;c++)grid[r][c]=0;}
   score=0;lines=0;level=1;dropMs=700;state='play';
   next=rp();spawn();
@@ -80,7 +133,6 @@ function spawn(){
   cur=next;next=rp();
   cx=Math.floor((COLS-cur.s[0].length)/2);cy=0;
   if(!fits(cur.s,cx,cy)){state='over';clearInterval(tid);}
-  drawNext();
 }
 
 function fits(s,x,y){
@@ -138,51 +190,36 @@ function updHUD(){
 }
 
 function draw(){
-  sz();ctx.fillStyle='#0f0f23';ctx.fillRect(0,0,brd.width,brd.height);
-  // Grid lines
-  ctx.strokeStyle='rgba(255,255,255,.03)';ctx.lineWidth=1;
+  sizeUI();
+  ctx.fillStyle='#0f0f23';ctx.fillRect(0,0,brd.width,brd.height);
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
   for(var r=1;r<ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CS);ctx.lineTo(brd.width,r*CS);ctx.stroke();}
   for(var c=1;c<COLS;c++){ctx.beginPath();ctx.moveTo(c*CS,0);ctx.lineTo(c*CS,brd.height);ctx.stroke();}
-  // Locked pieces
   for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
     if(grid[r][c]){ctx.fillStyle=grid[r][c];ctx.fillRect(c*CS+1,r*CS+1,CS-2,CS-2);}
   }
   if(state==='play'){
-    // Ghost
     var gy=cy;while(fits(cur.s,cx,gy+1))gy++;
-    ctx.globalAlpha=.15;
+    ctx.globalAlpha=.18;
     for(var r=0;r<cur.s.length;r++)for(var c=0;c<cur.s[r].length;c++){
       if(cur.s[r][c])ctx.fillStyle=cur.c,ctx.fillRect((cx+c)*CS+1,(gy+r)*CS+1,CS-2,CS-2);
     }
     ctx.globalAlpha=1;
-    // Current piece
     for(var r=0;r<cur.s.length;r++)for(var c=0;c<cur.s[r].length;c++){
       if(cur.s[r][c]&&cy+r>=0){ctx.fillStyle=cur.c;ctx.fillRect((cx+c)*CS+1,(cy+r)*CS+1,CS-2,CS-2);}
     }
   }
-  // Overlays
   if(state==='menu'||state==='over'){
-    ctx.fillStyle='rgba(10,10,30,.85)';ctx.fillRect(0,brd.height*.3,brd.width,brd.height*.35);
+    ctx.fillStyle='rgba(10,10,30,.88)';ctx.fillRect(0,brd.height*.3,brd.width,brd.height*.35);
     ctx.textAlign='center';ctx.fillStyle='#e94560';
-    ctx.font='bold '+Math.floor(brd.width*.07)+'px sans-serif';
+    ctx.font='bold '+Math.floor(brd.width*.075)+'px sans-serif';
     ctx.fillText(state==='over'?'GAME OVER':'BLOCK STACK',brd.width/2,brd.height*.45);
-    ctx.fillStyle='#aaa';ctx.font=Math.floor(brd.width*.04)+'px sans-serif';
-    ctx.fillText(state==='over'?'Score: '+score+' · Tap to restart':'Tap to play!',brd.width/2,brd.height*.55);
+    ctx.fillStyle='#aaa';ctx.font=Math.floor(brd.width*.042)+'px sans-serif';
+    ctx.fillText(state==='over'?'Score: '+score+' · Tap to restart':'Tap board to start',brd.width/2,brd.height*.55);
   }
   updHUD();
 }
 
-function drawNext(){
-  nctx.fillStyle='#0f0f23';nctx.fillRect(0,0,72,72);
-  if(!next)return;
-  var s=next.s,ns=14;
-  var ox=(72-s[0].length*ns)/2,oy=(72-s.length*ns)/2;
-  for(var r=0;r<s.length;r++)for(var c=0;c<s[r].length;c++){
-    if(s[r][c]){nctx.fillStyle=next.c;nctx.fillRect(ox+c*ns+1,oy+r*ns+1,ns-2,ns-2);}
-  }
-}
-
-// Controls
 function handleAction(action){
   if(state==='menu'||state==='over'){newGame();return;}
   if(state!=='play')return;
@@ -194,11 +231,14 @@ function handleAction(action){
   draw();
 }
 
-document.getElementById('bL').addEventListener('click',function(){handleAction('left');});
-document.getElementById('bR').addEventListener('click',function(){handleAction('right');});
-document.getElementById('bD').addEventListener('click',function(){handleAction('down');});
-document.getElementById('bU').addEventListener('click',function(){handleAction('rotate');});
-document.getElementById('bDr').addEventListener('click',function(){handleAction('drop');});
+function addBtn(id,action){
+  var el=document.getElementById(id);
+  el.addEventListener('touchstart',function(e){e.preventDefault();handleAction(action);},{passive:false});
+  el.addEventListener('click',function(){handleAction(action);});
+}
+addBtn('bL','left'); addBtn('bR','right');
+addBtn('bD','down'); addBtn('bU','rotate');
+addBtn('bDr','drop');
 
 document.addEventListener('keydown',function(e){
   if(state==='menu'||state==='over'){if(e.key)newGame();return;}
@@ -209,7 +249,6 @@ document.addEventListener('keydown',function(e){
   }
 });
 
-// Swipe on board
 var sx=0,sy=0;
 brd.addEventListener('touchstart',function(e){var t=e.touches[0];sx=t.clientX;sy=t.clientY;e.preventDefault();},{passive:false});
 brd.addEventListener('touchend',function(e){
@@ -220,141 +259,44 @@ brd.addEventListener('touchend',function(e){
   else if(ax>ay&&ax>15){handleAction(dx>0?'right':'left');}
 },{passive:true});
 
-// Canvas tap to start
-brd.addEventListener('click',function(){
-  if(state==='menu'||state==='over')newGame();
-});
+brd.addEventListener('click',function(){if(state==='menu'||state==='over')newGame();});
+window.addEventListener('resize',function(){sizeUI();draw();});
 
-// Init menu
-// Init menu
-sz();
-state = 'menu';
-
-score = 0;
-lines = 0;
-level = 1;
-dropMs = 700;
-
-grid = [];
-for(var r=0;r<ROWS;r++){
-  grid[r]=[];
-  for(var c=0;c<COLS;c++) grid[r][c]=0;
-}
-
-updHUD();   // <-- important
-draw();
-
+// Init
+sizeUI();
+state='menu';score=0;lines=0;level=1;dropMs=700;
+grid=[];
+for(var r=0;r<ROWS;r++){grid[r]=[];for(var c=0;c<COLS;c++)grid[r][c]=0;}
+updHUD();draw();
 })();
 </script>
-<!-- ORIENTATION GUARD — auto shows rotate message when needed -->
+
 <script>
 !function(){
   var I='og2-overlay';
   function isTablet(){return Math.min(screen.width,screen.height)>=600}
   function needsRotate(){var l=window.innerWidth>window.innerHeight;return isTablet()?!l:l}
-
   function build(){
     if(document.getElementById(I))return;
-
-    /* ── Styles ── */
     var s=document.createElement('style');
-    s.textContent=
-      '#'+I+'{display:none;position:fixed;inset:0;'+
-        'background:linear-gradient(135deg,#0e1218 0%,#1a1f2e 50%,#0e1218 100%);'+
-        'z-index:99999;flex-direction:column;align-items:center;justify-content:center;'+
-        'font-family:-apple-system,Arial,sans-serif;text-align:center;'+
-        'padding:32px;box-sizing:border-box;overflow:hidden}'+
-      '#'+I+'.og2-show{display:flex}'+
-
-      /* Glow pulse */
-      '#'+I+'::before{content:"";position:absolute;width:300px;height:300px;'+
-        'background:radial-gradient(circle,rgba(103,126,234,.18) 0%,transparent 70%);'+
-        'border-radius:50%;animation:og2-glow 2.5s ease-in-out infinite}'+
-      '@keyframes og2-glow{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.35);opacity:1}}'+
-
-      /* Phone wrap */
-      '#og2-phone{position:relative;width:90px;height:90px;'+
-        'display:flex;align-items:center;justify-content:center;'+
-        'margin-bottom:28px;animation:og2-rot 2.4s ease-in-out infinite}'+
-      '@keyframes og2-rot{0%{transform:rotate(0)}35%,65%{transform:rotate(90deg)}100%{transform:rotate(0)}}'+
-
-      /* Phone SVG glow */
-      '#og2-phone svg{width:56px;height:90px;'+
-        'filter:drop-shadow(0 0 12px rgba(103,126,234,.9)) drop-shadow(0 0 28px rgba(103,126,234,.4))}'+
-
-      /* Arrows */
-      '#og2-al,#og2-ar{position:absolute;font-size:24px;opacity:0;'+
-        'color:#a78bfa;text-shadow:0 0 10px rgba(167,139,250,.9)}'+
-      '#og2-al{left:-2px;animation:og2-ala 2.4s ease-in-out infinite}'+
-      '#og2-ar{right:-2px;animation:og2-ara 2.4s ease-in-out infinite}'+
-      '@keyframes og2-ala{0%,20%{opacity:0;transform:translateX(6px)}40%{opacity:1;transform:translateX(0)}70%,100%{opacity:0;transform:translateX(-6px)}}'+
-      '@keyframes og2-ara{0%,20%{opacity:0;transform:translateX(-6px)}40%{opacity:1;transform:translateX(0)}70%,100%{opacity:0;transform:translateX(6px)}}'+
-
-      /* Title & sub */
-      '#og2-title{font-size:1.15rem;font-weight:700;color:#e8edf5;letter-spacing:.05em;margin-bottom:10px;position:relative}'+
-      '#og2-sub{font-size:.82rem;color:#64748b;max-width:240px;line-height:1.6;position:relative}'+
-
-      /* Animated gradient bar */
-      '#og2-bar{position:relative;width:56px;height:4px;border-radius:2px;margin-top:22px;'+
-        'background:linear-gradient(90deg,#667eea,#a78bfa,#22d3ee,#667eea);'+
-        'background-size:200% 100%;animation:og2-bar 1.8s linear infinite}'+
-      '@keyframes og2-bar{0%{background-position:0%}100%{background-position:200%}}';
-
+    s.textContent='#'+I+'{display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0e1218 0%,#1a1f2e 50%,#0e1218 100%);z-index:99999;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,Arial,sans-serif;text-align:center;padding:32px;box-sizing:border-box;overflow:hidden}'+'#'+I+'.og2-show{display:flex}'+'#'+I+'::before{content:"";position:absolute;width:300px;height:300px;background:radial-gradient(circle,rgba(103,126,234,.18) 0%,transparent 70%);border-radius:50%;animation:og2-glow 2.5s ease-in-out infinite}'+'@keyframes og2-glow{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.35);opacity:1}}'+'#og2-phone{position:relative;width:90px;height:90px;display:flex;align-items:center;justify-content:center;margin-bottom:28px;animation:og2-rot 2.4s ease-in-out infinite}'+'@keyframes og2-rot{0%{transform:rotate(0)}35%,65%{transform:rotate(90deg)}100%{transform:rotate(0)}}'+'#og2-phone svg{width:56px;height:90px;filter:drop-shadow(0 0 12px rgba(103,126,234,.9)) drop-shadow(0 0 28px rgba(103,126,234,.4))}'+'#og2-al,#og2-ar{position:absolute;font-size:24px;opacity:0;color:#a78bfa;text-shadow:0 0 10px rgba(167,139,250,.9)}'+'#og2-al{left:-2px;animation:og2-ala 2.4s ease-in-out infinite}'+'#og2-ar{right:-2px;animation:og2-ara 2.4s ease-in-out infinite}'+'@keyframes og2-ala{0%,20%{opacity:0;transform:translateX(6px)}40%{opacity:1;transform:translateX(0)}70%,100%{opacity:0;transform:translateX(-6px)}}'+'@keyframes og2-ara{0%,20%{opacity:0;transform:translateX(-6px)}40%{opacity:1;transform:translateX(0)}70%,100%{opacity:0;transform:translateX(6px)}}'+'#og2-title{font-size:1.15rem;font-weight:700;color:#e8edf5;letter-spacing:.05em;margin-bottom:10px;position:relative}'+'#og2-sub{font-size:.82rem;color:#64748b;max-width:240px;line-height:1.6;position:relative}'+'#og2-bar{position:relative;width:56px;height:4px;border-radius:2px;margin-top:22px;background:linear-gradient(90deg,#667eea,#a78bfa,#22d3ee,#667eea);background-size:200% 100%;animation:og2-bar 1.8s linear infinite}'+'@keyframes og2-bar{0%{background-position:0%}100%{background-position:200%}}';
     document.head.appendChild(s);
-
-    /* ── Overlay HTML ── */
-    var d=document.createElement('div');
-    d.id=I;
-    d.innerHTML=
-      '<div id="og2-phone">'+
-        '<span id="og2-al">\u2039</span>'+
-        '<svg viewBox="0 0 56 90" fill="none" xmlns="http://www.w3.org/2000/svg">'+
-          '<rect x="2" y="2" width="52" height="86" rx="10" fill="#1e2535" stroke="#667eea" stroke-width="2.5"/>'+
-          '<rect x="7" y="12" width="42" height="62" rx="4" fill="#0d1117" opacity=".9"/>'+
-          '<rect x="12" y="22" width="32" height="3" rx="1.5" fill="#667eea" opacity=".7"/>'+
-          '<rect x="12" y="30" width="24" height="3" rx="1.5" fill="#667eea" opacity=".5"/>'+
-          '<rect x="12" y="38" width="28" height="3" rx="1.5" fill="#667eea" opacity=".35"/>'+
-          '<rect x="12" y="46" width="20" height="3" rx="1.5" fill="#a78bfa" opacity=".5"/>'+
-          '<rect x="12" y="54" width="26" height="3" rx="1.5" fill="#a78bfa" opacity=".35"/>'+
-          '<rect x="20" y="78" width="16" height="3" rx="1.5" fill="#667eea" opacity=".7"/>'+
-          '<circle cx="28" cy="7" r="2" fill="#667eea" opacity=".6"/>'+
-        '</svg>'+
-        '<span id="og2-ar">\u203a</span>'+
-      '</div>'+
-      '<div id="og2-title"></div>'+
-      '<div id="og2-sub"></div>'+
-      '<div id="og2-bar"></div>';
-
+    var d=document.createElement('div');d.id=I;
+    d.innerHTML='<div id="og2-phone"><span id="og2-al">\u2039</span><svg viewBox="0 0 56 90" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="52" height="86" rx="10" fill="#1e2535" stroke="#667eea" stroke-width="2.5"/><rect x="7" y="12" width="42" height="62" rx="4" fill="#0d1117" opacity=".9"/><rect x="12" y="22" width="32" height="3" rx="1.5" fill="#667eea" opacity=".7"/><rect x="12" y="30" width="24" height="3" rx="1.5" fill="#667eea" opacity=".5"/><rect x="12" y="38" width="28" height="3" rx="1.5" fill="#667eea" opacity=".35"/><rect x="12" y="46" width="20" height="3" rx="1.5" fill="#a78bfa" opacity=".5"/><rect x="12" y="54" width="26" height="3" rx="1.5" fill="#a78bfa" opacity=".35"/><rect x="20" y="78" width="16" height="3" rx="1.5" fill="#667eea" opacity=".7"/><circle cx="28" cy="7" r="2" fill="#667eea" opacity=".6"/></svg><span id="og2-ar">\u203a</span></div><div id="og2-title"></div><div id="og2-sub"></div><div id="og2-bar"></div>';
     document.body.appendChild(d);
   }
-
   function update(){
-    var o=document.getElementById(I);
-    if(!o)return;
+    var o=document.getElementById(I);if(!o)return;
     if(needsRotate()){
       var landscape=isTablet();
       o.querySelector('#og2-title').textContent=landscape?'Rotate to landscape':'Rotate to portrait';
-      o.querySelector('#og2-sub').textContent=landscape
-        ?'This game plays best in landscape mode. Please rotate your tablet.'
-        :'This game plays best in portrait mode. Please rotate your phone.';
+      o.querySelector('#og2-sub').textContent=landscape?'This game plays best in landscape mode. Please rotate your tablet.':'This game plays best in portrait mode. Please rotate your phone.';
       o.classList.add('og2-show');
-    } else {
-      o.classList.remove('og2-show');
-    }
+    }else{o.classList.remove('og2-show');}
   }
-
-  function init(){
-    build();
-    update();
-    window.addEventListener('resize',update);
-    window.addEventListener('orientationchange',function(){setTimeout(update,350)});
-  }
-
-  document.readyState==='loading'
-    ?document.addEventListener('DOMContentLoaded',init)
-    :init();
+  function init(){build();update();window.addEventListener('resize',update);window.addEventListener('orientationchange',function(){setTimeout(update,350)});}
+  document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
 }();
-
 </script>
 </body>
 </html>
