@@ -130,6 +130,9 @@ function render(){
 
 function tick(){step();render();requestAnimationFrame(tick);}
 
+// TOUCH_OFFSET: paddle appears this many px ABOVE the finger so it's always visible
+var TOUCH_OFFSET=60;
+
 function movePad(cx){
   var r=c.getBoundingClientRect();
   px=Math.max(0,Math.min(W-pw,(cx-r.left)/(r.right-r.left)*W-pw/2));
@@ -142,8 +145,20 @@ function handleTap(cx){
   movePad(cx);
 }
 
-c.addEventListener('touchstart',function(e){e.preventDefault();handleTap(e.touches[0].clientX);},{passive:false});
-c.addEventListener('touchmove',function(e){e.preventDefault();if(state==='play')movePad(e.touches[0].clientX);},{passive:false});
+c.addEventListener('touchstart',function(e){e.preventDefault();handleTap(e.touches[0].clientX);applyTouchY(e.touches[0].clientY);},{passive:false});
+c.addEventListener('touchmove',function(e){e.preventDefault();if(state==='play'){movePad(e.touches[0].clientX);applyTouchY(e.touches[0].clientY);}},{passive:false});
+
+function applyTouchY(clientY){
+  if(state!=='play')return;
+  var r=c.getBoundingClientRect();
+  var touchY=(clientY-r.top)/(r.bottom-r.top)*H;
+  // Clamp paddle Y: always above finger, but not above top third of canvas
+  var newPy=touchY-TOUCH_OFFSET-ph;
+  py=Math.max(H*0.33,Math.min(H-ph-4,newPy));
+}
+c.addEventListener('touchend',function(e){
+  if(state==='play'){py=H-ph-10;}
+},{passive:false});
 c.addEventListener('click',function(e){handleTap(e.clientX);});
 c.addEventListener('mousemove',function(e){if(state==='play')movePad(e.clientX);});
 document.addEventListener('keydown',function(e){
